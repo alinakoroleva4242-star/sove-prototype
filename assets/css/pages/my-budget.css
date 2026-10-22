@@ -1,0 +1,27 @@
+/* Мой ремонт → Бюджет (my-budget.js): палитра эталонов Моего ремонта, итог закреплён внизу над полосой и меню */
+body[data-page="my"] #my-root.mb { max-width: 640px; margin: 0 auto; padding: 0 16px 150px; display: flex; flex-direction: column; gap: 12px; font-family: Montserrat, Arial, sans-serif; color: #1E1C1A; }
+body[data-page="my"] main:has(.mb) { background: #F4F2EE; }
+.mb-head { display: flex; align-items: center; gap: 10px; padding: 14px 0 2px; }
+.mb-back { width: 36px; height: 36px; border-radius: 18px; background: #FFFFFF; border: 1px solid #E6E1DA; display: flex; align-items: center; justify-content: center; font-size: 24px; line-height: 1; color: #1E1C1A; text-decoration: none; flex: none; }
+.mb-head__b { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.mb-head__b b { font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 600; font-size: 26px; line-height: 1; }
+.mb-head__b small { font-size: 11px; color: #6B655F; }
+.mb-type { flex: none; font-size: 11px; font-weight: 700; padding: 4px 9px; border-radius: 10px; background: #F3E4DB; color: #7E3A24; }
+.mb-sample { display: flex; justify-content: space-between; align-items: center; font-size: 11px; }
+.mb-sample span { font-weight: 700; letter-spacing: .5px; padding: 3px 8px; border-radius: 8px; background: #FFFFFF; color: #6B655F; border: 1px dashed #CFC6BC; }
+.mb-sample a, .mb-scout { color: #A24E32; font-weight: 800; text-decoration: none; }
+.mb-sec { background: #FFFFFF; border-radius: 16px; padding: 6px 14px 10px; }
+.mb-sec__h { display: flex; justify-content: space-between; align-items: baseline; padding: 8px 0 6px; }
+.mb-sec__h span { font-size: 10px; letter-spacing: 2px; font-weight: 700; color: #6B655F; }
+.mb-sec__h b { font-size: 15px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.mb-row { display: flex; justify-content: space-between; gap: 12px; padding: 7px 0; border-top: 1px solid #F0ECE6; font-size: 12px; }
+.mb-row span { color: #6B655F; min-width: 0; }
+.mb-row b { font-weight: 700; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.mb-save { padding-top: 6px; font-size: 11px; color: #2E6B4E; text-align: right; }
+.mb-scout { align-self: flex-start; font-size: 12px; }
+.mb-note { margin: 0; font-size: 9px; color: #A8A19A; }
+.mb-total { position: fixed; left: 0; right: 0; z-index: 46; bottom: calc(var(--tabbar-h, 64px) + env(safe-area-inset-bottom) + 58px); max-width: 640px; margin: 0 auto; padding: 10px 16px; background: #2B2926; color: #FFFFFF; display: flex; justify-content: space-between; align-items: center; }
+.mb-total div { display: flex; flex-direction: column; gap: 1px; }
+.mb-total small { font-size: 9px; letter-spacing: 2px; font-weight: 700; color: #CFC6BC; }
+.mb-total b { font-size: 20px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.mb-total span { font-size: 11px; color: #CFC6BC; }

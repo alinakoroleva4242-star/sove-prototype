@@ -1,0 +1,121 @@
+/* Витрина идей блока «Разбор рендера»: четырнадцать эскизов подряд */
+.ri__intro { font-size: 13px; color: var(--graphite); padding: 12px var(--gutter) 0; margin: 0; line-height: 1.5; }
+.ri__block { padding: 20px var(--gutter) 4px; }
+.ri__n { font-size: 12px; font-weight: 700; color: var(--accent); margin: 0 0 3px; }
+.ri__d { font-size: 12px; color: var(--graphite); margin: 0 0 10px; line-height: 1.4; }
+
+/* общий корпус эскиза */
+.rc { border: 1px solid var(--line); border-radius: var(--r); background: var(--white); overflow: hidden; color: var(--ink); display: block; }
+.rc > img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; display: block; }
+.rc__stage { position: relative; }
+.rc__stage > img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; display: block; }
+.rc__body { padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 6px; }
+.rc__k { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; font-weight: 600; color: var(--accent); }
+.rc__t { font-size: 17px; font-weight: 600; line-height: 1.25; }
+.rc__d { font-size: 12px; color: var(--graphite); line-height: 1.4; }
+.rc__sum { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.rc__sum s { font-size: 14px; font-weight: 500; color: var(--stone); margin-left: 6px; }
+.rc .btn { margin-top: 6px; }
+.rc__count { position: absolute; left: 12px; bottom: 12px; font-size: 11px; font-weight: 600; color: var(--white); background: rgba(31,31,31,.7); padding: 6px 10px; border-radius: var(--pill); }
+
+/* рамки на предметах */
+.rf { position: absolute; left: var(--x); top: var(--y); width: var(--w); height: var(--h); border: 1.5px solid var(--white); border-radius: 6px; box-shadow: 0 0 0 1px rgba(31,31,31,.25); }
+.rc--frames .rf { animation: rfin .5s ease both; animation-delay: calc(var(--i) * .35s); }
+@keyframes rfin { from { opacity: 0; transform: scale(1.06); } to { opacity: 1; transform: none; } }
+.rf i { position: absolute; left: -9px; top: -9px; width: 20px; height: 20px; border-radius: 50%; background: var(--accent); color: var(--white); font-style: normal; font-size: 11px; font-weight: 700; display: grid; place-items: center; }
+.rf.is-on { border-color: var(--accent); box-shadow: 0 0 0 1px rgba(160,80,53,.4); }
+.rf em { position: absolute; left: 50%; bottom: -12px; transform: translateX(-50%); font-style: normal; font-size: 10px; font-weight: 700; background: var(--white); padding: 3px 7px; border-radius: var(--pill); white-space: nowrap; }
+
+/* 3 — конверт */
+.env { position: relative; margin: 16px 16px 0; }
+.env__paper { display: block; border-radius: var(--r-sm) var(--r-sm) 0 0; overflow: hidden; box-shadow: 0 10px 22px -16px rgba(31,31,31,.8); }
+.env__paper img { width: 100%; aspect-ratio: 16 / 10; object-fit: cover; display: block; }
+.env__flap { display: block; height: 54px; margin-top: -10px; background: var(--paper); border: 1px solid var(--line-2); border-radius: 0 0 var(--r-sm) var(--r-sm); clip-path: polygon(0 0, 50% 60%, 100% 0, 100% 100%, 0 100%); }
+
+/* 4 — рентген-полоса */
+.xray { position: absolute; left: 0; right: 0; top: 46%; height: 64px; background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,.35), rgba(255,255,255,0)); }
+.xray i { position: absolute; left: 0; right: 0; top: 50%; height: 2px; background: rgba(255,255,255,.9); }
+
+/* 5, 12 — ленты кадров */
+.rlane { display: flex; gap: 10px; overflow-x: auto; padding: 4px 16px 10px; }
+.rlane::-webkit-scrollbar { display: none; }
+.rlane__i { flex: 0 0 132px; position: relative; }
+.rlane__i img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: var(--r-sm); display: block; }
+.rlane__i span { position: absolute; left: 8px; bottom: 8px; font-size: 10px; font-weight: 600; color: var(--white); background: rgba(31,31,31,.65); padding: 4px 8px; border-radius: var(--pill); }
+.rlane__own { flex: 0 0 132px; display: flex; flex-direction: column; justify-content: center; gap: 2px; padding: 12px; border: 1.5px dashed var(--line-2); border-radius: var(--r-sm); aspect-ratio: 4 / 3; cursor: pointer; }
+.rlane__own b { font-size: 13px; font-weight: 600; }
+.rlane__own span { font-size: 11px; color: var(--graphite); }
+
+/* 6 — смета собирается */
+.rc__split { display: grid; grid-template-columns: 44% 56%; }
+.rc__split img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.rlist { list-style: none; margin: 0; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
+.rlist li { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; font-size: 12px; animation: rlin .4s ease both; animation-delay: calc(var(--i) * .25s); }
+.rlist li b { font-weight: 700; white-space: nowrap; }
+.rlist__more { color: var(--stone); }
+@keyframes rlin { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+/* 7 — сравнение смет */
+.rtab { width: calc(100% - 32px); margin: 0 16px; border-collapse: collapse; font-size: 12px; }
+.rtab th { text-align: left; font-size: 10px; letter-spacing: .06em; text-transform: uppercase; color: var(--stone); font-weight: 600; padding-bottom: 6px; }
+.rtab th:not(:first-child), .rtab td:not(:first-child) { text-align: right; }
+.rtab td { padding: 7px 0; border-top: 1px solid var(--line); white-space: nowrap; }
+.rtab__old { color: var(--stone); text-decoration: line-through; }
+.rtab__new { font-weight: 700; color: var(--accent); }
+
+/* 8 — соберите такой же */
+.rc--same { position: relative; display: block; }
+.rc--same img { width: 100%; aspect-ratio: 4 / 3.4; object-fit: cover; display: block; }
+.rc__over { position: absolute; inset: auto 0 0 0; padding: 18px 16px; display: flex; flex-direction: column; gap: 4px; align-items: flex-start; background: linear-gradient(to top, rgba(31,31,31,.86), rgba(31,31,31,0)); color: var(--white); }
+.rc__over b { font-size: 20px; font-weight: 600; }
+.rc__over em { font-style: normal; font-size: 13px; opacity: .9; }
+.rc__over .btn { margin-top: 8px; }
+
+/* 9 — оглавление кадра */
+.toc { display: grid; grid-template-columns: 38% 62%; gap: 14px; padding: 16px; }
+.toc__strip { width: 100%; height: 100%; aspect-ratio: 2 / 3; object-fit: cover; border-radius: var(--r-sm); display: block; }
+.toc__list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; justify-content: space-between; }
+.toc__list li { display: flex; align-items: baseline; gap: 6px; font-size: 12px; }
+.toc__list li span { white-space: nowrap; }
+.toc__list li i { flex: 1 1 auto; border-bottom: 1px dotted var(--line-2); transform: translateY(-3px); }
+.toc__list li b { font-variant-numeric: tabular-nums; font-weight: 600; white-space: nowrap; }
+.toc__sum { border-top: 1px solid var(--line); padding-top: 8px; margin-top: 4px; }
+.toc__sum b { font-size: 15px; font-weight: 700; color: var(--accent); }
+
+/* 10 — калька с выносками */
+.trace { position: absolute; inset: 0; background: rgba(247,245,240,.72); }
+.tnote { position: absolute; left: var(--x); top: var(--y); }
+.tnote em { position: absolute; width: 18px; height: 18px; margin: -9px 0 0 -9px; border-radius: 50%; background: var(--accent); color: var(--white); font-style: normal; font-size: 10px; font-weight: 700; display: grid; place-items: center; }
+.tnote > span { position: absolute; left: 14px; top: -10px; display: flex; flex-direction: column; font-size: 10px; color: var(--graphite); background: rgba(255,255,255,.9); padding: 4px 8px; border-radius: var(--r-xs); white-space: nowrap; }
+.tnote b { font-size: 11px; font-weight: 700; color: var(--ink); }
+
+/* 11 — лупа */
+.lens { position: absolute; left: 44%; top: 48%; width: 46%; aspect-ratio: 1; transform: translate(-50%, -50%); border-radius: 50%; overflow: hidden; box-shadow: 0 0 0 2px rgba(255,255,255,.9), 0 12px 26px -12px rgba(0,0,0,.7); }
+.lens img { position: absolute; width: 217%; height: 217%; left: -96%; top: -104%; max-width: none; object-fit: cover; filter: brightness(.72); }
+.lens .rf { position: absolute; }
+
+/* 13 — один предмет */
+.rone { display: flex; align-items: center; gap: 10px; padding: 8px; border: 1px solid var(--line); border-radius: var(--r-sm); }
+.rone img { width: 52px; height: 52px; object-fit: contain; }
+.rone b { display: block; font-size: 13px; font-weight: 600; line-height: 1.25; }
+.rone i { display: block; font-style: normal; font-size: 12px; font-weight: 700; color: var(--accent); margin-top: 2px; }
+.rone s { color: var(--stone); font-weight: 500; }
+
+/* 14 — разбор продолжается */
+.rc__row { display: flex; gap: 12px; align-items: center; padding: 14px 16px 0; }
+.rc__mini { width: 72px; height: 72px; object-fit: cover; border-radius: var(--r-sm); }
+.rc__row b { display: block; font-size: 14px; font-weight: 600; }
+.rc__row i { display: block; font-style: normal; font-size: 12px; color: var(--graphite); margin-top: 2px; }
+.rbar { display: block; height: 4px; border-radius: 4px; background: var(--surface-2); margin-top: 8px; }
+.rbar em { display: block; height: 100%; border-radius: 4px; background: var(--accent); }
+
+/* 15 — обводка по контуру предметов, а не рамкой */
+.rc__body--top { padding-bottom: 10px; }
+/* кадр в тех же пропорциях, что исходник (4:5) — иначе контуры не совпадают с предметами */
+.rc__stage--mix > img { aspect-ratio: 4 / 5; }
+.ol { position: absolute; inset: 0; width: 100%; height: 100%; }
+.ol__p { fill: rgba(160,80,53,.12); stroke: var(--accent); stroke-width: 1.6; vector-effect: non-scaling-stroke; stroke-linejoin: round;
+  animation: olin .5s ease both; animation-delay: calc(var(--i) * .35s); }
+@keyframes olin { from { opacity: 0; } to { opacity: 1; } }
+.olp { position: absolute; left: var(--x); top: var(--y); transform: translate(-50%, -50%); font-size: 10px; font-weight: 700;
+  background: rgba(255,255,255,.94); color: var(--ink); padding: 3px 8px; border-radius: var(--pill); white-space: nowrap; box-shadow: 0 4px 12px -6px rgba(0,0,0,.5); }

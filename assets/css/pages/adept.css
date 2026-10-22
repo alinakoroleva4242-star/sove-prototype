@@ -1,0 +1,99 @@
+/* Адепт — лендинг дизайн-проекта: расчёт по пакету и площади, заявка без онлайн-оплаты */
+.ad-top { padding-top: var(--s6); }
+.ad-top .notice > span { flex: 1 1 260px; min-width: 0; }
+
+.ad-hero { display: grid; gap: var(--s8); grid-template-columns: minmax(0, 1fr); padding-block: var(--s10) var(--s6); align-items: end; }
+.ad-hero__pic img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; }
+.ad-hero__facts { margin-top: var(--s4); }
+.ad-hero__cta { gap: var(--s6); }
+@media (max-width: 639px) {
+  .ad-hero__facts { --cols: 2; } .ad-hero__facts > :nth-child(3) { display: none; }
+  .ad-hero__cta .btn--primary { width: 100%; }
+}
+@media (min-width: 960px) {
+  .ad-hero { grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: var(--s6); padding-block: var(--s16) var(--s10); }
+  .ad-hero__text { grid-column: span 7; padding-bottom: var(--s2); }
+  .ad-hero__pic { grid-column: span 5; }
+  .ad-hero__pic img { aspect-ratio: 4 / 5; max-height: 600px; }
+}
+
+/* расчёт: слева шаги и форма, справа закреплённый итог; на телефоне — шаги, итог, форма */
+.ad-calc { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s10); scroll-margin-top: var(--header-h); }
+@media (min-width: 960px) {
+  .ad-calc { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); grid-template-areas: "config sum" "form sum"; column-gap: var(--s16); row-gap: var(--s16); align-items: start; }
+  .ad-config { grid-area: config; } .ad-form { grid-area: form; }
+  .ad-sum { grid-area: sum; position: sticky; top: calc(var(--header-h) + var(--s4)); }
+}
+
+.ad-block__head { display: flex; align-items: baseline; gap: var(--s3); }
+.ad-block__n { font-size: 13px; font-weight: 700; color: var(--accent); min-width: 16px; }
+.ad-block.is-error { border-top-color: var(--danger); }
+
+.ad-chips { display: flex; flex-wrap: wrap; gap: var(--s2); }
+.ad-chips .chip { min-height: 44px; min-width: 56px; justify-content: center; padding: 0 16px; font-size: 14px; cursor: pointer; }
+.ad-scout-hint { display: flex; flex-wrap: wrap; align-items: center; gap: 4px var(--s3); font-size: 14px; color: var(--graphite); }
+.ad-scout-hint .arrow-link { min-height: 44px; }
+.ad-notice { border-color: var(--ink); }
+.ad-notice .mid-num { display: block; }
+
+/* пакеты */
+.ad-packages .option { height: 100%; gap: var(--s3); cursor: pointer; }
+.ad-pk__rate { font-size: 22px; font-weight: 300; line-height: 1.1; }
+.ad-pk__list { display: flex; flex-direction: column; gap: 6px; border-top: 1px solid var(--line); padding-top: var(--s3); font-size: 13px; color: var(--graphite); }
+.ad-pk__list > span { position: relative; padding-left: 16px; line-height: 1.45; }
+.ad-pk__list > span::before { content: ''; position: absolute; left: 0; top: .7em; width: 8px; height: 1px; background: var(--ink); }
+.ad-pk__state { font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); min-height: 16px; }
+@media (min-width: 640px) and (max-width: 959px) { .ad-packages { --cols: 3; } }
+
+/* ползунок площади: прямые углы, линия-линейка */
+.ad-range { display: flex; flex-direction: column; gap: var(--s2); }
+.ad-range input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; height: 44px; margin: 0; background: transparent; cursor: pointer; --fill: 20%; }
+.ad-range input[type=range]::-webkit-slider-runnable-track { height: 2px; background: linear-gradient(to right, var(--ink) 0, var(--ink) var(--fill), var(--stone) var(--fill), var(--stone) 100%); }
+.ad-range input[type=range]::-moz-range-track { height: 2px; background: var(--stone); }
+.ad-range input[type=range]::-moz-range-progress { height: 2px; background: var(--ink); }
+.ad-range input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 28px; height: 28px; margin-top: -13px; background: var(--ink); border: 0; border-radius: 0; }
+.ad-range input[type=range]::-moz-range-thumb { width: 28px; height: 28px; background: var(--ink); border: 0; border-radius: 0; }
+.ad-range input[type=range]:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* итог */
+.ad-sum__in { background: var(--white); border: 1px solid var(--ink); padding: clamp(20px, 2.4vw, 32px); }
+.ad-sum__mode { width: 100%; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.ad-sum__mode > button { align-items: center; min-height: 48px; padding: 0 12px; cursor: pointer; }
+.ad-sum__price { font-size: clamp(32px, 3.6vw, 44px); letter-spacing: -.02em; }
+.ad-sum__rows { border-top: 1px solid var(--line); }
+.ad-sum__rows > * > :first-child { color: var(--graphite); flex-shrink: 0; }
+.ad-sum__rows > * > :last-child { text-align: right; min-width: 0; overflow-wrap: anywhere; }
+.ad-sum__bonus { border-left: 2px solid var(--green); padding-left: var(--s3); }
+@media (max-width: 959px) { .ad-sum__cta { display: none; } }
+.ad-sum__cta.is-off { display: none; }
+
+/* форма */
+.ad-form { scroll-margin-top: calc(var(--header-h) + var(--s4)); }
+.ad-form__head { padding-top: var(--s6); }
+.ad-fields { display: grid; grid-template-columns: minmax(0, 1fr); column-gap: var(--s6); row-gap: var(--s3); }
+.ad-slot { min-height: 20px; display: flex; align-items: flex-start; }
+.ad-slot > * { line-height: 20px; }
+.ad-opt { font-weight: 400; font-size: 13px; margin-left: 6px; }
+.ad-textarea { min-height: 112px; padding: 14px 16px; resize: vertical; line-height: 1.45; font-family: inherit; display: block; }
+.ad-form__submit { display: flex; flex-direction: column; gap: var(--s4); }
+.ad-form__submit .btn { width: 100%; }
+@media (min-width: 640px) {
+  .ad-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ad-wide { grid-column: 1 / -1; }
+  .ad-form__submit { flex-direction: row; align-items: center; gap: var(--s6); }
+  .ad-form__submit .btn { width: auto; min-width: 240px; flex-shrink: 0; }
+}
+
+/* успех */
+.ad-done { scroll-margin-top: var(--header-h); }
+.ad-done h2:focus { outline: none; }
+.ad-ok { color: var(--green); display: inline-flex; align-items: center; gap: 8px; }
+.ad-ok::before { content: ''; width: 8px; height: 8px; background: var(--green); }
+.ad-done__aside { border-top: 1px solid var(--ink); padding-top: var(--s4); }
+.ad-done__aside .ad-sum__rows { border-top: 0; }
+
+.ad-path__n { font-size: 40px; font-weight: 300; line-height: 1; color: var(--stone); }
+.ad-next { padding-bottom: var(--s16); }
+
+/* первый экран: баннер с листом плана вместо статичной фотографии */
+.ad-hero-banner { margin: 12px var(--gutter) 0; border-radius: var(--r); overflow: hidden; }

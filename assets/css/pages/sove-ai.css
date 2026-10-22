@@ -1,0 +1,89 @@
+/* SOVE AI — главная. Вид блоков — 1:1 из эталонов (инлайн-стили в sove-ai-variants.js);
+   здесь только каркас страницы, шапка и переключатель вариантов. */
+body[data-page="sove-ai"] { background: #F4F2EE; }
+body[data-page="sove-ai"] .appbar { display: none; }
+body[data-page="sove-ai"] #main { overflow-x: hidden; }
+.sai { max-width: 480px; margin: 0 auto; background: #F4F2EE; font-family: Montserrat, Arial, sans-serif; color: #1E1C1A; }
+.sai a { color: #A24E32; } .sai a:hover { color: #7E3A24; }
+.sai button { -webkit-tap-highlight-color: transparent; }
+
+/* переключатель вариантов A–E (как у Профиля) — служебный, над шапкой */
+.sai-var { display: grid; grid-template-columns: auto repeat(6, minmax(0, 1fr)); gap: 4px; align-items: center; padding: 8px 12px; background: #1E1C1A; }
+.sai-var span { font-size: 10px; font-weight: 700; color: #CFC6BC; padding-right: 4px; }
+.sai-var button { height: 28px; border: 0; border-radius: 8px; background: rgba(255,255,255,.12); color: #FFFFFF; font: 800 12px Montserrat, Arial, sans-serif; cursor: pointer; }
+.sai-var button.is-on { background: #FFFFFF; color: #1E1C1A; }
+
+/* шапка — как в эталоне */
+.sai-hd { position: sticky; top: 0; z-index: 20; background: #FFFFFF; padding: 16px 16px 10px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #E6E1DA; }
+.sai-hd__t { font-size: 20px; font-weight: 800; }
+.sai-hd__r { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+.sai-hd__c { height: 32px; padding: 0 12px; border-radius: 16px; border: 0; background: #1E1C1A; color: #FFFFFF; font: 800 12px Montserrat, Arial, sans-serif; cursor: pointer; }
+.sai-hd__tok { font-size: 10px; font-weight: 700; color: #7E3A24; }
+
+/* второй заход: заголовок в одну строку (⚠️ А6) */
+.sai-line { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 16px; background: #FFFFFF; border-bottom: 1px solid #E6E1DA; }
+.sai-line b { font-family: 'Cormorant Garamond', Georgia, serif; font-size: 22px; font-weight: 600; line-height: 1; }
+.sai-line button { height: 36px; padding: 0 14px; border-radius: 12px; border: 0; background: #A24E32; color: #FFFFFF; font: 800 13px Montserrat, Arial, sans-serif; cursor: pointer; white-space: nowrap; }
+
+/* мост к АДЕПТ */
+.sai-adept { display: flex; flex-direction: column; gap: 2px; margin: 0 12px 12px; padding: 14px 16px; border-radius: 16px; background: #2B2926; color: #FFFFFF !important; text-decoration: none; }
+.sai-adept b { font-family: 'Cormorant Garamond', Georgia, serif; font-size: 20px; font-weight: 600; line-height: 1.05; }
+.sai-adept span { font-size: 11px; color: #CFC6BC; }
+
+/* история блока */
+.sai-hl { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.sai-hl a { display: grid; grid-template-columns: 52px minmax(0, 1fr); gap: 10px; align-items: center; color: #1E1C1A; text-decoration: none; }
+.sai-hl img { width: 52px; height: 52px; object-fit: cover; border-radius: 10px; }
+.sai-hl span { display: grid; min-width: 0; }
+.sai-hl b { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sai-hl i { font-style: normal; font-size: 11px; color: #6B655F; }
+
+/* заголовок: визуализация с товарами + планировка. Фото живое, подписи тёмным на светлых плашках */
+.sai-hv { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); gap: 8px; padding: 10px 12px 12px; background: #FFFFFF; border-bottom: 1px solid #E6E1DA; }
+.sai-hv a { position: relative; display: block; height: 168px; border-radius: 14px; overflow: hidden; background: #E6E1DA; text-decoration: none; }
+.sai-hv img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.sai-hv i { position: absolute; left: 8px; bottom: 8px; right: 8px; font-style: normal; font-size: 9px; font-weight: 800; letter-spacing: .5px; color: #1E1C1A;
+  background: rgba(255,255,255,.94); border-radius: 6px; padding: 3px 6px; justify-self: start; width: max-content; max-width: calc(100% - 16px); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sai-hv__p img { object-position: center; }
+.sai-hv__tag { position: absolute; display: flex; flex-direction: column; gap: 1px; max-width: 46%; padding: 4px 7px; border-radius: 8px; background: rgba(255,255,255,.95);
+  color: #2E6B4E; font-size: 10px; font-weight: 800; line-height: 1.15; box-shadow: 0 4px 10px -4px rgba(0,0,0,.35); }
+.sai-hv__tag b { color: #1E1C1A; font-size: 9px; font-weight: 600; }
+
+/* вариант F — горизонтальная лента генераций: листается внутри себя, страница вбок не едет */
+.sai-f { display: flex; flex-direction: column; gap: 10px; padding: 12px 0 12px 12px; }
+.sai-f__h { display: flex; align-items: baseline; justify-content: space-between; padding-right: 12px; }
+.sai-f__h b { font-size: 15px; }
+.sai-f__h span { font-size: 10px; color: #6B655F; }
+.sai-f__row { display: flex; gap: 10px; overflow-x: auto; scroll-snap-type: x mandatory; padding: 0 12px 6px 0; scrollbar-width: none; overscroll-behavior-x: contain; }
+.sai-f__row::-webkit-scrollbar { display: none; }
+.sai-f__c { flex: 0 0 148px; scroll-snap-align: start; display: flex; flex-direction: column; border-radius: 14px; overflow: hidden; background: #FFFFFF; text-decoration: none; color: #1E1C1A !important; box-shadow: 0 6px 14px -10px rgba(0,0,0,.35); }
+.sai-f__pic { position: relative; display: block; height: 150px; background-position: center; background-size: cover; }
+.sai-f__pic i { position: absolute; left: 8px; top: 8px; font-style: normal; font-size: 8px; letter-spacing: 1px; font-weight: 800; padding: 3px 6px; border-radius: 6px; color: #FFFFFF; }
+.sai-f__b { display: flex; flex-direction: column; gap: 3px; padding: 8px 10px 10px; flex: 1; }
+.sai-f__b b { font-size: 13px; line-height: 1.15; }
+.sai-f__b small { font-size: 9px; color: #6B655F; line-height: 1.25; }
+.sai-f__b em { margin-top: auto; padding-top: 4px; font-style: normal; font-size: 9px; font-weight: 800; color: #7E3A24; }
+.sai-f__b em.is-free { color: #2E6B4E; }
+.sai-f__hist { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; padding-right: 12px; }
+.sai-f__hist a { padding: 8px; border-radius: 10px; background: #FFFFFF; font-size: 10px; font-weight: 700; text-decoration: none; text-align: center; }
+
+/* вариант B: шапка — заголовок + визуализация с товарами + «Создать» */
+.sai-hb { background: #FFFFFF; padding: 18px 16px 16px; display: flex; flex-direction: column; gap: 10px; border-bottom: 1px solid #E6E1DA; }
+.sai-hb__t { font-family: 'Cormorant Garamond', Georgia, serif; font-size: 38px; font-weight: 600; line-height: 0.95; }
+.sai-hb__s { font-size: 13px; color: #6B655F; margin-top: -2px; }
+.sai-hb__v { position: relative; display: block; height: 220px; border-radius: 14px; overflow: hidden; background: #E6E1DA; text-decoration: none; }
+.sai-hb__v img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.sai-hb__v i { position: absolute; left: 8px; bottom: 8px; font-style: normal; font-size: 9px; font-weight: 800; letter-spacing: .5px; color: #1E1C1A; background: rgba(255,255,255,.94); border-radius: 6px; padding: 3px 6px; }
+.sai-hb__v .sai-hv__tag { max-width: 42%; }
+.sai-hb__c { height: 48px; border-radius: 12px; border: 0; background: #A24E32; color: #FFFFFF; font: 800 14px Montserrat, Arial, sans-serif; cursor: pointer; }
+
+/* вариант B, Визуализации: главный кадр + ряд комнат */
+.sai-rm__main { position: relative; }
+.sai-rm__main img { width: 100%; height: 170px; object-fit: cover; display: block; transition: opacity .2s; }
+.sai-rm__cap { position: absolute; right: 8px; bottom: 8px; font-size: 10px; font-weight: 700; color: #1E1C1A; background: rgba(255,255,255,0.94); padding: 3px 8px; border-radius: 10px; }
+.sai-rm__row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; padding: 6px 8px 0; }
+.sai-rm__t { display: flex; flex-direction: column; gap: 3px; padding: 0; border: 0; background: transparent; cursor: pointer; font-family: Montserrat, Arial, sans-serif; min-width: 0; }
+.sai-rm__t img { width: 100%; height: 40px; object-fit: cover; border-radius: 8px; display: block; opacity: .55; outline: 2px solid transparent; outline-offset: -2px; transition: opacity .15s; }
+.sai-rm__t span { font-size: 9px; font-weight: 600; color: #6B655F; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sai-rm__t.is-on img { opacity: 1; outline-color: #1E1C1A; }
+.sai-rm__t.is-on span { color: #1E1C1A; font-weight: 800; }

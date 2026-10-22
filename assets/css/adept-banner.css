@@ -1,0 +1,142 @@
+/* Баннер Адепта (лист с планом) и блок «Что у вас на руках» — подключаются на главных и на странице услуги */
+
+/* ---------- баннер: лист с планом поверх кадра ---------- */
+.adb { display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; background: var(--white); color: var(--ink); }
+.adb--bare { border: 0; border-radius: 0; }
+.adb__stage { position: relative; display: block; aspect-ratio: 4 / 5; user-select: none; overflow: hidden; }
+.adb--compact .adb__stage { aspect-ratio: 4 / 3.4; }
+.adb__photo { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transition: opacity .45s ease; }
+.adb__photo--b { opacity: 0; }
+/* лист лежит во всю сцену и обрезается маской — тогда чертёж не «уезжает» вместе с краем */
+.adb__plan { position: absolute; inset: 0; background: var(--paper); clip-path: inset(0 12% 0 0); }
+.adb__plan svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+/* чертёж: стены залиты, конструктив графитом, цвет — только ковру */
+.pl-floor { fill: var(--white); }
+.pl-solid { fill: var(--ink); }
+.pl-open { stroke: var(--white); stroke-width: 10; }
+.pl-win { stroke: var(--stone); stroke-width: 1; }
+.pl-leaf { stroke: var(--ink); stroke-width: 2; }
+.pl-arc { fill: none; stroke: var(--stone); stroke-width: .6; }
+.pl-art { stroke: var(--accent); stroke-width: 3; }
+.pl-furn { fill: none; stroke: var(--graphite); stroke-width: .9; stroke-linejoin: round; transition: stroke .3s, stroke-width .3s; }
+.pl-furn.is-lit { stroke: var(--accent); stroke-width: 1.6; }
+.pl-hair { fill: none; stroke: var(--graphite); stroke-width: .7; }
+.pl-rug { fill: rgba(160, 80, 53, .07); stroke: var(--accent); stroke-width: .8; }
+.pl-light { fill: none; stroke: var(--stone); stroke-width: .6; stroke-dasharray: 3 3; }
+.pl-view { fill: none; stroke: var(--accent); stroke-width: .6; stroke-dasharray: 4 3; opacity: .8; }
+.pl-viewdot { fill: var(--accent); }
+.pl-viewn { font-family: inherit; font-size: 8px; font-weight: 700; fill: var(--white); }
+.pl-dim { fill: none; stroke: var(--stone); stroke-width: .8; }
+.pl-t { font-family: inherit; fill: var(--graphite); }
+.pl-t--room { font-size: 11px; font-weight: 600; }
+.pl-s { font-family: inherit; font-size: 8px; fill: var(--stone); }
+.pl-d { font-family: inherit; font-size: 8px; fill: var(--stone); }
+.pl-stamp { fill: none; stroke: var(--line-2); stroke-width: .8; }
+.pl-st { font-family: inherit; font-size: 7.5px; fill: var(--stone); letter-spacing: .02em; }
+
+/* край листа: тень на фото и загнутый уголок вместо стандартной ручки «до/после» */
+.adb__edge { position: absolute; top: 0; bottom: 0; left: 88%; width: 22px; z-index: 3; pointer-events: none; background: linear-gradient(to right, rgba(31,31,31,.22), rgba(31,31,31,0)); }
+.adb__curl { position: absolute; right: 100%; bottom: 0; width: 52px; height: 52px; background: linear-gradient(135deg, rgba(31,31,31,.14), rgba(31,31,31,0) 62%), var(--paper); clip-path: polygon(100% 0, 100% 100%, 0 100%); filter: drop-shadow(-3px -2px 5px rgba(31,31,31,.28)); }
+.adb__curl::after { content: ''; position: absolute; right: 9px; bottom: 9px; width: 15px; height: 15px; border-right: 1.5px solid var(--stone); border-bottom: 1.5px solid var(--stone); opacity: .8; }
+
+.adb__input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; padding: 0; opacity: 0; z-index: 4; cursor: ew-resize; -webkit-appearance: none; appearance: none; background: transparent; touch-action: pan-y; }
+.adb__input::-webkit-slider-thumb { -webkit-appearance: none; width: 56px; height: 260px; }
+.adb__input::-moz-range-thumb { width: 56px; height: 260px; border: 0; }
+.adb__input:focus-visible ~ .adb__edge .adb__curl { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+.adb__cap { position: absolute; left: 14px; top: 14px; z-index: 5; max-width: calc(100% - 28px); font-size: 10px; font-weight: 600; color: var(--white); background: rgba(31,31,31,.6); padding: 5px 10px; border-radius: var(--pill); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.adb__hint { position: absolute; left: 50%; bottom: 16px; z-index: 5; transform: translateX(-50%); font-size: 11px; font-weight: 600; padding: 6px 12px 6px 28px; border-radius: var(--pill); background: rgba(31,31,31,.82); color: var(--white); transition: opacity .3s; }
+.adb__hint::before { content: ''; position: absolute; left: 12px; top: 50%; width: 11px; height: 11px; margin-top: -5px; border-left: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(45deg); }
+.adb__hint.is-off { opacity: 0; }
+
+.adb__k { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; font-weight: 600; color: var(--accent); }
+.adb__head { display: flex; flex-direction: column; gap: 3px; padding: 16px 16px 12px; }
+.adb__foot { display: flex; flex-direction: column; gap: 4px; padding: 4px 16px 16px; }
+.adb__t { font-size: 18px; font-weight: 600; line-height: 1.25; margin-top: 2px; }
+.adb--compact .adb__t { font-size: 17px; }
+.adb__d { font-size: 12px; color: var(--graphite); line-height: 1.45; }
+.adb__cta { display: flex; flex-direction: column; align-items: stretch; gap: 10px; margin-top: 12px; }
+.adb__price { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.adb__price b { font-size: 16px; font-weight: 700; white-space: nowrap; }
+.adb__price i { font-style: normal; font-size: 12px; color: var(--graphite); }
+
+/* ---------- что у вас на руках ---------- */
+.adc { border: 1px solid var(--line); border-radius: var(--r); background: var(--white); padding: 18px; display: flex; flex-direction: column; gap: 10px; }
+.adc__t { font-size: 19px; font-weight: 600; line-height: 1.2; margin: 0; }
+.adc__seg { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; background: var(--surface-2); border-radius: var(--pill); }
+.adc__seg button { height: 36px; border: 0; border-radius: var(--pill); background: transparent; font-size: 13px; font-weight: 600; color: var(--graphite); }
+.adc__seg button.is-on { background: var(--ink); color: var(--white); }
+.adc__list { list-style: none; margin: 2px 0 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.adc__list li { position: relative; padding-left: 26px; opacity: .45; transition: opacity .3s; transition-delay: calc(var(--i) * .05s); }
+.adc__list li.is-on { opacity: 1; }
+.adc__list li b { display: block; font-size: 14px; font-weight: 600; line-height: 1.3; }
+.adc__list li span { display: block; font-size: 12px; color: var(--graphite); margin-top: 1px; }
+.adc__list li::before { content: ''; position: absolute; left: 4px; top: 8px; width: 12px; height: 1px; background: var(--line-2); }
+.adc__list li.is-on::before { left: 2px; top: 4px; width: 14px; height: 8px; background: none; border-left: 2px solid var(--stone); border-bottom: 2px solid var(--stone); transform: rotate(-45deg); }
+.adc__list li.is-new::before { border-color: var(--accent); }
+.adc__foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-top: 12px; border-top: 1px solid var(--line); margin-top: 4px; }
+
+/* выбор интерьера внутри баннера */
+.adb__pick { padding: 12px 0 2px; }
+.adb__pickhead { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; padding: 0 16px 8px; }
+.adb__pickhead span { font-size: 13px; font-weight: 600; }
+.adb__lane { display: flex; gap: 10px; overflow-x: auto; padding: 6px 16px 10px; scroll-snap-type: x proximity; scroll-padding-left: 16px; -webkit-overflow-scrolling: touch; }
+.adb__lane::-webkit-scrollbar { display: none; }
+.adb__pic { position: relative; flex: 0 0 146px; scroll-snap-align: start; border: 0; padding: 0; background: none; font: inherit; color: inherit; text-align: left; cursor: pointer; }
+.adb__pic img { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: var(--r-sm); transition: box-shadow .2s; }
+.adb__pic b { display: block; font-size: 12px; font-weight: 600; line-height: 1.3; margin-top: 7px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.adb__pic span { display: block; font-size: 11px; color: var(--graphite); line-height: 1.3; margin-top: 2px; }
+/* обводка тенью повторяет скругление фото и не срезается краем ленты */
+.adb__pic[aria-pressed="true"] img { box-shadow: 0 0 0 2px var(--white), 0 0 0 4px var(--accent); }
+.adb__pic[aria-pressed="true"] b { color: var(--accent); }
+.adb__pickhead .btn--link { font-size: 13px; }
+.adb__pic[aria-pressed="true"]::after { content: ''; position: absolute; z-index: 2; right: 6px; top: 6px; width: 18px; height: 18px; border-radius: var(--pill); background: var(--accent) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 13l4 4L19 7'/%3E%3C/svg%3E") center / 11px no-repeat; }
+.adb__more { align-self: center; margin-top: 10px; }
+.adb__cta .btn--primary { width: 100%; }
+.adb__cta [data-order] { cursor: pointer; }
+
+/* слайды капсулы в кадре: подпись комнаты и точки листания */
+.adb__room { position: absolute; left: 14px; bottom: 14px; z-index: 5; font-size: 10px; font-weight: 600; color: var(--white); background: rgba(31,31,31,.6); padding: 4px 9px; border-radius: var(--pill); }
+.adb__room:empty { display: none; }
+.adb__dots { position: absolute; right: 12px; bottom: 12px; z-index: 6; display: flex; gap: 2px; padding: 2px 4px; border-radius: var(--pill); background: rgba(31,31,31,.5); }
+.adb__dots button { width: 20px; height: 22px; padding: 0; border: 0; background: none; cursor: pointer; display: grid; place-items: center; }
+.adb__dots button::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,.5); transition: background .2s, transform .2s; }
+.adb__dots button[aria-current="true"]::before { background: var(--white); transform: scale(1.25); }
+
+/* в заявке из баннера состав пакета идёт отдельной строкой */
+.lead-sheet .text { white-space: pre-line; }
+
+/* у краёв ленты стоят две неподвижные полосы: что под них заезжает, то и расплывается.
+   Высота — ровно по фотографиям, иначе полоса захватывает белый фон подписей и получается дымка */
+.adb__lanebox { position: relative; }
+.adb__lanebox::before, .adb__lanebox::after { content: ''; position: absolute; top: 6px; height: 110px; width: 26px; z-index: 2; pointer-events: none;
+  backdrop-filter: blur(1.6px); -webkit-backdrop-filter: blur(1.6px); transition: backdrop-filter .2s, -webkit-backdrop-filter .2s; }
+.adb__lanebox::before { left: 0; -webkit-mask-image: linear-gradient(to right, #000 20%, transparent); mask-image: linear-gradient(to right, #000 20%, transparent); }
+.adb__lanebox::after { right: 0; -webkit-mask-image: linear-gradient(to left, #000 20%, transparent); mask-image: linear-gradient(to left, #000 20%, transparent); }
+.adb__lanebox.is-moving::before, .adb__lanebox.is-moving::after { backdrop-filter: blur(3.4px); -webkit-backdrop-filter: blur(3.4px); }
+.adb__pic img { transition: box-shadow .2s; }
+
+/* свет в баннере: днём и вечером (вечерние кадры подставятся, когда появятся) */
+/* маленький свитч на кадре: иконка едет вместе с бегунком, поэтому всегда видна */
+.adb__sun { position: absolute; right: 12px; top: 12px; z-index: 6; width: 60px; height: 30px; padding: 0;
+  border: 1px solid rgba(255,255,255,.55); border-radius: var(--pill); cursor: pointer;
+  background: rgba(31,31,31,.34); backdrop-filter: blur(6px); display: block; transition: background .35s, border-color .35s; }
+.adb.is-night .adb__sun { background: rgba(22,28,52,.6); border-color: rgba(190,210,255,.45); }
+.adb__sun__knob { position: absolute; left: 3px; top: 3px; width: 24px; height: 24px; border-radius: 50%;
+  background: #fff; box-shadow: 0 2px 6px rgba(0,0,0,.35); display: grid; place-items: center;
+  transition: transform .35s cubic-bezier(.3,.8,.4,1.2), background .35s; }
+.adb.is-night .adb__sun__knob { transform: translateX(30px); background: #f2f5ff; }
+.adb__ico { position: absolute; transition: opacity .25s, transform .25s; }
+.adb__ico--day { color: #c9772f; opacity: 1; }
+.adb__ico--night { color: #3b4a7a; opacity: 0; transform: rotate(-30deg); }
+.adb.is-night .adb__ico--day { opacity: 0; transform: rotate(30deg); }
+.adb.is-night .adb__ico--night { opacity: 1; transform: none; }
+.adb__photo { transition: opacity .35s ease, filter 1s ease; }
+.adb.is-night .adb__photo { filter: brightness(.54) saturate(1.12) sepia(.2) contrast(1.05) hue-rotate(-8deg); }
+.adb__glow { position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity 1s ease; z-index: 1;
+  background:
+    radial-gradient(58% 38% at 70% 26%, rgba(255,196,120,.5), rgba(255,196,120,0) 70%),
+    radial-gradient(42% 32% at 20% 60%, rgba(255,178,96,.3), rgba(255,178,96,0) 72%),
+    linear-gradient(to bottom, rgba(18,22,40,.32), rgba(18,22,40,.06) 45%, rgba(18,22,40,.36)); }
+.adb.is-night .adb__glow { opacity: 1; }

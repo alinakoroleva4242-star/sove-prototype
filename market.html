@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Маркет: товары партнёров по ценам METOD — SOVEAPP</title>
+<meta name="description" content="Каталог товаров партнёров SOVEAPP: мебель, свет, отделка и сантехника по ценам METOD. Цены видны всем, контакт поставщика и промокод — по подписке.">
+<link rel="icon" href="assets/img/logo-sg.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap">
+<link rel="stylesheet" href="assets/css/site.css?v=20261022162032">
+<link rel="stylesheet" href="assets/css/app-theme.css?v=20261022162032">
+<link rel="stylesheet" href="assets/css/pages/my-repair.css?v=20261022162032">
+<link rel="stylesheet" href="assets/css/pages/market.css?v=20261022162032">
+<link rel="stylesheet" href="assets/css/pages/extra.css?v=20261022162032">
+</head>
+<body data-page="market" data-nav="market" data-title="Каталог">
+<a class="skip" href="#main">К содержанию</a>
+<div id="site-header"></div>
+
+<main id="main">
+
+  <section class="wrap mk-head" aria-labelledby="market-title">
+    <h1 class="h2 mk-head__title" id="market-title">Каталог</h1>
+    <div class="market-search">
+      <form class="search" role="search" id="market-search" action="market.html" method="get">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5 21 21"/></svg>
+        <label class="vh" for="market-q">Поиск по каталогу</label>
+        <input id="market-q" name="q" type="search" placeholder="Название, бренд или раздел" autocomplete="off" enterkeyhint="search">
+        <button type="button" class="market-search__clear" id="market-q-clear" aria-label="Очистить поиск" hidden>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M5 5l14 14M19 5 5 19"/></svg>
+        </button>
+        <a class="mk-cam" href="ai.html?mode=photo" aria-label="Найти по фото" title="Найти по фото">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>
+        </a>
+      </form>
+    </div>
+  </section>
+
+
+
+  <section class="wrap market-body" aria-label="Товары">
+    <div class="mk-bar">
+      <button type="button" class="btn btn--ghost btn--sm market-bar__filters" id="market-open-filters" aria-haspopup="dialog">Фильтры</button>
+      <div class="mk-filters" id="market-filters" aria-label="Фильтры"></div>
+      <div class="market-sort">
+        <label for="market-sort" class="vh">Сортировка</label>
+        <select class="select" id="market-sort">
+          <option value="discount">По скидке</option>
+          <option value="price_asc">Дешевле</option>
+          <option value="price_desc">Дороже</option>
+        </select>
+      </div>
+    </div>
+    <div class="mk-tabs" id="market-tabs" role="group" aria-label="Что показываем">
+      <button type="button" class="mk-tab is-on" data-tab="all">Все товары</button>
+      <button type="button" class="mk-tab" data-tab="promo">Акции партнёров</button>
+    </div>
+    <div class="rail mk-rail" id="market-subs" role="group" aria-label="Разделы каталога"></div>
+    <div class="mk-strip"><span class="mk-strip__name" id="market-hero"></span><span id="market-metod"></span></div>
+    <div class="market-active" id="market-active" hidden></div>
+    <p class="vh" id="market-count" aria-live="polite"></p>
+    </div>
+    <p class="vh" id="market-count-m"></p>
+
+    <div class="grid market-grid" id="market-list" aria-busy="true">
+          <div class="market-skel" aria-hidden="true"><div class="skeleton market-skel__img"></div><div class="market-skel__body"><div class="skeleton" style="width:38%"></div><div class="skeleton"></div><div class="skeleton" style="width:64%"></div></div></div>
+          <div class="market-skel" aria-hidden="true"><div class="skeleton market-skel__img"></div><div class="market-skel__body"><div class="skeleton" style="width:38%"></div><div class="skeleton"></div><div class="skeleton" style="width:64%"></div></div></div>
+          <div class="market-skel" aria-hidden="true"><div class="skeleton market-skel__img"></div><div class="market-skel__body"><div class="skeleton" style="width:38%"></div><div class="skeleton"></div><div class="skeleton" style="width:64%"></div></div></div>
+          <div class="market-skel" aria-hidden="true"><div class="skeleton market-skel__img"></div><div class="market-skel__body"><div class="skeleton" style="width:38%"></div><div class="skeleton"></div><div class="skeleton" style="width:64%"></div></div></div>
+          <div class="market-skel" aria-hidden="true"><div class="skeleton market-skel__img"></div><div class="market-skel__body"><div class="skeleton" style="width:38%"></div><div class="skeleton"></div><div class="skeleton" style="width:64%"></div></div></div>
+          <div class="market-skel" aria-hidden="true"><div class="skeleton market-skel__img"></div><div class="market-skel__body"><div class="skeleton" style="width:38%"></div><div class="skeleton"></div><div class="skeleton" style="width:64%"></div></div></div>
+          <div class="market-skel" aria-hidden="true"><div class="skeleton market-skel__img"></div><div class="market-skel__body"><div class="skeleton" style="width:38%"></div><div class="skeleton"></div><div class="skeleton" style="width:64%"></div></div></div>
+          <div class="market-skel" aria-hidden="true"><div class="skeleton market-skel__img"></div><div class="market-skel__body"><div class="skeleton" style="width:38%"></div><div class="skeleton"></div><div class="skeleton" style="width:64%"></div></div></div>
+        </div>
+
+    <div class="mk-more stack stack--6" id="market-more" hidden></div>
+  </section>
+
+  <section class="wrap section--tight stack stack--4" aria-labelledby="mk-co-title">
+    <div class="stack stack--2"><h2 class="h2" id="mk-co-title">Не нашли готовое?</h2>
+    <p class="text">Кухни, двери и мебель из металла партнёры делают под ваш объект — таких позиций в общем каталоге нет.</p></div>
+    <a class="btn btn--dark btn--block" href="custom-order.html">Партнёры «на заказ»</a>
+  </section>
+
+</main>
+
+<div id="site-footer"></div>
+<script src="assets/js/data.js?v=20261022162032"></script>
+<script src="assets/js/site.js?v=20261022162032"></script>
+<script src="assets/js/repair.js?v=20261022162032"></script>
+<script src="assets/js/catalog-api.js?v=20261022162032"></script>
+<script src="assets/js/partner-extra.js?v=20261022162032"></script>
+<script src="assets/js/pages/market.js?v=20261022162032"></script>
+</body>
+</html>

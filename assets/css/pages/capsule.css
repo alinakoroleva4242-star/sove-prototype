@@ -1,0 +1,92 @@
+/* Страница капсулы */
+.vh { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.cap-crumbs { padding-block: var(--s5) var(--s4); }
+
+/* ---------- первый экран ---------- */
+.cap-hero { display: grid; gap: var(--s6); grid-template-columns: minmax(0, 1fr); padding-bottom: var(--s10); }
+.cap-head { display: flex; flex-direction: column; gap: var(--s3); min-width: 0; }
+.cap-code { font-size: clamp(104px, 12vw, 168px); font-weight: 300; line-height: .82; letter-spacing: -.05em; margin-left: -.04em; padding-block: var(--s2) var(--s3); font-variant-numeric: lining-nums; }
+.cap-title { font-size: clamp(28px, 3vw, 40px); font-weight: 300; line-height: 1.1; letter-spacing: -.015em; text-wrap: balance; }
+.cap-info { display: flex; flex-direction: column; gap: var(--s6); min-width: 0; }
+.cap-info .lead { max-width: 46ch; }
+.cap-whom { display: flex; flex-direction: column; gap: var(--s2); border-top: 1px solid var(--line); padding-top: var(--s4); }
+.cap-price { display: flex; flex-direction: column; gap: var(--s3); }
+.cap-price__row { display: flex; align-items: baseline; gap: var(--s3); flex-wrap: wrap; }
+.cap-price__from { font-size: 14px; color: var(--graphite); }
+.cap-level { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); width: 100%; }
+.cap-level > button { min-height: 60px; gap: 2px; }
+.cap-level > button[disabled] { background: var(--hatch); color: var(--graphite); cursor: not-allowed; }
+.cap-cta { display: flex; flex-direction: column; gap: var(--s3); }
+.cap-inproject { display: flex; align-items: center; justify-content: space-between; gap: var(--s3); flex-wrap: wrap; border-top: 1px solid var(--line); padding-top: var(--s3); }
+.cap-inproject .btn--link { font-size: 14px; }
+.cap-soon { display: flex; flex-direction: column; gap: var(--s4); border-top: 1px solid var(--ink); padding-top: var(--s5); }
+
+@media (min-width: 960px) {
+  .cap-hero { grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: var(--s6); row-gap: var(--s6); grid-template-rows: auto 1fr; padding-bottom: var(--s16); }
+  .cap-gal { grid-column: 1 / span 7; grid-row: 1 / span 2; }
+  .cap-head { grid-column: 8 / span 5; grid-row: 1; padding-left: var(--s8); }
+  .cap-info { grid-column: 8 / span 5; grid-row: 2; padding-left: var(--s8); }
+}
+
+/* ---------- галерея ---------- */
+.cap-gal { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s3); min-width: 0; align-content: start; }
+.cap-gal__frame { position: relative; display: block; width: 100%; padding: 0; border: 0; background: var(--line); aspect-ratio: 4 / 5; max-height: 640px; overflow: hidden; cursor: pointer; }
+.cap-gal__frame img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transition: opacity .25s; }
+.cap-gal__frame img.is-swap { opacity: 0; }
+.cap-gal__cap { display: flex; align-items: center; justify-content: space-between; gap: var(--s4); min-height: 44px; }
+.cap-gal__room { display: flex; align-items: baseline; gap: var(--s3); min-width: 0; }
+.cap-gal__room b { font-size: 12px; letter-spacing: .14em; text-transform: uppercase; font-weight: 600; }
+.cap-gal__nav { display: flex; gap: var(--s2); flex-shrink: 0; }
+.cap-gal__nav button { width: 44px; height: 44px; padding: 0; border: 1px solid var(--stone); background: var(--white); display: inline-flex; align-items: center; justify-content: center; transition: border-color .15s; }
+.cap-gal__nav button:hover { border-color: var(--ink); }
+.cap-gal__nav svg { width: 18px; height: 18px; fill: none; stroke: var(--ink); stroke-width: 1.5; }
+.cap-gal__thumbs { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: var(--s2); }
+.cap-gal__thumb { position: relative; display: block; padding: 0; border: 0; background: var(--line); aspect-ratio: 4 / 5; overflow: hidden; opacity: .6; transition: opacity .15s; }
+.cap-gal__thumb img { width: 100%; height: 100%; object-fit: cover; }
+.cap-gal__thumb:hover { opacity: 1; }
+.cap-gal__thumb.is-active { opacity: 1; }
+.cap-gal__thumb.is-active::after { content: ''; position: absolute; inset: 0; border: 2px solid var(--ink); pointer-events: none; }
+.cap-gal__hint { display: none; }
+@media (min-width: 960px) {
+  .cap-gal { grid-template-columns: 72px minmax(0, 1fr); column-gap: var(--s4); grid-template-areas: "thumbs frame" "thumbs cap"; }
+  .cap-gal__thumbs { grid-area: thumbs; grid-template-columns: minmax(0, 1fr); align-content: start; gap: 10px; }
+  .cap-gal__frame { grid-area: frame; max-height: max(560px, calc(100vh - var(--header-h) - 150px)); }
+  .cap-gal__cap { grid-area: cap; }
+  .cap-gal__hint { display: inline; }
+}
+
+/* ---------- блоки ниже ---------- */
+.cap-block { padding-block: var(--s12); border-top: 1px solid var(--line); }
+.cap-block__head { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--s4) var(--s8); flex-wrap: wrap; }
+.cap-block__head .small { max-width: 52ch; }
+@media (min-width: 960px) { .cap-block { padding-block: var(--s16); } }
+
+/* ДНК */
+.cap-dna__tile { display: flex; flex-direction: column; gap: var(--s3); min-width: 0; }
+.cap-dna__tile img { width: 100%; aspect-ratio: 1 / 1; object-fit: cover; background: var(--line); }
+.cap-dna__tile figcaption { display: flex; align-items: baseline; gap: var(--s3); border-top: 1px solid var(--ink); padding-top: var(--s3); }
+.cap-dna__name { font-size: 15px; font-weight: 500; line-height: 1.3; }
+
+/* что дальше */
+.cap-path { display: flex; flex-direction: column; gap: var(--s3); min-width: 0; color: inherit; }
+.cap-path__n { font-size: 40px; font-weight: 300; line-height: 1; color: var(--stone); font-variant-numeric: tabular-nums; transition: color .15s; }
+.cap-path:hover .cap-path__n { color: var(--ink); }
+.cap-path:hover .h4 { text-decoration: underline; text-underline-offset: 4px; text-decoration-thickness: 1px; }
+.cap-path .small { flex: 1 1 auto; }
+@media (max-width: 639px) { .cap-paths { --cols: 1; } }
+
+/* другие капсулы: на телефоне — лента с прокруткой вбок, чтобы цена помещалась в строку */
+@media (max-width: 639px) {
+  .cap-others { display: flex; gap: var(--s4); overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; margin-inline: calc(var(--gutter) * -1); padding-inline: var(--gutter); scroll-padding-inline: var(--gutter); }
+  .cap-others::-webkit-scrollbar { display: none; }
+  .cap-others > * { flex: 0 0 66%; scroll-snap-align: start; }
+}
+
+/* загрузка и «не найдена» */
+.cap-loading { display: grid; gap: var(--s6); padding-block: var(--s10); }
+.cap-loading__pic { aspect-ratio: 4 / 5; max-height: 640px; }
+.cap-loading__code { height: 120px; width: 50%; }
+.cap-loading__line { height: 24px; }
+.cap-loading__line--short { width: 60%; }
+@media (min-width: 960px) { .cap-loading { grid-template-columns: 7fr 5fr; column-gap: var(--s12); } }
+.cap-404 { padding-block: var(--s16) var(--s10); display: flex; flex-direction: column; gap: var(--s5); align-items: flex-start; }

@@ -1,0 +1,123 @@
+/* Кабинет. Этот же файл подключает project.html — общие карточки кабинета лежат здесь. */
+
+/* ---------- шапка и разделы ---------- */
+.cab-head { padding-block: var(--s10) var(--s8); display: flex; flex-direction: column; gap: var(--s6); }
+@media (min-width: 960px) { .cab-head { padding-block: var(--s16) var(--s10); } }
+.cab-nav { display: flex; flex-wrap: wrap; column-gap: var(--s6); border-top: 1px solid var(--ink); }
+.cab-nav a { display: inline-flex; align-items: center; gap: 8px; min-height: 48px; font-size: 14px; font-weight: 600; color: var(--graphite); }
+.cab-nav a:hover { color: var(--ink); }
+.cab-nav a span { font-weight: 500; color: var(--graphite); font-variant-numeric: tabular-nums; }
+
+.cab-pending { padding-bottom: var(--s6); }
+.cab-pending .notice { align-items: center; }
+.cab-pending .notice > .stack { flex: 1 1 260px; min-width: 0; gap: 2px; }
+.cab-pending .notice b { font-weight: 600; }
+
+.cab-section { padding-top: clamp(56px, 7vw, 96px); scroll-margin-top: var(--header-h); }
+.cab-section__head { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--s3) var(--s6); flex-wrap: wrap; margin-bottom: var(--s8); }
+.cab-skel { min-height: 280px; }
+
+/* ---------- три сводные плитки ---------- */
+.sum { display: grid; gap: var(--s4); grid-template-columns: minmax(0, 1fr); }
+.sum__tile { display: flex; flex-direction: column; gap: var(--s4); padding: clamp(24px, 2.6vw, 36px); min-height: 220px; min-width: 0; }
+.sum__tile.skeleton { min-height: 260px; }
+.sum__tile--line { background: var(--white); border: 1px solid var(--line); }
+.sum__foot { margin-top: auto; padding-top: var(--s4); display: flex; align-items: center; gap: var(--s4); flex-wrap: wrap; }
+.sum__money { font-size: clamp(32px, 3vw, 44px); font-weight: 300; line-height: 1; letter-spacing: -.02em; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.sum__title { font-size: clamp(26px, 2.5vw, 34px); font-weight: 300; line-height: 1.12; letter-spacing: -.015em; text-wrap: balance; }
+.sum__unit { font-size: 15px; font-weight: 500; letter-spacing: 0; margin-left: 10px; color: var(--stone); }
+.sum__tile .small { max-width: 38ch; }
+.dark .small { color: var(--line); }
+@media (min-width: 960px) {
+  .sum { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .sum__tile { min-height: 320px; }
+}
+
+/* ---------- карточка проекта ---------- */
+.pr-card { display: flex; flex-direction: column; background: var(--white); border: 1px solid var(--line); transition: border-color .15s; min-width: 0; }
+.pr-card:hover { border-color: var(--ink); }
+.pr-card__pic { position: relative; overflow: hidden; aspect-ratio: 4 / 3; background: var(--hatch); }
+.pr-card__pic img { width: 100%; height: 100%; object-fit: cover; transition: transform .4s; }
+.pr-card:hover .pr-card__pic img { transform: scale(1.03); }
+.pr-card__code { position: absolute; left: 0; bottom: 0; background: var(--white); padding: 10px 16px 4px var(--s5); font-size: clamp(26px, 2.6vw, 34px); font-weight: 300; line-height: 1; }
+.pr-card__nocap { position: absolute; left: var(--s5); bottom: var(--s4); font-size: 12px; color: var(--graphite); }
+.pr-card__body { display: flex; flex-direction: column; gap: 6px; padding: var(--s5); flex: 1 1 auto; }
+.pr-card__name { font-size: 20px; font-weight: 300; line-height: 1.25; overflow-wrap: anywhere; }
+.pr-card__badges { display: flex; flex-wrap: wrap; gap: 6px; margin-top: auto; padding-top: var(--s4); }
+
+.pr-new { display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-end; gap: var(--s2); width: 100%; min-height: 280px; height: 100%; padding: var(--s6); background: transparent; border: 1px dashed var(--stone); text-align: left; transition: border-color .15s, background .15s; }
+.pr-new:hover { border-color: var(--ink); background: var(--white); }
+.pr-new svg { width: 40px; height: 40px; fill: none; stroke: var(--ink); stroke-width: 1; margin-bottom: auto; }
+.pr-new__title { font-size: 20px; font-weight: 300; }
+
+/* ---------- карточка генерации ---------- */
+.gen-card { display: flex; flex-direction: column; background: var(--white); border: 1px solid var(--line); transition: border-color .15s; min-width: 0; }
+.gen-card:hover { border-color: var(--ink); }
+.gen-card__pic { aspect-ratio: 4 / 3; overflow: hidden; background: var(--hatch); }
+.gen-card__pic img { width: 100%; height: 100%; object-fit: cover; }
+.gen-card__body { display: flex; flex-direction: column; gap: var(--s2); padding: var(--s4) var(--s5) var(--s5); flex: 1 1 auto; min-width: 0; }
+.gen-card__top { display: flex; align-items: center; justify-content: space-between; gap: 6px var(--s3); flex-wrap: wrap; min-height: 24px; }
+.gen-card__title { font-size: 16px; font-weight: 500; line-height: 1.35; overflow-wrap: anywhere; }
+.gen-card__meta { margin-top: auto; padding-top: var(--s2); font-variant-numeric: tabular-nums; }
+@media (max-width: 639px) {
+  .gen-card { flex-direction: row; }
+  .gen-card__pic { flex: 0 0 112px; aspect-ratio: auto; min-height: 128px; position: relative; }
+  .gen-card__pic img { position: absolute; inset: 0; }
+  .gen-card__body { padding: var(--s3) var(--s4); gap: 6px; }
+  .gen-card__title { font-size: 15px; }
+  .pr-new { min-height: 148px; padding: var(--s5); }
+  .pr-new svg { width: 28px; height: 28px; }
+}
+
+/* ---------- избранное: карточка + кнопка-сердце поверх ---------- */
+.fav-item { position: relative; display: flex; min-width: 0; }
+.fav-item > .product-card { flex: 1 1 auto; min-width: 0; }
+.fav-item__btn { position: absolute; top: 8px; right: 8px; width: 44px; height: 44px; border: 0; background: rgba(255, 255, 255, .92); display: inline-flex; align-items: center; justify-content: center; }
+.fav-item__btn svg { width: 20px; height: 20px; fill: var(--accent); stroke: var(--accent); stroke-width: 1.6; }
+.fav-item__btn:hover svg { fill: none; stroke: var(--ink); }
+
+/* ---------- доступы и заявки ---------- */
+.acc-list { display: flex; flex-direction: column; }
+.acc-list__title { margin-bottom: var(--s2); }
+.acc-list .rows > * { padding-block: var(--s3); min-height: 64px; align-items: center; }
+.acc-list .rows .stack { gap: 2px; min-width: 0; }
+.acc-list .rows a.link { display: inline-flex; align-items: center; min-height: 44px; white-space: nowrap; }
+/* платежи: блок во всю ширину под двумя колонками; справа статус и, если оплата не прошла, ссылка под ним */
+.acc-list--wide { grid-column: 1 / -1; }
+.acc-pay__side { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; flex: none; }
+
+/* ---------- история токенов ---------- */
+.hist { width: 100%; border-collapse: collapse; font-size: 15px; }
+.hist th { font-size: 12px; letter-spacing: .14em; text-transform: uppercase; font-weight: 600; color: var(--graphite); text-align: left; padding: 0 0 var(--s3); border-bottom: 1px solid var(--ink); }
+.hist td { padding: 14px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+.hist th + th, .hist td + td { padding-left: var(--s4); }
+.hist .right { text-align: right; }
+@media (min-width: 640px) { .hist th.right, .hist td.right { width: 150px; } }
+.hist__date { white-space: nowrap; color: var(--graphite); font-variant-numeric: tabular-nums; width: 1%; padding-right: var(--s6); }
+.hist__note { display: block; font-size: 13px; color: var(--graphite); }
+.hist__date-m { display: none; font-size: 13px; color: var(--graphite); font-variant-numeric: tabular-nums; }
+.hist__delta { font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.hist__after { font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--graphite); }
+.hist-foot { display: flex; align-items: center; justify-content: space-between; gap: var(--s4); flex-wrap: wrap; margin-top: var(--s5); }
+@media (max-width: 639px) {
+  .hist th:first-child, .hist td.hist__date { display: none; }
+  .hist th:nth-child(2), .hist td:nth-child(2) { padding-left: 0; }
+  .hist__date-m { display: block; }
+  .hist { font-size: 14px; }
+}
+
+.cab-exit { display: flex; align-items: center; justify-content: space-between; gap: var(--s4); flex-wrap: wrap; padding-top: var(--s5); }
+
+/* ---------- окно «Новый проект»: выбор капсулы ---------- */
+.cap-pick { border: 0; margin: 0; padding: 0; min-width: 0; }
+.cap-pick legend { padding: 0; margin-bottom: 6px; font-size: 14px; font-weight: 600; }
+.cap-pick__grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s2); }
+.cap-pick__item { position: relative; display: flex; flex-direction: column; background: var(--white); border: 1px solid var(--line); cursor: pointer; min-width: 0; }
+.cap-pick__item:hover { border-color: var(--ink); }
+.cap-pick__item input { position: absolute; opacity: 0; inset: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; }
+.cap-pick__item img, .cap-pick__none { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; }
+.cap-pick__none { background: var(--hatch); }
+.cap-pick__item span { display: block; padding: 8px 10px 10px; font-size: 13px; font-weight: 600; line-height: 1.3; }
+.cap-pick__item span small { display: block; font-size: 12px; font-weight: 400; color: var(--graphite); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cap-pick__item.is-active { outline: 2px solid var(--accent); outline-offset: -2px; border-color: var(--accent); }
+.cap-pick__item:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }

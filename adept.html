@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Адепт: дизайн-проект по капсуле — SOVEAPP</title>
+<meta name="description" content="Адепт — дизайн-проект по капсуле SOVEAPP: три пакета, цена по площади, заявка без онлайн-оплаты.">
+<link rel="icon" href="assets/img/logo-sg.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap">
+<link rel="stylesheet" href="assets/css/site.css?v=20261022162032">
+<link rel="stylesheet" href="assets/css/app-theme.css?v=20261022162032">
+<link rel="stylesheet" href="assets/css/pages/extra.css?v=20261022162032">
+<link rel="stylesheet" href="assets/css/adept-banner.css?v=20261022162032">
+<link rel="stylesheet" href="assets/css/pages/adept.css?v=20261022162032">
+</head>
+<body data-page="adept" data-nav="adept" data-title="Адепт" data-funnel-cta="Оставить заявку" data-funnel-target="#lead" data-funnel-price="Дизайн-проект от 2 000 ₽/м²">
+<a class="skip" href="#main">К содержанию</a>
+<div id="site-header"></div>
+
+<main id="main">
+
+  <div class="wrap ad-top" id="ad-top" hidden></div>
+
+  <section class="tr-hero"><img src="assets/img/capsules/k3-main-1.jpg" alt="" width="1120" height="700">
+    <div class="tr-hero__body"><span class="tr-hero__k">Дизайн-проект</span><b>АДЕПТ</b><span class="tr-hero__d">Адаптация капсулы в дизайн-проект</span></div></section>
+
+  <ol class="ad-how4">
+    <li><i>1</i><span>Выбираете интерьерную капсулу</span></li>
+    <li><i>2</i><span>Получаете просчёт планового бюджета на реализацию с учётом вашего метража</span></li>
+    <li><i>3</i><span>Выбираете пакет АДЕПТ</span></li>
+    <li><i>4</i><span>Получаете готовый дизайн-проект и спецификацию + доступ к контактам со скидками на 6 месяцев</span></li>
+  </ol>
+
+  <section class="wrap section--tight"><div class="ad-hero-banner" id="adept-hero-banner"></div></section>
+
+  <section class="wrap section--tight stack stack--3">
+    <h1 class="h1">Дизайн-проект по выбранному интерьеру</h1>
+    <p class="text">Планировка с расстановкой мебели, рендеры и чертежи для бригады, спецификация — что и где купить.</p>
+    <div class="app-hero__cta" data-funnel-twin><a class="btn btn--primary btn--block" href="#calc" data-open-acc>Пакеты и цены</a>
+    <a class="btn btn--ghost btn--block" href="#lead" data-open-acc>Оставить заявку</a></div>
+    <div id="ad-facts" hidden></div><span id="ad-cap" hidden></span>
+  </section>
+
+  <section class="wrap section"><div id="adept-compare"></div></section>
+
+  <details class="acc" id="acc-1"><summary><span>Соберите свой проект</span></summary><div class="acc__body"><section class="wrap section ad-calc" id="calc" data-funnel-twin aria-labelledby="ad-calc-title">
+
+    <div class="ad-config stack stack--10">
+      <div class="stack stack--3">
+        <span class="eyebrow">Расчёт</span>
+        <h2 class="h2" id="ad-calc-title">Соберите свой проект</h2>
+      </div>
+
+      <!-- 1. Капсула -->
+      <div class="ad-block rule-top stack stack--4" data-field="capsule">
+        <div class="ad-block__head"><span class="ad-block__n num">1</span><h3 class="h4" id="ad-caps-label">Капсула</h3></div>
+        <div class="ad-chips" id="ad-chips" role="group" aria-labelledby="ad-caps-label"></div>
+        <p class="small" id="ad-capsule-info"></p>
+        <div id="ad-scout"></div>
+      </div>
+
+      <!-- 2. Пакет -->
+      <div class="ad-block rule-top stack stack--4">
+        <div class="ad-block__head"><span class="ad-block__n num">2</span><h3 class="h4" id="ad-pk-label">Пакет</h3></div>
+        <div class="grid grid--3 ad-packages" id="ad-packages" role="group" aria-labelledby="ad-pk-label"></div>
+      </div>
+
+      <!-- 3. Площадь -->
+      <div class="ad-block rule-top stack stack--4">
+        <div class="ad-block__head"><span class="ad-block__n num">3</span><h3 class="h4">Площадь</h3></div>
+        <div class="ad-range">
+          <div class="row row--between row--end">
+            <label class="label" for="ad-area">Площадь квартиры</label>
+            <output class="mid-num" id="ad-area-out" for="ad-area"></output>
+          </div>
+          <input type="range" id="ad-area" min="20" max="150" step="1" value="45">
+          <div class="row row--between tiny muted num" aria-hidden="true"><span>20 м²</span><span>150 м²</span></div>
+        </div>
+        <p class="tiny muted" id="ad-area-note"></p>
+      </div>
+    </div>
+
+    <!-- Итог -->
+    <aside class="ad-sum" aria-labelledby="ad-sum-title">
+      <div class="ad-sum__in stack stack--6">
+        <span class="eyebrow" id="ad-sum-title">Ваш расчёт</span>
+        <div class="segmented ad-sum__mode" role="group" aria-label="Способ оплаты">
+          <button type="button" data-mode="once" aria-pressed="true" class="is-active">Единовременно</button>
+          <button type="button" data-mode="parts" aria-pressed="false">Рассрочка</button>
+        </div>
+        <div class="stack stack--2" aria-live="polite">
+          <span class="mid-num ad-sum__price" id="ad-price"></span>
+          <span class="small muted" id="ad-price-note"></span>
+        </div>
+        <div class="rows rows--tight ad-sum__rows" id="ad-sum-rows"></div>
+        <p class="small ad-sum__bonus">В&nbsp;Адепт входит доступ к&nbsp;скидкам партнёров на&nbsp;6&nbsp;месяцев.</p>
+        <a class="btn btn--primary btn--block ad-sum__cta" href="#lead">Оставить заявку</a>
+        <p class="tiny muted">Оплата&nbsp;— после согласования состава работ с&nbsp;менеджером. Онлайн-оплаты на&nbsp;этой странице нет.</p>
+      </div>
+    </aside>
+
+    <!-- Заявка -->
+    <form class="ad-form stack stack--6" id="lead" novalidate aria-labelledby="ad-form-title">
+      <div class="stack stack--3 rule-top ad-form__head">
+        <span class="eyebrow">Заявка</span>
+        <h2 class="h2" id="ad-form-title">Оставьте заявку&nbsp;— менеджер перезвонит</h2>
+        <p class="text">Расчёт выше уйдёт вместе с&nbsp;заявкой: заново рассказывать про капсулу, пакет и&nbsp;площадь не&nbsp;придётся.</p>
+      </div>
+      <div class="ad-fields">
+        <div class="field" data-field="name">
+          <label for="ad-name">Имя</label>
+          <input class="input" id="ad-name" name="name" type="text" autocomplete="given-name" placeholder="Как к вам обращаться" aria-describedby="ad-name-err">
+          <div class="ad-slot"><span class="field__error" id="ad-name-err" role="alert" hidden></span></div>
+        </div>
+        <div class="field" data-field="phone">
+          <label for="ad-phone">Телефон</label>
+          <input class="input num" id="ad-phone" name="phone" type="tel" inputmode="numeric" autocomplete="tel" placeholder="+7 (___) ___-__-__" aria-describedby="ad-phone-err">
+          <div class="ad-slot"><span class="field__error" id="ad-phone-err" role="alert" hidden></span></div>
+        </div>
+        <div class="field ad-wide" data-field="comment">
+          <label for="ad-comment">Комментарий <span class="muted ad-opt">необязательно</span></label>
+          <textarea class="input ad-textarea" id="ad-comment" name="comment" rows="3" maxlength="500" placeholder="Например: новостройка, нужна перепланировка, удобно звонить после 18:00"></textarea>
+        </div>
+        <div class="field ad-wide" data-field="agree">
+          <label class="check" for="ad-agree">
+            <input type="checkbox" id="ad-agree" name="agree" aria-describedby="ad-agree-err">
+            <span>Соглашаюсь с <a class="link" href="about.html#docs" target="_blank" rel="noopener">политикой обработки данных</a> и&nbsp;на&nbsp;звонок менеджера по&nbsp;этой заявке</span>
+          </label>
+          <div class="ad-slot"><span class="field__error" id="ad-agree-err" role="alert" hidden></span></div>
+        </div>
+      </div>
+      <div class="ad-form__submit">
+        <button class="btn btn--primary btn--lg" type="submit" id="ad-submit">Оставить заявку</button>
+        <p class="small muted">Оплата&nbsp;— после согласования состава работ с&nbsp;менеджером.</p>
+      </div>
+    </form>
+  </section></div></details>
+
+  <!-- Успех -->
+  <section class="wrap section ad-done" id="ad-done" hidden aria-labelledby="ad-done-title">
+    <div class="split">
+      <div class="col-7 stack stack--8">
+        <div class="stack stack--4">
+          <span class="eyebrow ad-ok">Заявка отправлена</span>
+          <h2 class="h2" id="ad-done-title" tabindex="-1">Заявка принята. Менеджер свяжется с&nbsp;вами</h2>
+          <p class="text" id="ad-done-text"></p>
+        </div>
+        <div class="row">
+          <a class="btn btn--primary" href="account.html#leads">Посмотреть в&nbsp;кабинете</a>
+          <a class="btn btn--link" href="capsules.html">Смотреть капсулы</a>
+        </div>
+      </div>
+      <aside class="col-5 stack stack--4 ad-done__aside" aria-label="Что в заявке">
+        <span class="eyebrow">Что в&nbsp;заявке</span>
+        <div class="rows rows--tight ad-sum__rows" id="ad-done-rows"></div>
+      </aside>
+    </div>
+  </section>
+
+  <details class="acc" id="acc-table"><summary><span>Что входит в пакеты</span></summary><div class="acc__body"><section class="wrap section--tight stack stack--6" aria-labelledby="ad-table-title">
+    <div class="stack stack--3"><span class="eyebrow">Сравнение</span><h2 class="h2" id="ad-table-title">Что входит в пакеты</h2>
+    <p class="text">Стартовый, Базовый и Оптимальный отличаются глубиной проработки — вот построчно.</p></div>
+    <div class="ad-table" id="ad-table"></div>
+  </section></div></details>
+
+  <details class="acc" id="acc-how6"><summary><span>Как это работает — 6 шагов</span></summary><div class="acc__body"><section class="wrap section--tight stack stack--6" aria-labelledby="ad-how6-title">
+    <div class="stack stack--3"><span class="eyebrow">Порядок работы</span><h2 class="h2" id="ad-how6-title">Как это работает — 6 шагов</h2></div>
+    <ol class="ad-steps" id="ad-how6"></ol>
+  </section></div></details>
+
+  <details class="acc" id="acc-after"><summary><span>Что будет после оплаты</span></summary><div class="acc__body"><section class="wrap section--tight stack stack--6" aria-labelledby="ad-after-title">
+    <div class="stack stack--3"><span class="eyebrow">Путь проекта</span><h2 class="h2" id="ad-after-title">Что будет после оплаты</h2>
+    <p class="text">В кабинете открывается трекер этапов и разделы проекта: файлы, спецификация и переписка с дизайнером.</p></div>
+    <div class="pb-list" id="ad-stages"></div>
+    <div class="tm-grid">
+      <a class="tm-tile" href="chats.html?kind=designer"><b>Чат с дизайнером</b><span>вопросы и правки по проекту</span></a>
+      <a class="tm-tile" href="market.html"><b>Спецификация</b><span>товары проекта — в маркетплейсе</span></a>
+      <a class="tm-tile" href="track.html"><b>Стройка под ключ</b><span>дальше проект уходит в Трек</span></a>
+      <a class="tm-tile" href="account.html"><b>Разделы проекта</b><span>файлы, сметы и статусы в кабинете</span></a>
+    </div>
+  </section></div></details>
+
+  <details class="acc" id="acc-2"><summary><span>От заявки до начала работы</span></summary><div class="acc__body"><section class="wrap section--tight stack stack--8 ad-next" id="ad-how" aria-labelledby="ad-how-title">
+    <div class="stack stack--3"><span class="eyebrow">Что дальше</span><h2 class="h2" id="ad-how-title">От&nbsp;заявки до&nbsp;начала работы</h2></div>
+    <ol class="grid grid--4 grid--gap-lg ad-path">
+      <li class="rule-top stack stack--3"><span class="ad-path__n num">1</span><h3 class="h4">Заявка</h3><p class="small muted">Капсула, пакет и&nbsp;площадь уже в&nbsp;заявке. Статус виден в&nbsp;кабинете.</p></li>
+      <li class="rule-top stack stack--3"><span class="ad-path__n num">2</span><h3 class="h4">Звонок менеджера</h3><p class="small muted">Уточняет квартиру и&nbsp;задачи, отвечает на&nbsp;вопросы о&nbsp;пакетах и&nbsp;рассрочке.</p></li>
+      <li class="rule-top stack stack--3"><span class="ad-path__n num">3</span><h3 class="h4">Состав работ</h3><p class="small muted">Согласуете, что именно входит в&nbsp;проект, и&nbsp;итоговую цену.</p></li>
+      <li class="rule-top stack stack--3"><span class="ad-path__n num">4</span><h3 class="h4">Оплата и&nbsp;старт</h3><p class="small muted">Платите только после согласования. Дизайнер начинает работу над проектом.</p></li>
+    </ol>
+  </section></div></details>
+
+</main>
+
+<div id="site-footer"></div>
+<script src="assets/js/data.js?v=20261022162032"></script>
+<script src="assets/js/site.js?v=20261022162032"></script>
+<script src="assets/js/pages/adept.js?v=20261022162032"></script>
+<script src="assets/js/adept-banner.js?v=20261022162032"></script>
+<script>
+(function () {
+  /* баннер показывает ту капсулу, с которой человек пришёл, и следит за выбором в расчёте */
+  var start = SOVE.ui.qs('capsule') || (SOVE.draft.get('adept') || {}).capsuleId || 'k1';
+  var banner = SOVE.adeptBanner(document.getElementById('adept-hero-banner'), { capsule: start, bare: true, compact: true });
+  SOVE.adeptCompare(document.getElementById('adept-compare'), { inside: true, calc: '#calc', capsule: start });
+  var chips = document.getElementById('ad-chips');
+  if (banner && chips) {
+    chips.addEventListener('click', function (e) {
+      var b = e.target.closest('[data-capsule]');
+      if (b) banner.setCapsule(b.getAttribute('data-capsule'));
+    });
+  }
+})();
+</script>
+</body>
+</html>

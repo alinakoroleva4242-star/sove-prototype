@@ -1,0 +1,21 @@
+/* 404 — такой страницы нет */
+.nf { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s8); padding-block: var(--s8) var(--s6); }
+.nf__figure { display: flex; flex-direction: column; gap: var(--s3); width: max-content; max-width: 100%; }
+.nf__num { font-size: clamp(120px, 38vw, 340px); font-weight: 200; line-height: .82; letter-spacing: -.05em; color: var(--stone); font-variant-numeric: tabular-nums; user-select: none; padding-right: .05em; }
+.nf__figure .dim { color: var(--graphite); }
+
+.nf__links { border-top: 1px solid var(--ink); }
+.nf__link { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; column-gap: var(--s4); row-gap: 2px; min-height: 76px; padding-block: var(--s4); border-bottom: 1px solid var(--line); transition: color .15s, border-color .15s; }
+.nf__link::after { content: '→'; grid-column: 2; grid-row: 1 / span 2; font-size: 22px; font-weight: 300; color: var(--accent); transition: transform .15s; }
+.nf__link:hover { border-bottom-color: var(--ink); }
+.nf__link:hover .nf__link-title { color: var(--accent); }
+.nf__link:hover::after { transform: translateX(4px); }
+.nf__link-title { grid-column: 1; font-size: clamp(20px, 2vw, 26px); font-weight: 300; line-height: 1.2; transition: color .15s; }
+.nf__link-note { grid-column: 1; }
+
+@media (min-width: 960px) {
+  .nf { grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: var(--s6); padding-block: var(--s16) var(--s10); align-items: end; }
+  .nf__text { grid-column: 1 / span 6; grid-row: 1; }
+  .nf__figure { grid-column: 8 / span 5; grid-row: 1; justify-self: end; }
+  .nf__num { font-size: clamp(200px, 19vw, 300px); }
+}

@@ -1,0 +1,213 @@
+/* Экран «Расстановка мебели»: план как схема, мебель — перетаскиваемые рамки.
+   План рисуется в координатах плана клиента (690×625 px, 76,8 px = 1 м) и масштабируется
+   по ширине экрана, поэтому на телефоне всё помещается без горизонтальной прокрутки. */
+
+/* план распираем на всю ширину экрана: внутри колонки с полями он сжимался,
+   и мебель с подписями читались вдвое мельче, чем нужно пальцу */
+.ar-stage { margin: 14px calc(var(--s4, 16px) * -1) 18px; }
+@media (min-width: 560px) { .ar-stage { margin-left: 0; margin-right: 0; } }
+.ar-plan {
+  width: 100%; height: 60vh; display: block;   /* план занимает экран, обзор — кнопкой ⤢ */
+  background: var(--white); border: 1px solid var(--line); border-top: 0; border-bottom: 0;
+  touch-action: none;                       /* иначе палец скроллит страницу вместо мебели */
+}
+@media (min-width: 560px) { .ar-plan { border: 1px solid var(--line); border-radius: var(--r-sm); } }
+.ar-room { fill: #fbfaf8; stroke: none; }
+.ar-room.is-niche { fill: #f3f1ed; stroke-dasharray: 5 4; stroke-width: 1.6; }
+.ar-rname { font: 600 13px/1 var(--font); fill: var(--graphite); letter-spacing: .06em; }
+.ar-door { fill: rgba(160, 80, 53, .10); stroke: rgba(160, 80, 53, .45); stroke-width: 1; stroke-dasharray: 4 3; }
+.ar-win { fill: #bcd9ea; stroke: #7ba9c4; stroke-width: 1; }
+
+.ar-item rect { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 2; cursor: grab; }
+.ar-item text { font: 600 13px/1 var(--font); fill: var(--accent-ink); text-anchor: middle; pointer-events: none; }
+.ar-item:focus { outline: none; }
+.ar-item:focus rect, .ar-item.is-on rect { stroke-width: 3; fill: #ead9d1; }
+.ar-item:focus-visible rect { stroke: var(--ink); }
+.ar-item.is-bad rect { fill: #f7e0dd; stroke: #b4452f; stroke-dasharray: 5 3; }
+
+.ar-legend { margin: 8px 16px 0; font-size: 11px; color: var(--stone); display: flex; gap: 14px; flex-wrap: wrap; }
+.ar-legend i { display: inline-block; width: 11px; height: 11px; border-radius: 3px; margin-right: 4px; vertical-align: -1px; }
+.ar-legend .l-door { background: rgba(160, 80, 53, .14); border: 1px dashed rgba(160, 80, 53, .5); }
+.ar-legend .l-win { background: #cfe3ef; border: 1px solid #8fb6cc; }
+.ar-legend .l-bad { background: #f7e0dd; border: 1px dashed #b4452f; }
+
+.ar-ok {
+  display: grid; gap: 2px; padding: 14px 16px; border-radius: var(--r-sm);
+  background: var(--green-soft); color: #2f5f45;
+}
+.ar-ok b { font-size: 15px; }
+.ar-ok span { font-size: 13px; }
+
+.ar-bad { border-color: #e7cdc7; }
+.ar-list { list-style: none; margin: 10px 0 8px; padding: 0; display: grid; gap: 9px; }
+.ar-list li { display: grid; grid-template-columns: 14px 1fr; gap: 9px; font-size: 13px; line-height: 1.45; }
+.ar-dot { width: 8px; height: 8px; border-radius: 50%; background: #b4452f; margin-top: 6px; }
+
+.ar-size { margin: 6px 0 10px; font-size: 14px; color: var(--graphite); }
+.ar-size b { color: var(--ink); }
+.ar-ctl { gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+.ar-hint .pb__t { margin-bottom: 4px; }
+
+.ar-an { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin: 10px 0; }
+.ar-an__c {
+  display: grid; gap: 3px; padding: 8px; border: 1px solid var(--line);
+  border-radius: var(--r-xs); background: var(--white); font-size: 12px;
+}
+.ar-an__c img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 6px; background: var(--surface-2); }
+.ar-an__c b { font-size: 12px; line-height: 1.3; font-weight: 600; }
+.ar-an__m { color: var(--stone); font-size: 11px; }
+.ar-an__p { font-weight: 700; display: grid; }
+.ar-an__p i { font-style: normal; font-weight: 400; font-size: 10px; color: var(--stone); }
+.ar-an__c.is-wide { opacity: .55; }
+.ar-an__no { font-size: 10px; color: #b4452f; font-weight: 600; }
+.ar-nosize { font-style: normal; color: #9a7b4f; }
+
+/* две равные кнопки в ряд: в столбик они выглядели как случайный набор */
+.ar-foot { display: grid; grid-template-columns: .8fr 1.2fr; gap: 10px; margin-top: 18px; }
+.ar-foot .btn { width: 100%; justify-content: center; }
+@media (max-width: 359px) { .ar-foot { grid-template-columns: 1fr; } }
+.ar-note { margin-top: 12px; text-align: center; font-size: 12px; }
+
+@media (min-width: 720px) {
+  .ar-an { grid-template-columns: repeat(4, 1fr); }
+}
+
+/* подпись комнаты над названием предмета: в общем стиле .pb__k строчный, здесь нужен свой ряд */
+.ar-pick .pb__k, .ar-swap .pb__k, .ar-bad .pb__k, .ar-hint .pb__k { display: block; margin-bottom: 2px; }
+.ar-pick .pb__t, .ar-swap .pb__t { display: block; }
+
+/* список предметов: попасть пальцем в строку проще, чем в тумбу шириной 45 см на плане */
+.ar-items__g { margin-top: 10px; }
+.ar-items__g b { font-size: 12px; color: var(--stone); font-weight: 600; }
+.ar-items__l { gap: 6px; flex-wrap: wrap; margin-top: 5px; }
+.ar-chip { font-size: 12px; padding: 6px 10px; }
+.ar-chip i { font-style: normal; color: var(--stone); font-size: 11px; }
+.ar-chip.is-bad { border-color: #d79a8c; color: #93321f; }
+.ar-chip.is-bad i { color: #b4452f; }
+.ar-rbg { fill: rgba(251, 250, 248, .92); }
+
+/* ── различие двери и замечания ───────────────────────────────────────────
+   Раньше обе были розовым пунктиром и читались одинаково. Теперь дверная зона —
+   нейтральная серая штриховка (это «место занимать нельзя»), а замечание — красный
+   предмет со значком «!» (это «ты что-то нарушил»). */
+/* дверные зоны крупные (0,9 м в каждую сторону) — делаем их тише, чтобы не спорили с мебелью */
+/* дверь: проём в стене и дуга створки — как на обычном плане, вместо большого
+   заштрихованного квадрата, который спорил с мебелью */
+.ar-gap { fill: #fbfaf8; }
+.ar-arc { fill: none; stroke: #a9a299; stroke-width: 1.2; stroke-dasharray: 3 3; }
+.ar-leaf { stroke: #6f6760; stroke-width: 2.6; stroke-linecap: round; }
+.ar-leaf.is-entrance { stroke: var(--accent); }
+.ar-item.is-bad rect { fill: #f6d7d1; stroke: #a8341c; stroke-width: 2.2; stroke-dasharray: none; }
+.ar-mark { fill: #a8341c; }
+.ar-mark__t { font: 700 8px/1 var(--font); fill: #fff; text-anchor: middle; pointer-events: none; }
+.ar-legend .l-door { background: #fbfaf8; border: 1px dashed #b9b3ab; }
+.ar-legend .l-bad { background: #f6d7d1; border: 2px solid #a8341c; }
+
+/* ручка поворота у выбранного предмета */
+.ar-rot circle { fill: var(--white); stroke: var(--accent); stroke-width: 1.6; cursor: pointer; }
+.ar-rot text { font: 700 11px/1 var(--font); fill: var(--accent); text-anchor: middle; pointer-events: none; }
+
+/* переключатель вариантов экрана — служебный, перед показом команде его убираем */
+/* служебный переключатель вариантов — одной строкой, чтобы не съедать первый экран */
+.ar-sw { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin: 2px 0 8px; }
+.ar-sw > span { font-size: 11px; color: var(--stone); }
+.chip--xs { font-size: 11px; padding: 4px 9px; min-height: 0; }
+
+.ar-tabs { gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+
+/* вариант «панель снизу»: на экране остаётся плашка управления, а план просто
+   большой. Залипание самого плана давало наползание: прилипший блок оставался
+   на месте, и следующая кнопка проезжала поверх легенды. */
+.ar-stage.is-sticky { position: static; }
+.ar-dock {
+  /* нижнее меню приложения фиксировано и 64 px высотой — плашка садится над ним */
+  position: sticky; bottom: calc(64px + 8px); z-index: 3; margin-top: 12px;
+  background: var(--white); border: 1px solid var(--line-2); border-radius: var(--r-sm);
+  box-shadow: 0 -8px 24px -18px rgba(31,31,31,.5);
+}
+.ar-dock .pb { border: 0; padding: 12px 14px; }
+.ar-dock.is-off { display: none; }
+
+/* вариант «только важное» */
+.ar-fx { padding: 10px 0; border-top: 1px solid var(--line); }
+.ar-fx b { font-size: 13px; }
+.ar-fx p { margin: 2px 0 8px; font-size: 13px; line-height: 1.45; color: var(--graphite); }
+
+/* в варианте с плашкой страница должна прокручиваться дальше её высоты */
+body[data-page="arrange"] #main { padding-bottom: 96px; }
+.ar-rot circle { r: 17; }
+.ar-rot text { font-size: 15px; }
+.chip--act { border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
+.ar-tip { margin: -4px 0 8px; }
+
+.ar-mark { r: 8; }
+.ar-mark__t { font-size: 11px; }
+
+.ar-foot .btn { white-space: nowrap; }
+/* стык ниши с комнатой: закрашиваем стену фоном комнаты */
+.ar-join { display: none; }   /* стык ниши больше не нужен: стен между комнатами нет, их рисует подложка */
+.ar-niche { font: 500 10px/1 var(--font); fill: var(--stone); text-anchor: middle; }
+.ar-room.is-niche { fill: #fbfaf8; stroke: none; }
+
+/* подложка стен: из неё «вырезаются» комнаты, поэтому она лежит под ними */
+.ar-wall { fill: #ddd8d0; }
+
+/* вне квартиры: срезаем угол плиты, иначе дом читается прямоугольным */
+.ar-out { fill: var(--paper); }
+
+/* выносная подпись узкого предмета */
+.ar-call line { stroke: #c2bcb3; stroke-width: 1; }
+.ar-call rect { fill: rgba(255,255,255,.94); stroke: #e0dbd3; stroke-width: 1; }
+.ar-call text { font: 500 11px/1 var(--font); fill: var(--graphite); }
+
+/* масштаб плана: квартира целиком мелкая, поэтому даём приблизить как карту */
+.ar-zoom {
+  position: absolute; right: 14px; bottom: 46px; display: flex; align-items: center; gap: 2px;  /* внизу плана: сверху его накрывает шапка приложения */
+  background: rgba(255,255,255,.94); border: 1px solid var(--line-2); border-radius: var(--pill);
+  padding: 2px; box-shadow: var(--shadow);
+}
+.ar-zoom button {
+  width: 34px; height: 34px; border: 0; background: transparent; border-radius: 50%;
+  font-size: 19px; line-height: 1; color: var(--ink); cursor: pointer;
+}
+.ar-zoom button:active { background: var(--surface-2); }
+.ar-zoom span { font-size: 11px; color: var(--stone); min-width: 34px; text-align: center; }
+.ar-stage { position: relative; }
+
+/* шапка экрана: заголовок и строка о квартире, не больше */
+.ar-head { margin-bottom: 4px; }
+.ar-head .h2 { margin: 0 0 2px; }
+.ar-stage { margin-top: 6px; }
+
+.ar-zoom__all { font-size: 15px; }
+.ar-zoom__all.is-on { background: var(--accent-soft); color: var(--accent-ink); }
+
+/* в режиме «рука» курсор и подсказка меняются: палец двигает весь план */
+.ar-plan.is-hand { cursor: grab; }
+.ar-plan.is-hand .ar-item rect { cursor: grab; }
+
+/* крестик плашки выбранного предмета */
+.ar-pick { position: relative; }
+.ar-x {
+  position: absolute; right: 8px; top: 8px; width: 32px; height: 32px;
+  border: 0; background: transparent; color: var(--stone); font-size: 24px; line-height: 1;
+  cursor: pointer; border-radius: 50%;
+}
+.ar-x:active { background: var(--surface-2); }
+.ar-pick .pb__t { padding-right: 36px; }
+
+/* цена комплектации на расстановке */
+.ar-money {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 12px 14px; border-radius: var(--r-sm); background: var(--tile);
+}
+.ar-money b { font-size: 17px; display: block; }
+.ar-money span { font-size: 12px; color: var(--graphite); }
+
+/* подсказка «подвинь соседа» */
+.ar-move { margin: 6px 0 0; font-size: 13px; line-height: 1.45; color: var(--graphite); }
+.ar-move .btn--link { padding: 0 2px; }
+
+/* выбор варианта расстановки */
+.ar-plans { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin: 0 0 8px; }
+.ar-plans > span { font-size: 11px; color: var(--stone); }

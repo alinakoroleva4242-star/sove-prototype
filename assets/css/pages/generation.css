@@ -1,0 +1,93 @@
+/* Результат генерации SOVE AI */
+.gen-page { padding-block: var(--s6) 0; display: flex; flex-direction: column; }
+
+/* заголовок: тип и дата, название, списание, действия */
+.gen-head { display: grid; gap: var(--s6); grid-template-columns: minmax(0, 1fr); padding-block: var(--s8) var(--s10); align-items: end; }
+.gen-head__text { display: flex; flex-direction: column; gap: var(--s4); min-width: 0; }
+.gen-title { display: flex; flex-direction: column; gap: var(--s4); font-weight: 300; }
+.gen-title__name { font-size: clamp(32px, 4.4vw, 56px); font-weight: 300; line-height: 1.06; letter-spacing: -.02em; text-wrap: balance; overflow-wrap: anywhere; }
+.gen-charge { display: flex; align-items: center; gap: var(--s3); flex-wrap: wrap; }
+.gen-charge b { font-weight: 600; }
+.gen-badge--danger { background: transparent; color: var(--danger); border: 1px solid var(--danger); }
+.gen-actions { display: flex; flex-direction: column; gap: var(--s3); }
+.gen-actions .btn { width: 100%; }
+@media (min-width: 640px) { .gen-actions { flex-direction: row; flex-wrap: wrap; } .gen-actions .btn { width: auto; } }
+@media (min-width: 960px) {
+  .gen-page { padding-top: var(--s8); }
+  .gen-head { grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: var(--s6); padding-block: var(--s10) var(--s12); }
+  .gen-head__text { grid-column: span 8; }
+  .gen-actions { grid-column: 10 / span 3; flex-direction: column; flex-wrap: nowrap; }
+  .gen-actions .btn { width: 100%; padding-inline: var(--s4); }
+}
+
+/* рендер с пронумерованными рамками */
+.gen-scene__pic { position: relative; background: var(--white); }
+.gen-scene__pic img { width: 100%; height: auto; }
+.gen-frame { position: absolute; padding: 0; background: transparent; border: 1px solid var(--white); outline: 1px solid rgba(29, 29, 29, .35); transition: background .15s, border-color .15s; }
+.gen-frame .marker { position: absolute; left: -1px; top: -1px; }
+.gen-frame:hover, .gen-frame.is-hot, .gen-frame.is-active { border: 2px solid var(--accent); outline-color: transparent; background: rgba(255, 255, 255, .14); z-index: 1; }
+.gen-frame:hover .marker, .gen-frame.is-hot .marker, .gen-frame.is-active .marker { left: -2px; top: -2px; }
+.gen-frame:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* предметы и товары к ним */
+.gen-objects { display: flex; flex-direction: column; gap: var(--s12); }
+.gen-object { display: flex; flex-direction: column; gap: var(--s5); scroll-margin-top: calc(var(--header-h) + var(--s4)); }
+.gen-object__head { display: flex; align-items: center; gap: var(--s3); flex-wrap: wrap; }
+.gen-object.is-hot .gen-object__head, .gen-object.is-active .gen-object__head { border-top-color: var(--accent); }
+.gen-object__grid, .gen-items { --cols: 2; gap: var(--s3); }
+@media (min-width: 640px) { .gen-object__grid, .gen-items { --cols: 3; gap: var(--s4); } }
+.gen-none { display: flex; flex-direction: column; gap: var(--s2); padding: var(--s6); }
+.gen-none__title { font-size: 20px; font-weight: 300; }
+.gen-none .small { max-width: 52ch; }
+
+/* исходное фото */
+.gen-source__pic { position: relative; overflow: hidden; background: var(--white); }
+.gen-source__pic img { width: 100%; height: auto; max-height: 560px; object-fit: cover; }
+.gen-source__ph { aspect-ratio: 4 / 5; }
+.gen-source__pic.is-running img { opacity: .55; }
+.gen-run { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: var(--line); overflow: hidden; }
+.gen-run i { position: absolute; top: 0; bottom: 0; width: 35%; background: var(--accent); animation: gen-run 1.6s ease-in-out infinite; }
+@keyframes gen-run { from { left: -35%; } to { left: 100%; } }
+
+/* состояния: пусто, ошибка, идёт поиск */
+.gen-state { align-items: center; }
+.gen-tips > li { justify-content: flex-start; color: var(--graphite); }
+.gen-tips > li::before { content: ''; width: 8px; height: 8px; border: 1px solid var(--ink); flex-shrink: 0; }
+@media (min-width: 960px) { .gen-state__body { grid-column: 6 / span 7 !important; } }
+.gen-missing { padding-block: var(--s10) var(--s8); max-width: 760px; }
+
+/* черновая смета */
+.gen-estimate { margin-top: var(--s16); padding-top: var(--s10); border-top: 1px solid var(--ink); display: flex; flex-direction: column; gap: var(--s8); }
+.gen-estimate__head { display: flex; flex-direction: column; gap: var(--s3); max-width: 760px; }
+.gen-est-rows { border-top: 1px solid var(--line); }
+.gen-est-rows > li { display: block; min-height: 0; }
+.gen-est-row { display: flex; align-items: flex-start; gap: var(--s4); padding-block: var(--s4); min-height: 64px; }
+a.gen-est-row:hover b { color: var(--accent); }
+.gen-est-row__name { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.gen-est-row__name b { font-weight: 500; }
+.gen-est-row__name small { font-size: 13px; color: var(--graphite); line-height: 1.4; }
+.gen-est-row__price { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; font-weight: 600; }
+.gen-est-row__price .tiny { font-weight: 400; }
+.gen-sum { display: flex; flex-direction: column; gap: var(--s5); }
+.gen-sum__line { display: flex; align-items: baseline; justify-content: space-between; gap: var(--s4); flex-wrap: wrap; }
+.gen-sum__main { display: flex; flex-direction: column; gap: var(--s2); }
+
+.gen-back { margin-top: var(--s16); border-top-color: var(--line); }
+
+@media (max-width: 959px) {
+  .gen-result, .gen-state { row-gap: var(--s10); }
+  .gen-objects { gap: var(--s10); }
+  .gen-estimate { margin-top: var(--s12); }
+}
+
+/* телефон: товары предмета — лента с прокруткой вбок, вторые действия спокойнее */
+@media (max-width: 639px) {
+  .gen-object__grid { display: flex; gap: var(--s3); overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; margin-inline: calc(var(--gutter) * -1); padding-inline: var(--gutter); scroll-padding-inline: var(--gutter); }
+  .gen-object__grid::-webkit-scrollbar { display: none; }
+  .gen-object__grid > .product-card { flex: 0 0 64%; scroll-snap-align: start; }
+  .gen-items .tag { letter-spacing: .04em; }
+  .gen-source__pic img { aspect-ratio: 16 / 10; object-fit: cover; }
+  .gen-state .gen-source { order: 2; }
+  .gen-state .row .btn, .gen-missing .row .btn { flex: 1 1 100%; }
+  .gen-actions a.btn--ghost { min-height: 44px; border-color: transparent; text-decoration: underline; text-underline-offset: 5px; }
+}

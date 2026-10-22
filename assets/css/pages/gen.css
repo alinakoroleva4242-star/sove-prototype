@@ -1,0 +1,25 @@
+/* Генерации: воронка */
+.card { background: var(--white); border: 1px solid var(--line); padding: var(--s4); }
+.gn-hero { display: grid; gap: var(--s5); grid-template-columns: minmax(0, 1fr); padding-block: var(--s5) var(--s4); align-items: center; }
+.gn-hero .h1 { font-size: clamp(26px, 3.4vw, 40px); }
+.gn-hero__cta .btn { flex: 1 1 auto; }
+.gn-hero__pics { position: relative; aspect-ratio: 4 / 3; background: var(--tile); overflow: hidden; }
+.gn-hero__pics img:first-child { width: 78%; height: 100%; object-fit: cover; }
+.gn-hero__pics img:last-child { position: absolute; right: 4%; bottom: 6%; width: 42%; aspect-ratio: 1 / 1; object-fit: contain; background: var(--white); padding: 6%; box-shadow: 0 16px 40px -16px rgba(29,29,29,.45); }
+@media (min-width: 760px) { .gn-hero { grid-template-columns: minmax(0, 6fr) minmax(0, 6fr); column-gap: var(--s8); padding-block: var(--s8) var(--s6); } }
+.gn-how { display: grid; gap: var(--s3); grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 640px) { .gn-how { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.gn-how b { font-size: 16px; font-weight: 600; }
+.gn-how .text { font-size: 14px; }
+.gn-price { display: flex; flex-direction: column; gap: 0; }
+.gn-price__row { display: flex; justify-content: space-between; align-items: center; gap: var(--s4); min-height: 48px; border-bottom: 1px solid var(--line); font-size: 15px; }
+.gn-price__row b { font-weight: 600; white-space: nowrap; }
+.gn-price__row--sum { border-bottom: 0; margin-bottom: var(--s3); }
+.gn-price__row--sum b { color: var(--accent); }
+.gn-faq details { border-top: 1px solid var(--line); }
+.gn-faq details:last-child { border-bottom: 1px solid var(--line); }
+.gn-faq summary { min-height: 52px; display: flex; align-items: center; justify-content: space-between; gap: var(--s3); font-size: 15px; font-weight: 600; cursor: pointer; list-style: none; }
+.gn-faq summary::-webkit-details-marker { display: none; }
+.gn-faq summary::after { content: '+'; font-size: 20px; font-weight: 300; color: var(--graphite); }
+.gn-faq details[open] summary::after { content: '−'; }
+.gn-faq .text { padding-bottom: var(--s4); font-size: 14px; }

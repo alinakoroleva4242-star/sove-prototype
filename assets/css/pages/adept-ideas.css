@@ -1,0 +1,166 @@
+/* Витрина идей баннера Адепта: пять вариантов друг под другом */
+.ideas__intro { font-size: 13px; color: var(--graphite); padding: 12px var(--gutter) 0; margin: 0; }
+.ideas__block { padding: 18px var(--gutter) 6px; }
+.ideas__n { font-size: 12px; font-weight: 600; color: var(--stone); margin: 0 0 4px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.ideas__badge { font-style: normal; font-size: 10px; font-weight: 700; color: var(--accent); background: rgba(160,80,53,.1); padding: 3px 8px; border-radius: var(--pill); }
+.ideas__d { font-size: 12px; color: var(--graphite); margin: 0 0 10px; line-height: 1.4; }
+.ad3__k { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; font-weight: 600; color: var(--accent); }
+
+/* 2. листы альбома */
+.ad2 { border: 1px solid var(--line); border-radius: var(--r); background: var(--white); padding: 16px 0 16px; }
+.ad2__head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; padding: 0 16px 12px; }
+.ad2__head b { font-size: 16px; font-weight: 600; }
+.ad2__head small { display: block; font-size: 12px; color: var(--graphite); margin-top: 2px; }
+.ad2__lane { display: flex; gap: 10px; overflow-x: auto; scroll-snap-type: x mandatory; padding: 2px 16px 4px; -webkit-overflow-scrolling: touch; }
+.ad2__lane::-webkit-scrollbar { display: none; }
+.sheet { flex: 0 0 148px; scroll-snap-align: start; display: flex; flex-direction: column; gap: 6px; color: var(--ink); }
+.sheet__pic { position: relative; display: block; aspect-ratio: 3 / 4; border-radius: var(--r-sm); overflow: hidden; background: var(--surface-2); box-shadow: 0 8px 20px -14px rgba(31,31,31,.8); }
+.sheet__pic img { width: 100%; height: 100%; object-fit: cover; }
+.sheet__pic em { position: absolute; left: 8px; top: 8px; font-style: normal; font-size: 10px; font-weight: 700; letter-spacing: .06em; padding: 3px 7px; border-radius: var(--r-xs); background: rgba(255,255,255,.92); }
+.sheet b { font-size: 13px; font-weight: 600; line-height: 1.25; }
+.sheet span { font-size: 11px; color: var(--graphite); line-height: 1.3; }
+.ad2__btn { margin: 14px 16px 0; }
+
+/* 3. шкала сроков */
+.ad3 { border: 1px solid var(--line); border-radius: var(--r); background: var(--white); padding: 18px; display: flex; flex-direction: column; gap: 10px; }
+.ad3__t { font-size: 20px; font-weight: 600; margin: 0; }
+.ad3__t b { font-weight: 700; color: var(--accent); }
+.ad3__line { position: relative; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 6px 0 0; }
+.ad3__line i { position: absolute; left: 16%; right: 16%; top: 7px; height: 2px; background: var(--line-2); }
+.ad3__line button { position: relative; background: none; border: 0; padding: 0; display: flex; flex-direction: column; align-items: center; gap: 8px; font-size: 11px; line-height: 1.3; color: var(--graphite); }
+.ad3__line button em { width: 16px; height: 16px; border-radius: 50%; background: var(--white); border: 2px solid var(--line-2); box-sizing: border-box; transition: transform .15s, border-color .15s, background .15s; }
+.ad3__line button.is-on em { background: var(--accent); border-color: var(--accent); transform: scale(1.2); }
+.ad3__line button.is-on { color: var(--ink); font-weight: 600; }
+.ad3__line button u { text-decoration: none; font-size: 10px; color: var(--stone); }
+.ad3__list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.ad3__list li { position: relative; padding-left: 16px; font-size: 13px; color: var(--graphite); }
+.ad3__list li::before { content: ''; position: absolute; left: 2px; top: 8px; width: 5px; height: 5px; border-radius: 50%; background: var(--accent); }
+.ad3__foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-top: 10px; border-top: 1px solid var(--line); margin-top: 2px; }
+.ad3__foot b { font-size: 18px; font-weight: 700; }
+
+/* 4. цена за площадь */
+.ad4 { border: 1px solid var(--line); border-radius: var(--r); background: var(--white); overflow: hidden; }
+.ad4 > img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; display: block; }
+.ad4__body { padding: 16px; display: flex; flex-direction: column; gap: 8px; }
+.ad4__sum { display: flex; flex-direction: column; gap: 2px; }
+.ad4__sum b { font-size: 30px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+.ad4__sum span { font-size: 12px; color: var(--graphite); }
+.ad4__range { display: flex; flex-direction: column; gap: 4px; margin-top: 4px; }
+.ad4__range input { width: 100%; accent-color: var(--accent); }
+.ad4__range span { display: flex; justify-content: space-between; font-size: 11px; color: var(--stone); }
+.ad4__range i { font-style: normal; }
+.ad4__row { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-top: 4px; }
+.seg { display: inline-flex; padding: 3px; background: var(--surface-2); border-radius: var(--pill); }
+.seg button { height: 30px; padding: 0 12px; border: 0; border-radius: var(--pill); background: transparent; font-weight: 600; font-size: 12px; color: var(--graphite); }
+.seg button.is-on { background: var(--ink); color: var(--white); }
+
+/* 5. одна комната в трёх капсулах */
+.ad5 { border: 1px solid var(--line); border-radius: var(--r); background: var(--white); overflow: hidden; }
+.ad5__stage { position: relative; aspect-ratio: 4 / 3; background: var(--surface-2); }
+.ad5__stage img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity .45s ease; }
+.ad5__stage img:first-child { opacity: 1; }
+.ad5__cap { position: absolute; left: 12px; bottom: 12px; z-index: 2; font-size: 11px; font-weight: 600; padding: 6px 10px; border-radius: var(--pill); background: rgba(255,255,255,.92); color: var(--ink); }
+.ad5__body { padding: 16px; display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+.ad5__t { font-size: 17px; font-weight: 600; line-height: 1.25; }
+.ad5__pick { display: inline-flex; gap: 6px; }
+.ad5__pick button { height: 34px; min-width: 44px; padding: 0 12px; border: 1px solid var(--line-2); border-radius: var(--pill); background: var(--white); font-weight: 600; font-size: 12px; color: var(--graphite); }
+.ad5__pick button.is-on { background: var(--accent); border-color: var(--accent); color: var(--white); }
+
+/* 6. вырубка по планировке: контур квартиры как окно в интерьер */
+.ad6 { border: 1px solid var(--line); border-radius: var(--r); background: var(--white); overflow: hidden; }
+.ad6__stage { position: relative; background: var(--paper); }
+.ad6__svg { display: block; width: 100%; height: auto; }
+.fc-edge { fill: none; stroke: var(--ink); stroke-width: 3; stroke-linejoin: miter; }
+.fc-wall { stroke: var(--paper); stroke-width: 7; fill: none; }
+.fc-d { font-family: inherit; font-size: 10px; font-weight: 600; fill: var(--graphite); letter-spacing: .01em; }
+.ad6__tag { position: absolute; left: var(--x); top: var(--y); font-size: 10px; font-weight: 600; padding: 4px 9px; border-radius: var(--pill); background: rgba(255,255,255,.88); color: var(--graphite); }
+.ad6__tag--q { background: rgba(255,255,255,.7); }
+.ad6__body { padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 4px; }
+.ad6__t { font-size: 18px; font-weight: 600; line-height: 1.25; margin-top: 2px; }
+
+/* 8. поставьте вещь на план */
+.ad8 { border: 1px solid var(--line); border-radius: var(--r); background: var(--white); overflow: hidden; }
+.ad8__stage { position: relative; background: var(--paper); padding: 0 0 78px; touch-action: none; }
+.ad8__plan { display: block; width: 100%; height: auto; }
+.ad8__slot { fill: none; stroke: var(--stone); stroke-width: 1.4; stroke-dasharray: 5 4; transition: stroke .15s, fill .15s; }
+.ad8__slot.is-near { stroke: var(--accent); fill: rgba(160, 80, 53, .1); }
+.ad8__slot.is-filled { stroke: var(--accent); fill: rgba(160, 80, 53, .16); stroke-dasharray: none; }
+.ad8__item { position: absolute; left: 50%; bottom: 10px; top: auto; transform: translate(-50%, 0); width: 132px; padding: 8px 8px 10px; border: 1px solid var(--line-2); border-radius: var(--r-sm); background: var(--white); box-shadow: 0 10px 24px -14px rgba(31,31,31,.9); cursor: grab; touch-action: none; }
+.ad8__item img { display: block; width: 100%; height: 44px; object-fit: contain; }
+.ad8__item span { display: block; font-size: 10px; color: var(--graphite); margin-top: 4px; }
+.ad8__item.is-drag { cursor: grabbing; transform: translate(-50%, -50%) scale(1.04) rotate(-2deg); bottom: auto; }
+.ad8__item.is-placed { transform: translate(-50%, -50%) scale(.72); bottom: auto; box-shadow: none; border-color: var(--accent); transition: transform .28s ease, left .28s ease, top .28s ease; pointer-events: none; }
+.ad8__item.is-back { transition: left .3s ease, top .3s ease, transform .3s ease; }
+.ad8__done { position: absolute; left: 12px; bottom: 14px; display: flex; flex-direction: column; opacity: 0; transform: translateY(6px); transition: opacity .3s, transform .3s; }
+.ad8__done.is-on { opacity: 1; transform: none; }
+.ad8__done b { font-size: 12px; font-weight: 700; color: var(--accent); }
+.ad8__done span { font-size: 11px; color: var(--graphite); }
+.ad8__body { padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 4px; }
+
+/* подсказка: карточка слегка «дышит», пока её не взяли */
+.ad8__item { animation: ad8bob 2.4s ease-in-out infinite; }
+.ad8__item.is-drag, .ad8__item.is-placed, .ad8__item.is-back, .ad8__stage.is-used .ad8__item { animation: none; }
+@keyframes ad8bob { 0%, 100% { transform: translate(-50%, 0); } 50% { transform: translate(-50%, -5px); } }
+@media (prefers-reduced-motion: reduce) { .ad8__item { animation: none; } }
+.ad8__item::after { content: 'перетащите'; position: absolute; left: 50%; top: -26px; transform: translateX(-50%); font-size: 10px; font-weight: 600; white-space: nowrap; padding: 4px 9px; border-radius: var(--pill); background: rgba(31,31,31,.82); color: var(--white); transition: opacity .25s; }
+.ad8__stage.is-used .ad8__item::after, .ad8__item.is-drag::after, .ad8__item.is-placed::after { opacity: 0; }
+
+/* 9. пометки дизайнера на кадре */
+.ad9 { border: 1px solid var(--line); border-radius: var(--r); background: var(--white); overflow: hidden; }
+.ad9__stage { position: relative; aspect-ratio: 4 / 4.4; }
+.ad9__stage img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.ad9__note { position: absolute; left: var(--x); top: var(--y); z-index: 2; transform: translate(-50%, calc(-100% - 16px)); display: flex; flex-direction: column; gap: 1px; padding: 7px 10px; border-radius: var(--r-xs); background: rgba(255,255,255,.94); box-shadow: 0 8px 20px -12px rgba(0,0,0,.7); max-width: 168px; }
+.ad9__note b { font-size: 12px; font-weight: 700; line-height: 1.2; }
+.ad9__note i { font-style: normal; font-size: 10px; color: var(--graphite); line-height: 1.3; }
+.ad9__note em { font-style: normal; font-weight: 600; color: var(--accent); }
+.ad9__note::before { content: ''; position: absolute; left: 50%; bottom: -16px; width: 1px; height: 16px; background: rgba(255,255,255,.9); }
+.ad9__note::after { content: ''; position: absolute; left: 50%; bottom: -19px; width: 7px; height: 7px; margin-left: -3px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 3px rgba(255,255,255,.75); }
+.ad9__note--down { transform: translate(-50%, 16px); }
+.ad9__note--down::before { bottom: auto; top: -16px; }
+.ad9__note--down::after { bottom: auto; top: -19px; }
+.ad9__body { padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 4px; }
+
+/* 10. квартира собирается на скролле */
+.ad10 { border: 1px solid var(--line); border-radius: var(--r); background: var(--white); overflow: hidden; }
+.ad10__stage { position: relative; aspect-ratio: 4 / 5; background: var(--paper); }
+.ad10__l { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.ad10__svg { object-fit: contain; }
+#ad10-gray { filter: grayscale(1) contrast(.94); }
+.ad10__step { position: absolute; left: 12px; bottom: 12px; z-index: 3; font-size: 10px; font-weight: 600; padding: 5px 10px; border-radius: var(--pill); background: rgba(31,31,31,.6); color: var(--white); }
+.ad10__scale { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; padding: 12px 16px 2px; }
+.ad10__scale span { display: flex; flex-direction: column; gap: 5px; font-size: 10px; color: var(--stone); }
+.ad10__scale i { display: block; height: 2px; border-radius: 2px; background: var(--line-2); transition: background .25s; }
+.ad10__scale b { font-size: 11px; font-weight: 600; }
+.ad10__scale u { text-decoration: none; font-size: 9px; }
+.ad10__scale .is-on i { background: var(--accent); }
+.ad10__scale .is-on b { color: var(--ink); }
+
+/* 11. комнаты вашей квартиры */
+.ad11 { border: 1px solid var(--line); border-radius: var(--r); background: var(--white); padding: 18px; display: flex; flex-direction: column; gap: 10px; }
+.ad11__t { font-size: 19px; font-weight: 600; line-height: 1.2; }
+.ad11__chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.ad11__chips button { height: 34px; padding: 0 13px; border: 1px solid var(--line-2); border-radius: var(--pill); background: var(--white); font-size: 12px; font-weight: 600; color: var(--graphite); }
+.ad11__chips button.is-on { background: var(--ink); border-color: var(--ink); color: var(--white); }
+.ad11__what { list-style: none; margin: 2px 0 0; padding: 0; display: flex; flex-direction: column; gap: 7px; }
+.ad11__what li { display: flex; flex-direction: column; }
+.ad11__what b { font-size: 13px; font-weight: 600; }
+.ad11__what span { font-size: 11px; color: var(--graphite); }
+.ad11__sum { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
+.ad11__sum b { display: block; font-size: 22px; font-weight: 700; line-height: 1.1; }
+.ad11__sum i { display: block; font-style: normal; font-size: 11px; color: var(--graphite); margin-top: 3px; max-width: 190px; line-height: 1.35; }
+
+/* 12. что входит и что нет */
+.ad12 { border: 1px solid var(--line); border-radius: var(--r); background: var(--white); padding: 18px; }
+.ad12__head b { display: block; font-size: 26px; font-weight: 700; line-height: 1.1; margin-top: 4px; }
+.ad12__head i { display: block; font-style: normal; font-size: 11px; color: var(--graphite); margin-top: 3px; }
+.ad12__cols { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 14px; }
+.ad12__h { display: block; font-size: 11px; font-weight: 700; color: var(--ink); margin-bottom: 8px; }
+.ad12__h--off { color: var(--stone); }
+.ad12__in, .ad12__out { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.ad12__in li { position: relative; padding-left: 18px; font-size: 12px; line-height: 1.35; }
+.ad12__in li::before { content: ''; position: absolute; left: 0; top: 4px; width: 10px; height: 6px; border-left: 2px solid var(--accent); border-bottom: 2px solid var(--accent); transform: rotate(-45deg); }
+.ad12__out li { position: relative; padding-left: 18px; font-size: 12px; color: var(--stone); line-height: 1.3; }
+.ad12__out li::before { content: ''; position: absolute; left: 0; top: 8px; width: 10px; height: 1px; background: var(--line-2); }
+.ad12__out b { display: block; font-weight: 600; color: var(--graphite); }
+.ad12__out span { font-size: 11px; }
+.ad12__btn { margin-top: 16px; width: 100%; }

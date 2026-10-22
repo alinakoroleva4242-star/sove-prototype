@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Вход и регистрация — SOVEAPP</title>
+<meta name="description" content="Вход в кабинет SOVEAPP по коду из SMS. Один номер — и для входа, и для регистрации.">
+<link rel="icon" href="assets/img/logo-sg.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap">
+<link rel="stylesheet" href="assets/css/site.css?v=20261022162032">
+<link rel="stylesheet" href="assets/css/app-theme.css?v=20261022162032">
+<link rel="stylesheet" href="assets/css/pages/auth.css?v=20261022162032">
+</head>
+<body data-page="auth" data-title="Вход">
+<a class="skip" href="#main">К содержанию</a>
+<div id="site-header"></div>
+
+<main id="main">
+  <div class="wrap auth">
+
+    <figure class="auth__pic">
+      <div class="auth__photo">
+        <img src="assets/img/capsules/k4-bed-1.jpg" alt="Спальня в капсуле К4: молочные стены с молдингами, изголовье волной, латунное бра" width="1120" height="1400">
+        <div class="auth__note" id="auth-note">
+          <span class="eyebrow" id="auth-note-eyebrow">Кабинет SOVEAPP</span>
+          <p class="auth__note-text" id="auth-note-text">Проекты, расчёты ремонта и результаты SOVEAPP AI хранятся в одном месте.</p>
+        </div>
+      </div>
+      <figcaption class="dim"><span>К4 · спальня</span></figcaption>
+    </figure>
+
+    <section class="auth__panel" aria-labelledby="auth-title">
+      <div class="auth__form stack stack--8">
+
+        <div class="stack stack--3">
+          <span class="eyebrow" id="auth-eyebrow">Шаг 1 из 2 · номер телефона</span>
+          <h1 class="h2" id="auth-title" tabindex="-1">Вход и регистрация</h1>
+          <p class="text" id="auth-lead">Один номер — и для входа, и для регистрации. Пароль не нужен: пришлём код в SMS.</p>
+        </div>
+
+        <div class="auth__gift" id="gift-note"></div>
+
+        <div class="auth__ways" role="tablist" aria-label="Способ входа">
+          <button type="button" class="auth__way is-on" data-way="phone" role="tab" aria-selected="true">Телефон</button>
+          <button type="button" class="auth__way" data-way="tg" role="tab" aria-selected="false">Telegram</button>
+          <button type="button" class="auth__way" data-way="email" role="tab" aria-selected="false">Почта</button>
+        </div>
+
+        <!-- Шаг 1: телефон -->
+        <form class="stack stack--6" id="step-phone" novalidate>
+          <div class="field" id="phone-field">
+            <label for="phone">Номер телефона</label>
+            <input class="input auth__phone num" id="phone" name="phone" type="tel" inputmode="numeric" autocomplete="tel" placeholder="+7 (___) ___-__-__" aria-describedby="phone-hint phone-error" required>
+            <div class="auth__slot">
+              <span class="field__hint" id="phone-hint">На этот номер придёт SMS с кодом</span>
+              <span class="field__error" id="phone-error" role="alert" hidden></span>
+            </div>
+          </div>
+          <label class="check" for="agree">
+            <input type="checkbox" id="agree" name="agree">
+            <span>Соглашаюсь с <a class="link" href="about.html#docs" target="_blank" rel="noopener">офертой</a> и <a class="link" href="about.html#docs" target="_blank" rel="noopener">политикой обработки данных</a></span>
+          </label>
+          <div class="stack stack--3">
+            <button class="btn btn--primary btn--block" type="submit" id="send-code" disabled>Получить код</button>
+            <span class="field__hint" id="send-hint">Кнопка станет активной, когда введёте номер полностью и отметите согласие.</span>
+          </div>
+        </form>
+
+
+        <!-- Шаг 1: Telegram -->
+        <form class="stack stack--6" id="step-tg" novalidate hidden>
+          <p class="text" id="tg-hint">Telegram сам сообщит нам, кто вы. Ник и номер вводить не нужно.</p>
+          <label class="check" for="agree-tg">
+            <input type="checkbox" id="agree-tg" name="agree-tg">
+            <span>Соглашаюсь с <a class="link" href="about.html#docs" target="_blank" rel="noopener">офертой</a> и <a class="link" href="about.html#docs" target="_blank" rel="noopener">политикой обработки данных</a></span>
+          </label>
+          <a class="btn btn--primary btn--block is-off" id="tg-go" href="#" target="_blank" rel="noopener" aria-disabled="true">Войти через Telegram</a>
+        </form>
+
+        <!-- Шаг 1.5: ждём подтверждения в Telegram -->
+        <div class="stack stack--6" id="step-tg-wait" hidden>
+          <div class="notice" role="status">
+            <span class="small">Открыли чат с ботом SOVEAPP. Нажмите в нём «Подтвердить вход» и вернитесь сюда.</span>
+          </div>
+          <div class="stack stack--3">
+            <a class="btn btn--primary btn--block" id="tg-open" href="#" target="_blank" rel="noopener">Открыть Telegram ещё раз</a>
+            <button class="btn btn--ghost btn--block" type="button" id="tg-confirm">Я подтвердил вход</button>
+            <button class="btn btn--link auth__link" type="button" id="tg-back">Другой способ входа</button>
+          </div>
+          <span class="field__hint">Прототип: бот не отвечает, подтверждение имитируем второй кнопкой.</span>
+        </div>
+
+        <!-- Шаг 1: почта -->
+        <form class="stack stack--6" id="step-mail" novalidate hidden>
+          <div class="field" id="mail-field">
+            <label for="mail">Электронная почта</label>
+            <input class="input" id="mail" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com" aria-describedby="mail-hint mail-error">
+            <div class="auth__slot">
+              <span class="field__hint" id="mail-hint">Пришлём код на этот адрес</span>
+              <span class="field__error" id="mail-error" role="alert" hidden></span>
+            </div>
+          </div>
+          <label class="check" for="agree-mail">
+            <input type="checkbox" id="agree-mail" name="agree-mail">
+            <span>Соглашаюсь с <a class="link" href="about.html#docs" target="_blank" rel="noopener">офертой</a> и <a class="link" href="about.html#docs" target="_blank" rel="noopener">политикой обработки данных</a></span>
+          </label>
+          <button class="btn btn--primary btn--block" type="submit" id="mail-go" disabled>Получить код</button>
+        </form>
+
+        <!-- Шаг 2: код -->
+        <form class="stack stack--6" id="step-code" novalidate hidden>
+          <div class="row row--between auth__sent">
+            <span class="small">Отправили код на <b class="num" id="sent-to"></b></span>
+            <button class="btn btn--link auth__link" type="button" id="change-phone">Изменить номер</button>
+          </div>
+          <div class="field" id="code-field">
+            <span class="label" id="code-label">Код из SMS</span>
+            <div class="auth__code" role="group" aria-labelledby="code-label" aria-describedby="code-error code-hint">
+              <input class="input auth__digit num" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]*" aria-label="Цифра 1 из 4" data-digit="0">
+              <input class="input auth__digit num" type="text" inputmode="numeric" autocomplete="off" pattern="[0-9]*" aria-label="Цифра 2 из 4" data-digit="1">
+              <input class="input auth__digit num" type="text" inputmode="numeric" autocomplete="off" pattern="[0-9]*" aria-label="Цифра 3 из 4" data-digit="2">
+              <input class="input auth__digit num" type="text" inputmode="numeric" autocomplete="off" pattern="[0-9]*" aria-label="Цифра 4 из 4" data-digit="3">
+            </div>
+            <div class="auth__slot"><span class="field__error" id="code-error" role="alert" hidden></span></div>
+            <span class="field__hint" id="code-hint">Прототип: SMS не отправляется. Подойдёт любой код, кроме 0000</span>
+          </div>
+          <div class="stack stack--3">
+            <button class="btn btn--primary btn--block" type="submit" id="sign-in" disabled>Войти</button>
+            <div class="auth__resend">
+              <span class="small muted num" id="resend-timer" aria-live="off"></span>
+              <button class="btn btn--link auth__link" type="button" id="resend" hidden>Отправить код ещё раз</button>
+            </div>
+          </div>
+        </form>
+
+        <!-- Успех -->
+        <div class="stack stack--4" id="step-done" hidden>
+          <div class="notice notice--ok" role="status">
+            <span class="small" id="done-text">Возвращаем вас туда, где вы остановились.</span>
+          </div>
+          <a class="btn btn--ghost btn--block" id="done-link" href="account.html">Перейти сейчас</a>
+        </div>
+
+      </div>
+    </section>
+
+  </div>
+</main>
+
+<div id="site-footer"></div>
+<script src="assets/js/data.js?v=20261022162032"></script>
+<script src="assets/js/site.js?v=20261022162032"></script>
+<script src="assets/js/pages/auth.js?v=20261022162032"></script>
+</body>
+</html>

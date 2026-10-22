@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Токены и подписка — SOVEAPP</title>
+<meta name="description" content="Пакет токенов или подписка METOD: выберите способ, проверьте заказ и перейдите к оплате.">
+<link rel="icon" href="assets/img/logo-sg.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap">
+<link rel="stylesheet" href="assets/css/site.css?v=20261022162032">
+<link rel="stylesheet" href="assets/css/app-theme.css?v=20261022162032">
+<link rel="stylesheet" href="assets/css/pages/tokens.css?v=20261022162032">
+</head>
+<body data-funnel-cta="К оплате" data-funnel-target="#order" data-page="tokens" data-title="Токены">
+<a class="skip" href="#main">К содержанию</a>
+<div id="site-header"></div>
+
+<main id="main">
+
+  <section class="wrap section--top">
+    <div class="page-head tk-head">
+      <nav class="crumbs" aria-label="Вы здесь"><a href="index.html">Главная</a><span aria-hidden="true">/</span><span>Токены и подписка</span></nav>
+      <h1 class="h1">Два способа получить токены</h1>
+      <p class="lead">Токены тратятся на SOVEAPP AI. <span id="tk-return-note" hidden>Фото и расчёты, с которых вы пришли, сохранены — после оплаты вернём вас на тот же экран.</span></p>
+    </div>
+  </section>
+
+  <section class="wrap section--tight">
+    <form class="split tk-split" id="tk-form" novalidate>
+
+      <div class="col-8 tk-ways" role="radiogroup" aria-label="Что оплатить">
+
+        <section class="tk-way rule-top" aria-labelledby="tk-pack-title">
+          <div class="stack stack--2">
+            <span class="eyebrow">Разовая покупка</span>
+            <h2 class="h3" id="tk-pack-title">Пакет токенов</h2>
+            <p class="small muted tk-way__desc" id="tk-pack-desc">Платите один раз и тратите, когда нужно.</p>
+          </div>
+          <div class="stack stack--2" id="tk-packs"></div>
+          <div class="tk-way__foot">
+            <p class="small">Купленные токены не сгорают.</p>
+            <a class="arrow-link" href="ai.html">На что тратятся токены</a>
+          </div>
+        </section>
+
+        <section class="tk-way rule-top" aria-labelledby="tk-metod-title">
+          <div class="stack stack--2">
+            <span class="eyebrow">Подписка на срок</span>
+            <h2 class="h3" id="tk-metod-title">Подписка METOD</h2>
+            <p class="small muted tk-way__desc">Контакты всех поставщиков, закрытый клуб в Telegram и токены на SOVEAPP AI.</p>
+          </div>
+          <div class="stack stack--2" id="tk-plans"></div>
+          <div class="tk-way__foot">
+            <p class="small">Сколько токенов входит в подписку — уточняется.</p>
+            <a class="arrow-link" id="tk-metod-link" href="metod.html">Что входит в METOD</a>
+          </div>
+        </section>
+
+        <div class="tk-help">
+          <span class="eyebrow">Как выбрать</span>
+          <div class="tk-help__cols">
+            <p class="small muted"><b>Пакет</b> — если нужны только поиски в SOVEAPP AI: находите мебель и свет по фото или рендеру, платите за каждый запуск.</p>
+            <p class="small muted"><b>METOD</b> — если собираетесь покупать: подписка открывает контакты поставщиков, у которых товары идут по ценам METOD.</p>
+          </div>
+        </div>
+
+      </div>
+
+      <aside class="col-4 sticky" aria-labelledby="tk-order-title">
+        <div class="card card--pad tk-order" id="order">
+          <div class="stack stack--2">
+            <h2 class="eyebrow" id="tk-order-title">Ваш заказ</h2>
+            <p class="h3" id="tk-item-title" aria-live="polite"></p>
+            <p class="small muted" id="tk-item-note"></p>
+          </div>
+          <div class="rows rows--tight" id="tk-rows"></div>
+          <div class="tk-total">
+            <span class="small muted">К оплате</span>
+            <span class="tk-total__sum num" id="tk-total"></span>
+          </div>
+          <p class="small tk-guest" id="tk-guest" hidden>Вы не вошли. Перед оплатой попросим войти по коду из SMS — выбор сохранится.</p>
+          <label class="check tk-check" for="tk-agree">
+            <input type="checkbox" id="tk-agree">
+            <span class="tk-check__box" aria-hidden="true"></span>
+            <span>Согласен с <a href="about.html#docs" target="_blank" rel="noopener">офертой</a>, <a href="about.html#docs" target="_blank" rel="noopener">политикой обработки данных</a> и <a href="about.html#docs" target="_blank" rel="noopener">регламентом работ</a></span>
+          </label>
+          <div class="stack stack--2">
+            <button class="btn btn--primary btn--lg btn--block" type="submit" id="tk-pay" disabled>Оплатить</button>
+            <p class="tiny muted" id="tk-pay-hint">Отметьте согласие с документами — кнопка станет активной.</p>
+          </div>
+          <div class="stack stack--3 tk-next-box">
+            <span class="eyebrow">Что будет дальше</span>
+            <ol class="tk-next" id="tk-next"></ol>
+          </div>
+        </div>
+      </aside>
+
+    </form>
+  </section>
+
+</main>
+
+<div class="tk-bar" id="tk-bar" hidden>
+  <div class="wrap tk-bar__in">
+    <span class="small tk-bar__text"><b id="tk-bar-title"></b><span class="num" id="tk-bar-price"></span></span>
+    <a class="btn btn--dark btn--sm" href="#order">К заказу</a>
+  </div>
+</div>
+
+<div id="site-footer"></div>
+<script src="assets/js/data.js?v=20261022162032"></script>
+<script src="assets/js/site.js?v=20261022162032"></script>
+<script src="assets/js/pages/tokens.js?v=20261022162032"></script>
+</body>
+</html>

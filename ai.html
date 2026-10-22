@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SOVEAPP AI: поиск товаров по фото и рендеру — SOVEAPP</title>
+<meta name="description" content="Загрузите фото предмета или рендер интерьера — найдём такие же и похожие товары партнёров с ценами METOD.">
+<link rel="icon" href="assets/img/logo-sg.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap">
+<link rel="stylesheet" href="assets/css/site.css?v=20261022162032">
+<link rel="stylesheet" href="assets/css/app-theme.css?v=20261022162032">
+<link rel="stylesheet" href="assets/css/pages/ai.css?v=20261022162032">
+</head>
+<body data-page="ai" data-nav="ai" data-title="Поиск по фото">
+<a class="skip" href="#main">К содержанию</a>
+<div id="site-header"></div>
+
+<main id="main">
+
+  <section class="wrap ai-head" aria-labelledby="ai-title">
+    <h1 class="vh" id="ai-title">Поиск по фото</h1>
+    <p class="vh" id="ai-lead"></p>
+    <div class="ai-top">
+      <div class="segmented ai-modes" id="ai-modes" role="group" aria-label="Что на снимке">
+        <button type="button" data-mode="photo" aria-pressed="false"><b>Предмет</b><small data-cost="photo"></small></button>
+        <button type="button" data-mode="render" aria-pressed="false"><b>Интерьер</b><small data-cost="render"></small></button>
+      </div>
+      <a class="ai-history" href="generations.html" aria-label="Мои генерации"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M12 8v4l3 2"/><circle cx="12" cy="12" r="9"/></svg></a>
+    </div>
+    <ol class="steps ai-steps" id="ai-steps" style="--n:3" aria-label="Шаги поиска" hidden>
+      <li data-step="1" class="is-current"><b>Шаг 1</b><span>Снимок</span></li>
+      <li data-step="2"><b>Шаг 2</b><span>Поиск</span></li>
+      <li data-step="3"><b>Шаг 3</b><span>Результат</span></li>
+    </ol>
+  </section>
+
+  <section class="wrap ai-stage" id="ai-stage" aria-label="Поиск товаров">
+    <div class="split">
+      <div class="col-5"><div class="skeleton ai-skeleton"></div></div>
+      <div class="col-7 stack stack--6"><div class="skeleton" style="height:28px;max-width:320px"></div><div class="skeleton" style="height:120px"></div></div>
+    </div>
+    <noscript><p class="notice notice--error">Для поиска по фото нужен включённый JavaScript.</p></noscript>
+  </section>
+
+  <section class="wrap section--tight stack stack--3" aria-labelledby="ai-plan-title">
+    <h2 class="h3" id="ai-plan-title">Планировка в интерьере</h2>
+    <p class="text">Загрузите план квартиры — разберём контур и покажем комнаты в выбранной капсуле. Распознавание бесплатно, токены нужны только для рендера.</p>
+    <a class="btn btn--dark btn--block" href="plan.html">Открыть Plan Render</a>
+  </section>
+
+  <section class="wrap section--tight stack stack--3" aria-labelledby="ai-more-title">
+    <h2 class="h3" id="ai-more-title">Скоро</h2>
+    <div class="ai-soon">
+      <span><b>Мудборд по рендеру</b><small>палитра, материалы и предметы одним листом</small></span>
+      <span><b>Замена материала на визуализации</b><small>пол, стены или обивка — и цена в товарах партнёров</small></span>
+    </div>
+  </section>
+
+</main>
+
+<div id="site-footer"></div>
+<script src="assets/js/data.js?v=20261022162032"></script>
+<script src="assets/js/site.js?v=20261022162032"></script>
+<script src="assets/js/pages/ai.js?v=20261022162032"></script>
+</body>
+</html>

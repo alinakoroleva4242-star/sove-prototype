@@ -1,0 +1,59 @@
+/* Проект. Карточки генераций, выбор капсулы и разделы кабинета — в account.css (подключён в project.html). */
+
+.pr-crumbs { padding-top: var(--s6); }
+.pr-head { display: grid; gap: var(--s8); grid-template-columns: minmax(0, 1fr); padding-block: var(--s8) var(--s4); align-items: end; }
+.pr-head__text { min-width: 0; }
+.pr-head__title { display: flex; flex-direction: column; align-items: flex-start; gap: var(--s2); }
+.pr-head__title .h1 { overflow-wrap: anywhere; }
+.pr-head__pic img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; }
+.pr-head__pic .hatch { aspect-ratio: 4 / 3; display: flex; align-items: flex-end; padding: var(--s5); font-size: 13px; color: var(--graphite); }
+.pr-facts { display: grid; gap: var(--s4); grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: var(--s2); }
+.pr-facts > * { min-width: 0; }
+.pr-facts .mid-num { overflow-wrap: anywhere; }
+.pr-facts .btn--link { align-self: flex-start; font-size: 14px; }
+@media (min-width: 960px) {
+  .pr-head { grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: var(--s6); padding-block: var(--s10) var(--s6); }
+  .pr-head__text { grid-column: span 7; padding-bottom: var(--s2); }
+  .pr-head__pic { grid-column: span 5; }
+  .pr-head__pic img, .pr-head__pic .hatch { aspect-ratio: 5 / 4; }
+}
+
+/* ---------- смета Скаута ---------- */
+.est { display: grid; gap: var(--s8); grid-template-columns: minmax(0, 1fr); background: var(--white); border: 1px solid var(--line); padding: clamp(20px, 3vw, 40px); }
+.est__main { display: flex; flex-direction: column; gap: var(--s5); min-width: 0; }
+.est__total { display: flex; flex-direction: column; gap: var(--s2); }
+.est__total .big-num { font-size: clamp(36px, 4.4vw, 56px); }
+.est .rows > * > :first-child { color: var(--graphite); }
+.est .rows > * > :last-child { text-align: right; }
+.est__foot { display: flex; align-items: center; gap: var(--s4) var(--s6); flex-wrap: wrap; margin-top: auto; }
+.est__stages { min-width: 0; display: flex; flex-direction: column; gap: var(--s3); }
+.est__stages li { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: var(--s4); row-gap: 6px; align-items: baseline; padding-block: 10px; border-bottom: 1px solid var(--line); font-size: 14px; }
+.est__stages li:last-child { border-bottom: 0; }
+.est__stages .bar { grid-column: 1 / -1; height: 2px; background: var(--line); }
+@media (min-width: 960px) {
+  .est { grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: var(--s10); }
+  .est__main { grid-column: span 6; }
+  .est__stages { grid-column: span 6; }
+}
+.est-cta { display: grid; gap: var(--s6); grid-template-columns: minmax(0, 1fr); align-items: center; padding: clamp(24px, 3vw, 40px); border: 1px dashed var(--stone); }
+@media (min-width: 960px) { .est-cta { grid-template-columns: minmax(0, 1fr) auto; } }
+
+/* ---------- товары проекта ---------- */
+.pr-item { display: flex; flex-direction: column; min-width: 0; }
+.pr-item > .product-card { flex: 1 1 auto; border-bottom: 0; }
+.pr-item__remove { min-height: 44px; border: 1px solid var(--line); background: var(--white); font-size: 13px; font-weight: 600; color: var(--graphite); transition: color .15s, border-color .15s; }
+.pr-item__remove:hover { color: var(--danger); border-color: var(--danger); }
+.pr-sum { display: grid; gap: var(--s4); grid-template-columns: minmax(0, 1fr); margin-top: var(--s8); }
+.pr-sum__cell { display: flex; flex-direction: column; gap: var(--s2); min-width: 0; }
+@media (min-width: 760px) { .pr-sum { grid-template-columns: repeat(3, minmax(0, 1fr)); column-gap: var(--s6); } }
+
+/* ---------- дальше ---------- */
+.next-card { display: flex; flex-direction: column; gap: var(--s3); padding: clamp(24px, 2.6vw, 36px); background: var(--white); border: 1px solid var(--line); min-height: 260px; }
+.next-card p { margin-bottom: var(--s4); }
+.next-card .btn { margin-top: auto; }
+.next-card .btn { align-self: flex-start; }
+.next-card__n { font-size: 40px; font-weight: 300; line-height: 1; color: var(--accent); font-variant-numeric: tabular-nums; }
+
+.pr-danger { display: flex; align-items: center; justify-content: space-between; gap: var(--s4); flex-wrap: wrap; padding-top: var(--s5); }
+.pr-danger .btn--link { color: var(--danger); }
+.pr-danger .btn--link:hover { color: var(--ink); }

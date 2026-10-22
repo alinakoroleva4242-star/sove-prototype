@@ -1,0 +1,60 @@
+/* Вход и регистрация */
+.auth { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s8); padding-block: var(--s6) var(--s10); }
+
+/* фото: на телефоне — узкая полоса, подпись под ней */
+.auth__pic { display: flex; flex-direction: column; gap: var(--s3); }
+.auth__photo { position: relative; display: flex; flex-direction: column; gap: var(--s4); }
+.auth__photo img { width: 100%; height: 112px; object-fit: cover; object-position: 50% 42%; }
+.auth__pic > figcaption { display: none; }
+/* на телефоне нейтральную подпись прячем, чтобы форма была выше; «работа сохранена» показываем всегда */
+.auth__note { display: none; flex-direction: column; gap: 6px; }
+.auth__note.is-saved { display: flex; }
+.auth__note-text { font-size: 15px; line-height: 1.45; color: var(--ink); max-width: 40ch; }
+.auth__note.is-saved .eyebrow { color: var(--accent); display: inline-flex; align-items: center; gap: 8px; }
+.auth__note.is-saved .eyebrow::before { content: ''; width: 8px; height: 8px; background: var(--accent); flex-shrink: 0; }
+
+.auth__panel { display: flex; justify-content: center; }
+.auth__form { width: 100%; max-width: 440px; }
+.auth__phone { font-size: 18px; letter-spacing: .02em; }
+.auth__sent { row-gap: 0; }
+/* место под ошибку занято заранее: форма не прыгает, и нажатие на соседний элемент не промахивается */
+.auth__slot { min-height: 20px; display: flex; align-items: flex-start; }
+.auth__slot > * { line-height: 20px; }
+
+/* четыре клетки кода */
+.auth__code { display: grid; grid-template-columns: repeat(4, minmax(0, 72px)); gap: var(--s3); }
+.auth__digit { min-height: 72px; padding: 0; text-align: center; font-size: 32px; font-weight: 300; caret-color: var(--accent); }
+.auth__digit:disabled { background: var(--paper); color: var(--graphite); border-color: var(--line); cursor: not-allowed; }
+.field.is-error .auth__digit { border-color: var(--danger); box-shadow: 0 0 0 1px var(--danger); }
+
+.auth__link { font-size: 14px; }
+.auth__resend { min-height: 44px; display: flex; align-items: center; }
+.auth__gift { border-top-color: var(--line); }
+
+@media (min-width: 960px) {
+  .auth { grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: var(--s6); padding-block: var(--s12) var(--s8); align-items: stretch; }
+  .auth__pic { grid-column: span 6; }
+  .auth__pic > figcaption { display: flex; }
+  .auth__photo { display: block; flex: 1 1 auto; min-height: 560px; height: calc(100vh - var(--header-h) - 170px); max-height: 760px; overflow: hidden; }
+  .auth__photo img { position: absolute; inset: 0; width: 100%; height: 100%; object-position: 50% 50%; }
+  /* подпись врезана в угол фото, как номер на карточке капсулы */
+  .auth__note { display: flex; position: absolute; left: 0; bottom: 0; max-width: min(400px, 78%); background: var(--paper); padding: var(--s5) var(--s6) var(--s2) 0; gap: 8px; }
+  .auth__note-text { font-size: 17px; font-weight: 300; line-height: 1.4; }
+  .auth__panel { grid-column: 8 / span 5; align-items: center; justify-content: flex-start; }
+}
+
+/* способы входа: телефон, Telegram, почта */
+.auth__ways { display: grid; grid-template-columns: repeat(3, 1fr); gap: 3px; padding: 3px;
+  background: var(--tile); border-radius: var(--pill); }
+.auth__way { border: 0; background: transparent; border-radius: var(--pill); padding: 9px 6px;
+  font: inherit; font-size: 13px; font-weight: 600; color: var(--graphite); cursor: pointer;
+  transition: background .16s ease, color .16s ease; }
+.auth__way.is-on { background: var(--white); color: var(--ink); box-shadow: 0 6px 16px -12px rgba(31, 31, 31, .5); }
+
+/* подарок стоит вплотную к тексту над ним и к вкладкам под ним:
+   в этом стеке промежуток 32px, для подсказки это слишком много */
+.auth__form > .auth__gift { margin-top: calc(var(--s8) * -1 + 10px); margin-bottom: calc(var(--s8) * -1 + 12px); }
+
+/* ссылка-кнопка «Войти через Telegram» до отметки согласия выглядит как неактивная */
+.btn.is-off { background: var(--tile-2); color: var(--stone); box-shadow: none; }
+.btn.is-off:hover { background: var(--tile-2); color: var(--stone); }

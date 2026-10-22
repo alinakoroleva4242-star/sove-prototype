@@ -1,0 +1,61 @@
+/* Каталог капсул */
+.caps-head { display: grid; gap: var(--s6); grid-template-columns: minmax(0, 1fr); padding-block: var(--s8) var(--s8); }
+.caps-fact { max-width: 320px; }
+@media (min-width: 960px) {
+  .caps-head { grid-template-columns: minmax(0, 1fr) 300px; column-gap: var(--s10); align-items: end; padding-block: var(--s12) var(--s12); }
+}
+
+.vh { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.caps-fact__dim { margin-top: var(--s3); }
+
+/* фильтр и счётчик */
+.caps-bar { display: flex; align-items: center; justify-content: space-between; gap: var(--s4); flex-wrap: wrap; padding-bottom: var(--s5); border-bottom: 1px solid var(--line); }
+.caps-filter { display: flex; flex-wrap: wrap; gap: var(--s2); }
+.caps-filter .chip { min-height: 44px; padding: 0 16px; font-size: 14px; }
+.caps-filter .chip i { font-style: normal; font-weight: 500; color: var(--graphite); font-variant-numeric: tabular-nums; }
+.caps-filter .chip.is-active i { color: var(--stone); }
+
+/* режим выбора */
+.caps-pick { border-color: var(--ink); }
+.caps-pick .btn--link { min-height: 44px; }
+
+/* сетка */
+.caps-grid { column-gap: var(--s6); row-gap: var(--s12); }
+@media (min-width: 960px) { .caps-grid { column-gap: var(--s8); row-gap: var(--s16); } }
+.caps-skel .skeleton { aspect-ratio: 4 / 5; }
+
+/* карточка капсулы — крупная */
+.cap-card { display: flex; flex-direction: column; min-width: 0; color: inherit; }
+.cap-card__pic { position: relative; display: block; overflow: hidden; background: var(--line); }
+.cap-card__pic img { width: 100%; aspect-ratio: 4 / 5; object-fit: cover; transition: transform .5s; }
+.cap-card:hover .cap-card__pic img { transform: scale(1.03); }
+.cap-card__code { position: absolute; left: 0; bottom: 0; background: var(--paper); padding: 14px 22px 0 0; font-size: clamp(48px, 4.6vw, 64px); font-weight: 300; line-height: .95; letter-spacing: -.03em; }
+.cap-card__soon { position: absolute; left: var(--s3); top: var(--s3); background: var(--paper); border-color: var(--ink); color: var(--ink); }
+.cap-card__body { display: flex; flex-direction: column; gap: var(--s2); padding-top: var(--s5); flex: 1 1 auto; }
+.cap-card__name { font-size: clamp(20px, 1.8vw, 24px); font-weight: 300; line-height: 1.2; text-wrap: balance; }
+.cap-card__name { margin-bottom: var(--s4); }
+.cap-card__price { display: flex; align-items: baseline; justify-content: space-between; gap: var(--s3); flex-wrap: wrap; margin-top: auto; padding-top: var(--s3); border-top: 1px solid var(--line); }
+.cap-card__links { display: flex; align-items: center; justify-content: space-between; gap: var(--s4); padding-top: var(--s2); }
+.cap-card__links .btn--link { font-size: 14px; border-bottom: 0; text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 6px; }
+.cap-card__pickline { display: flex; align-items: center; justify-content: space-between; gap: var(--s3); padding-top: var(--s2); min-height: 52px; }
+
+/* карточка-ссылка в режиме выбора */
+a.cap-card--pick:hover .cap-card__name { text-decoration: underline; text-underline-offset: 4px; text-decoration-thickness: 1px; }
+.cap-card.is-current .cap-card__pic { outline: 2px solid var(--accent); outline-offset: 3px; }
+.cap-card.is-off { cursor: not-allowed; }
+.cap-card.is-off .cap-card__pic img { opacity: .55; }
+.cap-card.is-off:hover .cap-card__pic img { transform: none; }
+
+.caps-next__title { max-width: 34ch; }
+.caps-next { padding-bottom: 0; }
+
+/* телефон: компактная шапка каталога, чипы — лентой */
+@media (max-width: 639px) {
+  .caps-head { padding-block: var(--s6) var(--s6); }
+  .caps-fact .tiny { display: none; }
+  .caps-bar { flex-direction: column; flex-wrap: nowrap; align-items: stretch; gap: var(--s3); }
+  .caps-filter { min-width: 0; }
+  .caps-filter { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin-inline: calc(var(--gutter) * -1); padding-inline: var(--gutter); }
+  .caps-filter::-webkit-scrollbar { display: none; }
+  .caps-filter .chip { flex: 0 0 auto; }
+}

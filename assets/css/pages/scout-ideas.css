@@ -1,0 +1,80 @@
+/* Витрина идей баннера Скаута: пять вариантов друг под другом */
+.ideas__intro { font-size: 13px; color: var(--graphite); padding: 12px var(--gutter) 0; margin: 0; }
+.ideas__block { padding: 18px var(--gutter) 6px; }
+.ideas__n { font-size: 12px; font-weight: 600; color: var(--stone); margin: 0 0 10px; }
+
+/* общая карточка */
+.sc-card { background: var(--white); border: 1px solid var(--line); border-radius: var(--r); padding: 18px; display: flex; flex-direction: column; gap: 10px; }
+.sc-card--dark { background: var(--dark); color: var(--on-dark); border-color: var(--dark); }
+.sc-card__k { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; font-weight: 600; color: var(--accent); }
+.sc-card--dark .sc-card__k { color: #e0a58a; }
+.sc-card__t { font-size: 20px; font-weight: 600; line-height: 1.2; margin: 0; }
+.sc-card__note { font-size: 12px; color: var(--stone); }
+.sc-card__btn { align-self: flex-start; margin-top: 4px; }
+
+/* 1. три квартиры */
+.flats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 4px; }
+.flat { display: flex; flex-direction: column; gap: 8px; }
+.flat img { width: 100%; aspect-ratio: 1 / 1; object-fit: cover; border-radius: var(--r-sm); }
+.flat span { display: flex; flex-direction: column; gap: 1px; }
+.flat b { font-size: 14px; font-weight: 600; }
+.flat small { font-size: 11px; color: var(--graphite); }
+.flat em { font-style: normal; font-size: 12px; font-weight: 600; color: var(--accent); margin-top: 3px; }
+
+/* 2. фото с ценниками: вещи из каталога с ценами METOD, итог на светлой панели под фото */
+.tags2 { display: flex; flex-direction: column; border-radius: var(--r); overflow: hidden; background: var(--white); border: 1px solid var(--line); color: var(--ink); }
+.tags2__pic { position: relative; display: block; aspect-ratio: 4 / 3.6; }
+.tags2__pic img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+
+.tags2__k { position: absolute; left: 14px; top: 12px; z-index: 2; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; font-weight: 600; color: var(--on-dark); text-shadow: 0 1px 6px rgba(0,0,0,.5); }
+.ptag { position: absolute; left: var(--x); top: var(--y); z-index: 2; transform: translate(-50%, calc(-100% - 12px)); display: flex; flex-direction: column; padding: 5px 9px; background: rgba(255,255,255,.95); color: var(--ink); border-radius: var(--r-xs); font-size: 10px; font-weight: 500; letter-spacing: 0; text-transform: none; line-height: 1.2; white-space: nowrap; box-shadow: 0 6px 16px -8px rgba(0,0,0,.5); }
+.ptag b { font-size: 12px; font-weight: 700; }
+.ptag::before { content: ''; position: absolute; left: 50%; bottom: -12px; width: 10px; height: 10px; margin-left: -5px; background: var(--accent); border: 2px solid var(--white); border-radius: 50%; box-sizing: border-box; box-shadow: 0 0 0 4px rgba(160,80,53,.25); }
+.ptag--below { transform: translate(-50%, 12px); }
+.ptag--below::before { bottom: auto; top: -12px; }
+.tags2__foot { display: flex; flex-direction: column; align-items: stretch; gap: 12px; padding: 16px; }
+.tags2__text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.tags2__text i { font-style: normal; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; font-weight: 600; color: var(--accent); margin-bottom: 2px; }
+.tags2__text b { font-size: 18px; font-weight: 600; line-height: 1.2; }
+.tags2__text small { font-size: 13px; color: var(--graphite); line-height: 1.4; }
+.tags2__text em { font-style: normal; font-weight: 700; color: var(--accent); }
+.tags2 .btn { flex-shrink: 0; }
+
+/* 3. живая цифра и шкала */
+.live { display: flex; align-items: baseline; gap: 8px; margin-top: 2px; }
+.live b { font-size: 44px; font-weight: 700; line-height: 1; letter-spacing: 0; font-variant-numeric: tabular-nums; }
+.live span { font-size: 13px; color: var(--on-dark-2); }
+.scale { position: relative; height: 54px; margin: 8px 8px 0; }
+.scale i { position: absolute; left: 0; right: 0; top: 7px; height: 2px; background: rgba(255,255,255,.25); }
+.scale button { position: absolute; left: var(--p); top: 0; transform: translateX(-50%); background: none; border: 0; padding: 0; display: flex; flex-direction: column; align-items: center; gap: 8px; color: var(--on-dark-2); font-size: 11px; white-space: nowrap; }
+.scale button em { width: 16px; height: 16px; border-radius: 50%; background: var(--dark); border: 2px solid rgba(255,255,255,.5); box-sizing: border-box; transition: transform .15s, background .15s; }
+.scale button.is-on em { background: var(--accent); border-color: var(--accent); transform: scale(1.25); }
+.scale button.is-on { color: var(--on-dark); font-weight: 600; }
+.scale button:first-of-type { transform: translateX(-15%); } .scale button:last-of-type { transform: translateX(-85%); }
+
+/* 4. чек */
+.receipt { position: relative; display: flex; flex-direction: column; gap: 10px; padding: 22px 20px 30px; background: var(--white); color: var(--ink); border-radius: 8px 8px 0 0; box-shadow: 0 10px 30px -18px rgba(31,31,31,.5); }
+.receipt::after { content: ''; position: absolute; left: 0; right: 0; bottom: -1px; height: 10px; background: radial-gradient(circle at 8px 0, var(--paper) 6px, transparent 6.5px) top / 16px 10px repeat-x; }
+.receipt__head { display: flex; flex-direction: column; gap: 2px; padding-bottom: 8px; border-bottom: 1px dashed var(--line-2); }
+.receipt__head b { font-size: 15px; font-weight: 700; letter-spacing: .04em; }
+.receipt__head small { font-size: 12px; color: var(--graphite); }
+.receipt__row { display: flex; align-items: baseline; gap: 8px; font-size: 14px; }
+.receipt__row i { flex: 1 1 auto; border-bottom: 1px dotted var(--line-2); transform: translateY(-4px); }
+.receipt__row b { font-weight: 600; white-space: nowrap; }
+.receipt__row--sum { border-top: 1px dashed var(--line-2); padding-top: 10px; margin-top: 4px; font-size: 16px; }
+.receipt__row--sum b { color: var(--accent); font-weight: 700; }
+.receipt__foot { margin-top: 6px; font-size: 13px; font-weight: 600; color: var(--accent); }
+
+/* 5. план квартиры */
+.plan { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 14px; align-items: center; margin-top: 4px; }
+.plan__svg { width: 100%; height: auto; }
+.plan__wall { fill: var(--surface-2); stroke: var(--line-2); stroke-width: 1.5; }
+.plan__room { fill: var(--white); stroke: var(--line-2); stroke-width: 1; transition: fill .2s; }
+.plan__room.is-on { fill: var(--accent-soft); stroke: var(--accent); }
+.plan__room--wet { fill: var(--surface-2); }
+.plan__side { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+.seg { display: inline-flex; padding: 3px; background: var(--surface-2); border-radius: var(--pill); }
+.seg button { width: 34px; height: 30px; border: 0; border-radius: var(--pill); background: transparent; font-weight: 600; font-size: 13px; color: var(--graphite); }
+.seg button.is-on { background: var(--ink); color: var(--white); }
+.plan__side b { font-size: 14px; font-weight: 700; line-height: 1.25; }
+.plan__side span { font-size: 12px; color: var(--graphite); }

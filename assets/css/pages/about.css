@@ -1,0 +1,60 @@
+/* Об экосистеме */
+html { scroll-padding-top: calc(var(--header-h) + var(--s4)); }
+
+.about-hero { display: flex; flex-direction: column; gap: var(--s8); padding-block: var(--s10) var(--s8); }
+.about-hero__lead { max-width: 68ch; }
+.about-toc { display: flex; flex-wrap: wrap; gap: var(--s2); }
+.about-toc .chip { min-height: 44px; padding: 0 16px; background: transparent; }
+.about-toc .chip:hover { background: var(--white); }
+.about-band img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; object-position: 50% 60%; }
+
+/* маршрут: строки-шаги, между ними — что передаётся дальше */
+.about-route { border-top: 1px solid var(--ink); }
+.about-step { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s4); padding-block: var(--s8); }
+.about-step__head { display: flex; align-items: baseline; gap: var(--s4); }
+.about-step__n { font-size: 40px; font-weight: 300; line-height: 1; color: var(--accent); min-width: 28px; }
+.about-step__get .tag { margin-bottom: 2px; }
+.about-pass { display: flex; align-items: center; gap: var(--s3); border-block: 1px solid var(--line); min-height: 44px; padding-block: var(--s2); color: var(--graphite); }
+.about-pass::before { content: '↓'; font-size: 16px; line-height: 1; color: var(--accent); flex-shrink: 0; width: 28px; text-align: center; }
+.about-pass > span { font-size: 12px; letter-spacing: .1em; text-transform: uppercase; font-weight: 600; line-height: 1.5; }
+.about-route__end { display: flex; flex-direction: column; gap: var(--s6); border-top: 1px solid var(--ink); padding-top: var(--s6); }
+
+/* инструменты */
+.about-tool img { width: 100%; aspect-ratio: 3 / 2; object-fit: cover; }
+.about-tool > .arrow-link { margin-top: auto; align-self: flex-start; }
+.about-rows { border-top: 1px solid var(--ink); }
+.about-rows > * > :last-child { text-align: right; }
+.about-rows__cats { align-items: flex-start !important; padding-block: 12px; }
+.about-cats { max-width: 30ch; line-height: 1.5; }
+
+/* METOD */
+.about-metod { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s8); padding: clamp(24px, 4vw, 56px); }
+.about-metod__note { color: var(--line); max-width: 52ch; }
+.about-metod__rows { border-top: 1px solid var(--graphite); }
+.about-metod__rows > * { border-bottom-color: var(--graphite); min-height: 56px; }
+.about-metod__rows > *:last-child { border-bottom: 1px solid var(--graphite); }
+.about-metod__rows .mid-num { font-size: 22px; }
+.about-metod__active { color: var(--white); border-left: 2px solid var(--accent); padding-left: var(--s3); }
+
+/* документы */
+.about-docs { border-top: 1px solid var(--ink); }
+.about-docs > li { display: flex; align-items: center; justify-content: space-between; gap: var(--s4); flex-wrap: wrap; padding-block: var(--s5); border-bottom: 1px solid var(--line); }
+
+@media (min-width: 640px) {
+  .about-band img { aspect-ratio: 16 / 9; }
+}
+@media (min-width: 960px) {
+  .about-hero { padding-block: var(--s16) var(--s10); gap: var(--s10); }
+  .about-band img { aspect-ratio: 21 / 9; }
+  .about-route__intro { align-self: end; padding-bottom: 4px; }
+  .about-step { grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: var(--s6); align-items: start; padding-block: var(--s10); }
+  .about-step__head { grid-column: span 3; }
+  .about-step__what { grid-column: span 5; padding-top: 6px; }
+  .about-step__get { grid-column: 10 / span 3; padding-top: 8px; }
+  .about-pass { padding-left: 0; }
+  .about-route__end { flex-direction: row; align-items: center; justify-content: space-between; }
+  .about-route__end .text { max-width: 60ch; }
+  .about-metod { grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: var(--s6); align-items: start; }
+  .about-metod__text { grid-column: span 7; }
+  .about-metod__plans { grid-column: 9 / span 4; }
+}

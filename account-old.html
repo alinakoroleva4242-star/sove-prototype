@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Профиль (исходный) — SOVE App</title>
+<meta name="description" content="Личный кабинет SOVE: токены, подписка METOD, проекты, генерации, избранное и заявки.">
+<link rel="icon" href="assets/img/logo-sg.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap">
+<link rel="stylesheet" href="assets/css/site.css?v=20261022162032">
+<link rel="stylesheet" href="assets/css/app-theme.css?v=20261022162032">
+<link rel="stylesheet" href="assets/css/pages/account.css?v=20261022162032">
+<link rel="stylesheet" href="assets/css/pages/extra.css?v=20261022162032">
+<link rel="stylesheet" href="assets/css/pages/account-variants.css?v=20261022162032">
+<link rel="stylesheet" href="assets/css/pages/account-old.css?v=20261022162032">
+</head>
+<body data-page="account" data-title="Профиль">
+<a class="skip" href="#main">К содержанию</a>
+<div id="site-header"></div>
+
+<main id="main">
+
+  <!-- гость: account.js уводит на вход, этот блок виден долю секунды или если переход не сработал -->
+  <section class="wrap wrap--narrow section stack stack--6" id="acc-guest" hidden>
+    <div class="page-head"><span class="eyebrow">Профиль</span><p class="h2">Переходим ко входу</p></div>
+    <p class="lead">Профиль открывается после входа по коду из SMS. После входа вернём вас сюда.</p>
+    <div class="row"><a class="btn btn--ghost" href="auth.html?returnTo=account.html">Войти</a><a class="btn btn--link" href="partner-cabinet.html">Я поставщик — кабинет партнёра</a></div>
+  </section>
+
+  <!-- профиль как в маркетплейсах (Валерия 21.10): карточка человека, три цифры, группы строк; подробные разделы раскрываются под строками -->
+  <div id="acc">
+
+    <section class="wrap acc-head">
+      <h1 class="acc-title">Профиль</h1>
+      <a class="acc-id" id="acc-id" href="metod.html?returnTo=account.html">
+        <span class="acc-id__ava" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg></span>
+        <span class="acc-id__b"><b id="acc-eyebrow">Профиль</b><span class="acc-id__s" id="acc-sub"></span></span>
+        <span class="acc-chev" aria-hidden="true">›</span>
+      </a>
+    </section>
+
+    <section class="wrap cab-pending stack stack--3" id="acc-pending" aria-label="Незавершённые действия" hidden></section>
+
+    <section class="wrap" aria-label="Сводка">
+      <div class="acc-stats" id="acc-summary">
+        <div class="acc-stat skeleton"></div><div class="acc-stat skeleton"></div><div class="acc-stat skeleton"></div>
+      </div>
+      <p class="acc-note" id="acc-note" hidden></p>
+    </section>
+
+    <section class="wrap" id="acc-menu" aria-label="Разделы профиля"></section>
+
+    <!-- раскрывающиеся разделы: содержимое рисует account.js, строки меню переносят их под себя -->
+    <section class="acc-fold" id="projects" hidden aria-labelledby="projects-title">
+      <div class="cab-section__head">
+        <h2 class="h2" id="projects-title">Проекты</h2>
+        <span class="small muted" id="acc-projects-note"></span>
+      </div>
+      <div id="acc-projects"><div class="grid grid--3 grid--gap-lg"><div class="skeleton cab-skel"></div></div></div>
+    </section>
+
+    <section class="acc-fold" id="generations" hidden aria-labelledby="gens-title">
+      <div class="cab-section__head">
+        <h2 class="h2" id="gens-title">Генерации</h2>
+        <a class="btn btn--link" href="generations.html" id="acc-gens-all">Все генерации</a>
+      </div>
+      <div id="acc-gens"><div class="grid grid--3 grid--gap-lg"><div class="skeleton cab-skel"></div></div></div>
+    </section>
+
+    <section class="acc-fold" id="favorites" hidden aria-labelledby="favs-title">
+      <div class="cab-section__head">
+        <h2 class="h2" id="favs-title">Избранное</h2>
+        <a class="btn btn--link" href="market.html" id="acc-favs-more" hidden>В каталог</a>
+      </div>
+      <div id="acc-favs"></div>
+    </section>
+
+    <section class="acc-fold" id="leads" hidden aria-labelledby="leads-title">
+      <div class="cab-section__head">
+        <h2 class="h2" id="leads-title">Доступы и заявки</h2>
+      </div>
+      <div class="split" id="acc-leads"></div>
+    </section>
+
+    <section class="acc-fold" id="tokens" hidden aria-labelledby="tokens-title">
+      <div class="cab-section__head">
+        <h2 class="h2" id="tokens-title">История токенов</h2>
+        <a class="btn btn--link" href="tokens.html?returnTo=account.html">Пополнить баланс</a>
+      </div>
+      <div id="acc-history"></div>
+    </section>
+
+    <section class="wrap">
+      <div class="acc-exit" id="acc-exit">
+        <button class="btn btn--ghost" type="button" id="acc-logout">Выйти из аккаунта</button>
+        <span class="small muted" id="acc-who"></span>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- переключатель вариантов дизайна Профиля — как на account.html; «Исходный» = Профиль до правок 21.10 -->
+  <div class="pv-pick" id="pv-pick" role="tablist" aria-label="Варианты дизайна">
+    <span class="pv-pick__cap">варианты дизайна</span>
+    <div class="pv-pick__grid">
+      <a role="tab" class="is-on" aria-selected="true" href="account-old.html">Исходный</a>
+      <a role="tab" data-pv="A" href="account.html">A · Карточки</a>
+      <a role="tab" data-pv="B" href="account.html">B · Компактный</a>
+      <a role="tab" data-pv="C" href="account.html">C · Редакционный</a>
+      <a role="tab" data-pv="D" href="account.html">D · История в объекте</a>
+      <a role="tab" data-pv="E" href="account.html">E · Квартиры в ряд</a>
+    </div>
+  </div>
+  <script>document.querySelectorAll('#pv-pick [data-pv]').forEach(function (a) { a.addEventListener('click', function () { try { localStorage.setItem('sove.proto.profileVariant', a.getAttribute('data-pv')); } catch (e) {} }); });</script>
+</main>
+
+<div id="site-footer"></div>
+<script src="assets/js/data.js?v=20261022162032"></script>
+<script src="assets/js/site.js?v=20261022162032"></script>
+<script src="assets/js/pages/account-old.js?v=20261022162032"></script>
+</body>
+</html>

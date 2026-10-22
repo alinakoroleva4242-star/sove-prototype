@@ -1,0 +1,77 @@
+/* Генерации — лента поисков SOVE AI */
+
+/* заголовок + баланс справа */
+.gens-head { display: grid; gap: var(--s8); grid-template-columns: minmax(0, 1fr); padding-block: var(--s10) var(--s8); align-items: end; }
+.gens-wallet { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: var(--s4); row-gap: 4px; align-items: end; }
+.gens-wallet > * { grid-column: 1; }
+.gens-wallet .mid-num { white-space: nowrap; }
+.gens-wallet__link { grid-column: 2; grid-row: 1 / span 2; align-self: end; }
+.gens-wallet__hint { grid-column: 1 / -1; margin-top: 4px; }
+@media (min-width: 960px) {
+  .gens-head { grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: var(--s6); padding-block: var(--s16) var(--s12); }
+  .gens-head__text { grid-column: span 8; }
+  .gens-wallet { grid-column: 10 / span 3; grid-template-columns: minmax(0, 1fr); row-gap: 6px; }
+  .gens-wallet__link { grid-column: 1; grid-row: auto; justify-self: start; margin-top: 2px; }
+}
+
+/* фильтры и главное действие */
+.gens-toolbar { display: flex; align-items: center; justify-content: space-between; gap: var(--s4); flex-wrap: wrap; }
+.gens-filters { display: flex; gap: var(--s2); flex-wrap: wrap; }
+.gens-filters .chip { min-height: 44px; padding: 0 16px; font-size: 14px; }
+.gens-filters__n { font-weight: 500; opacity: .6; }
+.gens-summary { margin-top: calc(var(--s4) * -1); }
+@media (max-width: 639px) {
+  .gens-toolbar { flex-direction: column-reverse; align-items: stretch; }
+  .gens-toolbar .btn { width: 100%; }
+  .gens-filters .chip { flex: 1 1 auto; justify-content: center; padding: 0 10px; }
+}
+
+/* карточка генерации: без рамки, как лист каталога */
+.gens-grid { row-gap: var(--s12); }
+.gen-card { display: flex; flex-direction: column; gap: var(--s4); min-width: 0; }
+.gen-card__pic { position: relative; overflow: hidden; background: var(--white); }
+.gen-card__pic img, .gen-card__ph { width: 100%; aspect-ratio: 4 / 5; object-fit: cover; transition: transform .4s; }
+.gen-card:hover .gen-card__pic img { transform: scale(1.03); }
+.gen-card.is-running .gen-card__pic img { opacity: .55; }
+.gen-card__run { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: var(--line); overflow: hidden; }
+.gen-card__run i { position: absolute; top: 0; bottom: 0; width: 35%; background: var(--accent); animation: gen-run 1.6s ease-in-out infinite; }
+@keyframes gen-run { from { left: -35%; } to { left: 100%; } }
+.gen-card__body { display: flex; flex-direction: column; gap: var(--s2); flex: 1 1 auto; min-width: 0; }
+.gen-card__meta { display: flex; align-items: baseline; justify-content: space-between; gap: var(--s3); }
+.gen-card__title { font-size: 20px; font-weight: 300; line-height: 1.25; overflow-wrap: anywhere; }
+.gen-card:hover .gen-card__title { color: var(--accent); }
+.gen-card__status { display: flex; margin-top: var(--s1); }
+.gen-card .badge { white-space: normal; }
+.gen-badge--danger { background: transparent; color: var(--danger); border: 1px solid var(--danger); }
+.gen-card__foot { display: flex; align-items: baseline; justify-content: space-between; gap: var(--s3); flex-wrap: wrap; margin-top: auto; padding-top: var(--s3); border-top: 1px solid var(--line); }
+.gen-card__project { text-align: right; overflow-wrap: anywhere; }
+.gen-card__project::before { content: 'проект · '; }
+
+/* телефон: строка-лента — картинка слева, текст справа */
+@media (max-width: 639px) {
+  .gens-grid { row-gap: 0; }
+  .gen-card { display: grid; grid-template-columns: 104px minmax(0, 1fr); gap: var(--s4); padding-block: var(--s5); border-top: 1px solid var(--line); align-items: start; }
+  .gen-card:first-child { border-top-color: var(--ink); }
+  .gen-card__title { font-size: 17px; font-weight: 400; }
+  .gen-card__foot { border-top: 0; padding-top: var(--s1); flex-direction: column; gap: 2px; }
+  .gen-card__project { text-align: left; }
+}
+
+/* скелет на время чтения данных */
+.gen-skel { display: flex; flex-direction: column; gap: var(--s3); }
+.gen-skel__pic { aspect-ratio: 4 / 5; }
+
+/* пустое состояние: текст + пример разбора рендера */
+.gens-empty { display: grid; gap: var(--s10); grid-template-columns: minmax(0, 1fr); align-items: center; border-top: 1px solid var(--ink); padding-top: var(--s10); }
+.gens-empty__facts { display: grid; gap: var(--s4); grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: var(--s4); }
+.gens-empty__facts li { display: flex; flex-direction: column; gap: var(--s2); }
+.gens-sample__pic { position: relative; }
+.gens-sample__pic img { width: 100%; height: auto; }
+.gens-sample__box { position: absolute; border: 1px solid var(--white); outline: 1px solid rgba(29, 29, 29, .35); }
+.gens-sample__box .marker { position: absolute; left: -1px; top: -1px; }
+@media (min-width: 640px) { .gens-empty__facts { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (min-width: 960px) {
+  .gens-empty { grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: var(--s6); padding-top: var(--s12); }
+  .gens-empty__text { grid-column: span 6; }
+  .gens-sample { grid-column: 8 / span 5; }
+}

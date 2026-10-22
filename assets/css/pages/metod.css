@@ -1,0 +1,42 @@
+/* METOD — лендинг подписки */
+.mt-top { padding-top: var(--s6); display: flex; flex-direction: column; gap: var(--s3); }
+.mt-top .notice > span { flex: 1 1 260px; min-width: 0; }
+
+.mt-hero { display: grid; gap: var(--s8); grid-template-columns: minmax(0, 1fr); padding-block: var(--s10) var(--s6); align-items: end; }
+.mt-hero__pic img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; }
+.mt-hero__facts { margin-top: var(--s4); }
+@media (max-width: 639px) { .mt-hero__facts { --cols: 2; } .mt-hero__facts > :nth-child(3) { display: none; } }
+@media (min-width: 960px) {
+  .mt-hero { grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: var(--s6); padding-block: var(--s16) var(--s10); }
+  .mt-hero__text { grid-column: span 7; padding-bottom: var(--s2); }
+  .mt-hero__pic { grid-column: span 5; }
+  .mt-hero__pic img { aspect-ratio: 4 / 5; max-height: 600px; }
+}
+
+.mt-pillar { display: flex; flex-direction: column; gap: var(--s3); }
+.mt-pillar__n { font-size: 40px; font-weight: 300; line-height: 1; color: var(--stone); }
+
+/* тарифы */
+.mt-plans { scroll-margin-top: var(--header-h); }
+.mt-plan { position: relative; display: flex; flex-direction: column; gap: var(--s5); padding: clamp(24px, 2.6vw, 32px); background: var(--white); border: 1px solid var(--line); }
+.mt-plan.is-best { border-color: var(--ink); }
+.mt-plan__head { display: flex; align-items: center; justify-content: space-between; gap: var(--s3); min-height: 24px; flex-wrap: wrap; }
+.mt-plan__price { display: flex; flex-direction: column; gap: var(--s2); }
+.mt-plan__facts { border-top: 1px solid var(--line); padding-top: var(--s4); display: flex; flex-direction: column; gap: 6px; flex: 1 1 auto; }
+.mt-plan__facts .num { white-space: normal; }
+
+.mt-list { display: flex; flex-direction: column; gap: var(--s2); }
+.mt-list li { position: relative; padding-left: 18px; line-height: 1.5; }
+.mt-list li::before { content: ''; position: absolute; left: 0; top: .7em; width: 8px; height: 1px; background: var(--ink); }
+
+/* вопросы */
+.mt-faq { border-top: 1px solid var(--ink); }
+.mt-faq details { border-bottom: 1px solid var(--line); }
+.mt-faq summary { display: flex; align-items: center; justify-content: space-between; gap: var(--s4); min-height: 64px; padding-block: var(--s3); font-size: 18px; font-weight: 500; line-height: 1.3; cursor: pointer; list-style: none; }
+.mt-faq summary::-webkit-details-marker { display: none; }
+.mt-faq summary:hover { color: var(--accent); }
+.mt-faq__sign { position: relative; width: 16px; height: 16px; flex-shrink: 0; }
+.mt-faq__sign::before, .mt-faq__sign::after { content: ''; position: absolute; left: 0; right: 0; top: 50%; height: 1px; background: currentColor; transition: transform .2s; }
+.mt-faq__sign::after { transform: rotate(90deg); }
+.mt-faq details[open] .mt-faq__sign::after { transform: rotate(0deg); }
+.mt-faq__a { padding: 0 var(--s8) var(--s5) 0; color: var(--graphite); max-width: 65ch; }

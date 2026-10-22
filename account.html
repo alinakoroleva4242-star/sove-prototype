@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Профиль — SOVEAPP</title>
+<meta name="description" content="Профиль SOVEAPP: подписка METOD, токены, мои квартиры и черновики.">
+<link rel="icon" href="assets/img/logo-sg.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Montserrat:wght@400;500;600;700;800&display=swap">
+<link rel="stylesheet" href="assets/css/site.css?v=20261022162032">
+<link rel="stylesheet" href="assets/css/app-theme.css?v=20261022162032">
+<link rel="stylesheet" href="assets/css/pages/account.css?v=20261022162032">
+<link rel="stylesheet" href="assets/css/pages/extra.css?v=20261022162032">
+<link rel="stylesheet" href="assets/css/pages/account-warm.css?v=20261022162032">
+<link rel="stylesheet" href="assets/css/pages/account-variants.css?v=20261022162032">
+</head>
+<body data-page="account" data-title="Профиль">
+<a class="skip" href="#main">К содержанию</a>
+<div id="site-header"></div>
+
+<main id="main">
+
+  <!-- гость: account.js уводит на вход, этот блок виден долю секунды или если переход не сработал -->
+  <section class="wrap wrap--narrow section stack stack--6" id="acc-guest" hidden>
+    <div class="page-head"><span class="eyebrow">Профиль</span><p class="h2">Переходим ко входу</p></div>
+    <p class="lead">Профиль открывается после входа по коду из SMS. После входа вернём вас сюда.</p>
+    <div class="row"><a class="btn btn--ghost" href="auth.html?returnTo=account.html">Войти</a><a class="btn btn--link" href="partner-cabinet.html">Я поставщик — кабинет партнёра</a></div>
+  </section>
+
+  <!-- Профиль: 4 варианта дизайна на выбор (эталоны — design/profile/*.html); переключатель внизу, потом уберём. ⚙ → account.html?v=settings -->
+  <div id="acc">
+    <div id="pv-root"></div>
+    <div class="pv-pick" id="pv-pick" role="tablist" aria-label="Варианты дизайна">
+      <span class="pv-pick__cap">варианты дизайна</span>
+      <div class="pv-pick__grid">
+        <a role="tab" href="account-old.html" id="pv-old">Исходный</a>
+        <button type="button" role="tab" data-pv="A">A · Карточки</button>
+        <button type="button" role="tab" data-pv="B">B · Компактный</button>
+        <button type="button" role="tab" data-pv="C">C · Редакционный</button>
+        <button type="button" role="tab" data-pv="D">D · История в объекте</button>
+        <button type="button" role="tab" data-pv="E">E · Квартиры в ряд</button>
+      </div>
+    </div>
+
+    <div id="acc-tokens-wrap" class="acc-sub" hidden>
+      <section class="wrap acc-head"><div class="acc-head__row"><a class="acc-back" href="account.html" aria-label="Назад в профиль">‹</a><h1 class="acc-title">История токенов</h1></div></section>
+      <div class="wrap" id="acc-tokens"></div>
+    </div>
+
+    <div id="acc-settings-wrap" hidden>
+      <section class="wrap acc-head"><div class="acc-head__row"><a class="acc-back" href="account.html" aria-label="Назад в профиль">‹</a><h1 class="acc-title">Настройки</h1></div></section>
+      <div id="acc-settings"></div>
+    </div>
+  </div>
+</main>
+
+<div id="site-footer"></div>
+<script src="assets/js/data.js?v=20261022162032"></script>
+<script src="assets/js/site.js?v=20261022162032"></script>
+<script src="assets/js/order-scenarios.js?v=20261022162032"></script>
+<script src="assets/js/orders.js?v=20261022162032"></script>
+<script src="assets/js/pages/account.js?v=20261022162032"></script>
+</body>
+</html>

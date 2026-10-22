@@ -1,0 +1,110 @@
+/* Карточка товара */
+.product-top { padding-block: var(--s6) var(--s5); }
+.product { padding-bottom: var(--s6); }
+@media (min-width: 960px) { .product-top { padding-block: var(--s8) var(--s6); } .product { column-gap: var(--s10); padding-bottom: var(--s10); } }
+.crumbs [aria-current] { color: var(--ink); }
+
+/* ---------- галерея ---------- */
+.pg { display: grid; gap: var(--s3); grid-template-columns: minmax(0, 1fr); }
+.pg__figure { display: flex; flex-direction: column; gap: var(--s3); min-width: 0; }
+.pg__stage { position: relative; aspect-ratio: 1 / 1; background: var(--white); border: 1px solid var(--line); overflow: hidden; }
+.pg__stage img { width: 100%; height: 100%; object-fit: contain; padding: clamp(20px, 6%, 56px); }
+.pg__stage.is-render img { object-fit: cover; padding: 0; }
+.pg__thumbs { display: flex; gap: var(--s2); }
+.pg__thumb { width: 72px; height: 72px; padding: 3px; flex-shrink: 0; border: 1px solid var(--line); background: var(--white); }
+.pg__thumb img { width: 100%; height: 100%; object-fit: cover; }
+.pg__thumb:hover { border-color: var(--graphite); }
+.pg__thumb.is-active { border-color: var(--ink); outline: 1px solid var(--ink); outline-offset: -2px; }
+@media (min-width: 960px) {
+  .pg { grid-template-columns: 80px minmax(0, 1fr); gap: var(--s4); }
+  .pg__thumbs { flex-direction: column; order: -1; }
+  .pg__thumb { width: 80px; height: 80px; }
+}
+
+/* ---------- правая колонка ---------- */
+.product-info { min-width: 0; }
+.product-info .h2 { text-wrap: balance; }
+.product-price { display: flex; flex-direction: column; gap: var(--s2); }
+.product-price .price { align-items: center; gap: var(--s3); }
+.product-price .price__note { font-size: 14px; }
+.product-cta { display: flex; flex-direction: column; gap: var(--s3); }
+.product-cta__hint { font-size: 13px; color: var(--graphite); }
+
+.product-contact { flex-direction: column; align-items: stretch; gap: var(--s4); padding: var(--s5); }
+.product-contact .eyebrow { color: var(--green); }
+.product-promo { display: flex; align-items: center; justify-content: space-between; gap: var(--s3); flex-wrap: wrap; background: var(--white); border: 1px dashed var(--green); padding: 6px var(--s4); min-height: 56px; }
+.product-promo__code { font-size: 20px; font-weight: 600; letter-spacing: .08em; }
+.product-promo .btn--link { border-bottom: 0; text-decoration: underline; text-underline-offset: 5px; text-decoration-thickness: 1px; font-size: 14px; }
+
+.product-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s3); }
+.product-actions .btn { padding: 0 12px; }
+.product-actions svg { width: 18px; height: 18px; flex-shrink: 0; fill: none; stroke: currentColor; stroke-width: 1.6; }
+.product-actions .is-on svg { fill: var(--accent); stroke: var(--accent); }
+.product-actions .btn--ghost.is-on:hover svg { fill: var(--white); stroke: var(--white); }
+.product-inproject { font-size: 14px; color: var(--graphite); }
+
+.product-rows { border-top: 1px solid var(--ink); }
+.product-rows > * > span:first-child { color: var(--graphite); flex-shrink: 0; }
+.product-rows > * > span:last-child { text-align: right; }
+.product-rows .chip { min-height: 44px; min-width: 44px; justify-content: center; }
+.product-rows .row { justify-content: flex-end; gap: var(--s2); padding-block: 6px; }
+.product-suppliers { flex-direction: column; align-items: stretch !important; gap: 0 !important; padding-top: var(--s3); }
+.product-suppliers__head { display: flex; justify-content: space-between; gap: var(--s4); color: var(--graphite); }
+.product-suppliers ul { display: flex; flex-direction: column; }
+.product-suppliers ul { margin-top: var(--s3); }
+.product-suppliers li { display: flex; align-items: center; justify-content: space-between; gap: var(--s3); min-height: 64px; padding-block: 10px; border-top: 1px solid var(--line); }
+.product-suppliers__name > span:first-child { font-weight: 500; }
+.product-suppliers__name { display: flex; flex-direction: column; text-align: left !important; }
+.product-suppliers__price { display: flex; align-items: center; gap: var(--s2); flex-wrap: wrap; justify-content: flex-end; }
+
+/* ---------- SOVE AI с этим товаром ---------- */
+.product-ai { padding-top: 0; }
+.product-ai > .split { border-top: 1px solid var(--line); padding-top: var(--s12); }
+@media (min-width: 960px) { .product-ai > .split { padding-top: var(--s16); } }
+.product-ai .card { gap: var(--s3); min-height: 220px; }
+.product-ai .card .btn { align-self: flex-start; margin-top: auto; }
+.product-ai__soon { background: transparent; border-style: dashed; border-color: var(--stone); }
+.product-ai__soon .h4 { color: var(--graphite); }
+
+/* ---------- похожие ---------- */
+.product-similar .grid { gap: var(--s3); }
+@media (min-width: 640px) { .product-similar .grid { gap: var(--s4); } }
+.market-item { position: relative; display: flex; min-width: 0; }
+.market-item > .product-card { flex: 1 1 auto; width: 100%; min-width: 0; }
+.market-item .product-card__fav:hover svg { stroke: var(--accent); }
+.product-similar .btn--link { font-size: 14px; }
+@media (max-width: 479px) {
+  .product-similar .product-card__body { padding: var(--s3); gap: 6px; }
+  .product-similar .product-card__name { font-size: 14px; }
+  .product-similar .price { gap: 4px 8px; }
+  .product-similar .price__metod { font-size: 18px; }
+  .product-similar .price__retail { font-size: 13px; }
+  .product-similar .product-card__fav { top: 4px; right: 4px; }
+}
+
+/* ---------- окно доступа ---------- */
+.product-access a.option { color: inherit; }
+.product-access .option[disabled] { background: transparent; }
+.product-access .option__row { display: flex; justify-content: space-between; align-items: baseline; gap: var(--s3); }
+
+/* ---------- товар не найден ---------- */
+.product-404 { padding-block: var(--s10) var(--s6); }
+.product-404__ph { aspect-ratio: 4 / 3; min-height: 200px; }
+@media (min-width: 960px) { .product-404 { padding-block: var(--s16) var(--s10); align-items: center; } .product-404__ph { aspect-ratio: 1 / 1; } }
+
+/* ---------- скелетон ---------- */
+.product-skel__img { aspect-ratio: 1 / 1; }
+.product-skel__line { height: 16px; }
+.product-skel__title { height: 36px; }
+.product-skel__price { height: 44px; width: 50%; }
+.product-skel__btn { height: 56px; }
+
+/* две цены рядом: поставщика и наша с подпиской */
+.price2 { border: 1px solid var(--line); border-radius: var(--r); padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; }
+.price2__row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; font-size: 13px; color: var(--graphite); }
+.price2__row b { font-size: 16px; font-weight: 600; color: var(--graphite); }
+.price2__row--our { color: var(--ink); }
+.price2__row--our b { font-size: 24px; font-weight: 700; color: var(--accent); }
+.price2__save { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 12px; color: var(--graphite); padding-top: 8px; border-top: 1px solid var(--line); }
+.price2__save i { font-style: normal; color: var(--green); font-weight: 600; }
+.product-fit { margin-top: 12px; }

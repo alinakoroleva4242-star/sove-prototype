@@ -1,0 +1,34 @@
+/* Услуги: список карточек-входов в воронки */
+.card { background: var(--white); border: 1px solid var(--line); padding: var(--s5); }
+.svc-list { display: grid; gap: var(--s3); grid-template-columns: minmax(0, 1fr); }
+.svc { display: grid; grid-template-columns: 112px minmax(0, 1fr); background: var(--white); border: 1px solid var(--line); overflow: hidden; transition: border-color .15s; }
+.svc:hover { border-color: var(--ink); }
+.svc img { width: 100%; height: 100%; object-fit: cover; min-height: 150px; }
+.svc__body { display: flex; flex-direction: column; gap: 4px; padding: 14px 16px; }
+.svc__name { font-size: 12px; font-weight: 700; letter-spacing: .06em; color: var(--accent); }
+.svc__body .text { font-size: 14px; flex: 1 1 auto; }
+.svc__foot { display: flex; align-items: center; justify-content: space-between; gap: var(--s3); flex-wrap: wrap; margin-top: 10px; }
+.svc__foot b { font-size: 14px; font-weight: 600; }
+@media (min-width: 640px) { .svc { grid-template-columns: 160px minmax(0, 1fr); } .svc__body { padding: 18px 20px; } }
+/* «Не знаете, с чего начать?»: светлая тёплая плитка с полем телефона */
+.callme { display: flex; flex-direction: column; gap: 6px; margin-top: var(--s6); padding: 22px 20px 20px; background: var(--accent-soft); color: var(--ink); border-radius: var(--r); }
+.callme__t { font-size: 19px; font-weight: 600; letter-spacing: 0; line-height: 1.25; }
+.callme__cap { font-size: 14px; color: var(--graphite); line-height: 1.45; margin-bottom: 8px; }
+.callme__row { display: flex; flex-direction: column; gap: 10px; }
+.callme__phone { min-height: 50px; border-radius: var(--pill); padding: 0 18px; font-size: 16px; background: var(--white); border: 1px solid var(--line-2); color: var(--ink); }
+.callme__phone::placeholder { color: var(--stone); }
+.callme__phone:focus { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.callme__btn { min-height: 50px; font-size: 15px; font-weight: 600; letter-spacing: 0; }
+.callme__err { font-size: 12px; color: var(--danger); }
+.callme__done { font-size: 14px; color: var(--green); padding: 12px 14px; background: var(--white); border-radius: var(--r-sm); margin: 0; }
+/* линия пути по карточкам: пунктир слева, номер шага у каждой карточки, финиш — ключ */
+.svc-head { margin-top: var(--s2); }
+.svc-road { position: relative; padding-left: 30px; }
+.svc-road::before { content: ''; position: absolute; left: 10px; top: 40px; bottom: 40px; border-left: 1px dashed var(--line-2); }
+.svc-step { position: relative; counter-reset: none; }
+.svc-step::before { content: counter(step); counter-increment: none; position: absolute; left: -30px; top: 50%; width: 22px; height: 22px; margin-top: -11px; border-radius: var(--pill); background: var(--white); border: 1.5px solid var(--accent); color: var(--accent); font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; z-index: 1; }
+.svc-step::before { content: var(--n-text, counter(step)); }
+.svc-step[style*="--n:1"]::before { content: '1'; } .svc-step[style*="--n:2"]::before { content: '2'; } .svc-step[style*="--n:3"]::before { content: '3'; } .svc-step[style*="--n:4"]::before { content: '4'; }
+.svc-step--final::before { content: ''; background: var(--accent); border-color: var(--accent); background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='8' cy='12' r='4'/%3E%3Cpath d='M12 12h9M18 12v3M21 12v2'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: center; background-size: 13px; }
+.svc-step--final .svc { border-color: var(--accent-soft); background: linear-gradient(0deg, var(--accent-soft), var(--accent-soft)), var(--white); }
+.svc-step--final .svc__name { color: var(--accent-ink); }

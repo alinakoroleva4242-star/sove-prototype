@@ -1,0 +1,48 @@
+/* Примерка товара в комнате */
+.fit__head { display: flex; flex-direction: column; gap: 6px; padding-top: 4px; }
+.fit__head .text { font-size: 13px; color: var(--graphite); line-height: 1.5; }
+
+.fit__prod { display: flex; align-items: center; gap: 12px; margin-top: 14px; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--r); background: var(--white); color: var(--ink); }
+.fit__prod img { width: 56px; height: 56px; object-fit: contain; flex-shrink: 0; }
+.fit__prod b { display: block; font-size: 14px; font-weight: 600; line-height: 1.3; }
+.fit__prod i { display: block; font-style: normal; font-size: 12px; color: var(--graphite); margin-top: 3px; }
+.fit__prod s { color: var(--stone); }
+
+.fit__pick { margin-top: 16px; display: flex; flex-direction: column; gap: 16px; }
+.fit__up { display: flex; flex-direction: column; gap: 4px; align-items: center; text-align: center; padding: 22px 16px; border: 1.5px dashed var(--line-2); border-radius: var(--r); cursor: pointer; background: var(--white); }
+.fit__up b { font-size: 15px; font-weight: 600; }
+.fit__up span { font-size: 12px; color: var(--graphite); }
+.fit__sub { display: block; font-size: 12px; font-weight: 600; color: var(--graphite); margin-bottom: 8px; }
+.fit__lane { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 4px; }
+.fit__lane::-webkit-scrollbar { display: none; }
+.fit__sample { flex: 0 0 140px; border: 0; padding: 0; background: none; text-align: left; font: inherit; color: inherit; cursor: pointer; }
+.fit__sample img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: var(--r-sm); }
+.fit__sample span { display: block; font-size: 11px; color: var(--graphite); margin-top: 5px; }
+.fit__cost { margin-top: 14px; font-size: 12px; color: var(--stone); }
+
+.fit__run { margin-top: 18px; display: flex; flex-direction: column; gap: 8px; }
+.fit__bar { height: 4px; border-radius: 4px; background: var(--surface-2); overflow: hidden; }
+.fit__bar i { display: block; height: 100%; width: 0; background: var(--accent); }
+.fit__run span { font-size: 13px; color: var(--graphite); }
+
+/* сцена примерки: вещь лежит поверх фотографии комнаты */
+.fit__stage { position: relative; margin-top: 16px; border-radius: var(--r); overflow: hidden; aspect-ratio: 4 / 3; background: var(--surface-2); touch-action: none; }
+.fit__room { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+/* каталожные снимки без прозрачного фона, поэтому вещь кладём аккуратной вырезкой,
+   а не «вклеиваем» в кадр — так честнее и работает с любым товаром */
+.fit__item { position: absolute; left: 50%; top: 74%; width: 38%; transform: translate(-50%, -50%); cursor: grab;
+  background: var(--white); border-radius: var(--r-sm); padding: 6px;
+  box-shadow: 0 18px 30px -16px rgba(31,31,31,.75), 0 0 0 1px rgba(31,31,31,.06); }
+.fit__item.is-drag { cursor: grabbing; }
+.fit__mark { position: absolute; right: 12px; bottom: 12px; font-size: 10px; font-weight: 600; color: var(--white); background: rgba(31,31,31,.6); padding: 5px 10px; border-radius: var(--pill); }
+
+.fit__size { display: flex; flex-direction: column; gap: 6px; margin-top: 14px; }
+.fit__size span { font-size: 12px; color: var(--graphite); }
+.fit__size input { width: 100%; accent-color: var(--accent); }
+.fit__hint { font-size: 12px; color: var(--stone); margin-top: 8px; line-height: 1.45; }
+.fit__acts { display: flex; flex-direction: column; gap: 8px; margin-top: 16px; align-items: stretch; }
+.fit__acts .btn--link { align-self: center; }
+
+/* экран «что примеряем» */
+.fit__mine { display: flex; flex-direction: column; gap: 8px; margin-top: 16px; }
+.fit__tocat { margin-top: 16px; }

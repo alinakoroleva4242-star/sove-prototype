@@ -1,0 +1,51 @@
+/* Сценарий «план → расстановка → интерьер»: общая полоска шагов и экраны 1 и 3. */
+.df-steps { display: flex; align-items: center; gap: 6px; margin: 2px 0 10px; }
+.df-step { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--stone); text-decoration: none; white-space: nowrap; }
+.df-step i { width: 22px; height: 22px; border-radius: 50%; display: inline-grid; place-items: center; font: 600 11px/1 var(--font); font-style: normal;
+  border: 1.5px solid var(--line-2); color: var(--stone); background: var(--white); }
+.df-step.is-now { color: var(--ink); font-weight: 600; }
+.df-step.is-now i { background: var(--accent); border-color: var(--accent); color: #fff; }
+.df-step.is-done { color: var(--graphite); }
+.df-step.is-done i { background: var(--green-soft); border-color: var(--green); color: var(--green); }
+.df-steps__line { flex: 1; height: 1px; background: var(--line-2); min-width: 10px; }
+.df-head { margin-bottom: 6px; }
+.df-head .h2 { margin: 0 0 2px; }
+
+/* экран 1 */
+.df-drop { min-height: 150px; }
+.df-plan { width: 100%; height: auto; display: block; border-radius: var(--r-sm); border: 1px solid var(--line); background: var(--white); }
+.df-plan.is-dim { opacity: .35; filter: grayscale(.6); }
+.df-rooms { list-style: none; margin: 10px 0 8px; padding: 0; display: grid; gap: 8px; }
+.df-rooms li { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; }
+.df-rooms span { font-size: 13px; color: var(--graphite); min-width: 58px; text-align: right; }
+.df-q .lane { gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+
+/* экран 3 */
+.df-house img { width: 100%; height: auto; display: block; border-radius: var(--r); background: var(--tile); }
+.df-house p { margin: 8px 2px 0; }
+.df-cards { display: grid; gap: 14px; }
+.df-card { border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; background: var(--white); }
+.df-card__img { position: relative; aspect-ratio: 4 / 3; background: var(--tile); }
+.df-card__img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.df-card__img.is-busy img { filter: blur(6px) brightness(.8); transform: scale(1.03); transition: filter .3s; }
+.df-wait { position: absolute; inset: 0; display: grid; place-items: center; align-content: center; gap: 10px; color: #fff; font-size: 13px; font-weight: 600; text-shadow: 0 1px 8px rgba(0,0,0,.6); }
+.df-wait i { width: 28px; height: 28px; border-radius: 50%; border: 3px solid rgba(255,255,255,.35); border-top-color: #fff; animation: df-spin .9s linear infinite; }
+@keyframes df-spin { to { transform: rotate(360deg); } }
+.df-ver { position: absolute; left: 10px; top: 10px; background: rgba(31,31,31,.72); color: #fff; font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: var(--pill); }
+.df-card__body { padding: 12px 14px 14px; }
+.df-card__body b { font-size: 15px; display: block; margin-bottom: 2px; }
+.df-actions { gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+.df-cmd { display: grid; gap: 8px; margin-top: 10px; }
+.df-sum .pb__t { display: block; }
+/* две кнопки в ряд не влезали в 390 px и растягивали страницу вбок — на телефоне в столбик */
+.df-foot { display: grid; grid-template-columns: 1fr; gap: 10px; margin-top: 6px; }
+.df-foot .btn { justify-content: center; white-space: normal; text-align: center; }
+@media (min-width: 480px) { .df-foot { grid-template-columns: 1fr 1.15fr; } }
+/* страховка от бокового уезда любого экрана сценария */
+body[data-page="plan-demo"] #main, body[data-page="result"] #main, body[data-page="arrange"] #main { overflow-x: hidden; }
+@media (prefers-reduced-motion: reduce) { .df-wait i { animation: none; } .df-card__img.is-busy img { transition: none; } }
+.df-list { list-style: none; margin: 8px 0 10px; padding: 0; display: grid; gap: 6px; }
+.df-list li { display: flex; justify-content: space-between; font-size: 14px; border-bottom: 1px solid var(--line); padding-bottom: 6px; }
+.df-list li span { color: var(--graphite); }
+.df-err .pb__t { display: block; margin: 2px 0 6px; }
+.df-err .lane { gap: 8px; flex-wrap: wrap; margin-top: 10px; }

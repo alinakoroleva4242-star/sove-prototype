@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Идеи баннера Скаута — SOVEAPP</title>
+<link rel="icon" href="assets/img/logo-sg.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap">
+<link rel="stylesheet" href="assets/css/site.css?v=20261022162032">
+<link rel="stylesheet" href="assets/css/app-theme.css?v=20261022162032">
+<link rel="stylesheet" href="assets/css/pages/scout-ideas.css?v=20261022162032">
+</head>
+<body data-page="home" data-title="Идеи: Скаут на главной">
+<a class="skip" href="#main">К содержанию</a>
+<div id="site-header"></div>
+<main id="main">
+  <p class="ideas__intro">Пять вариантов баннера «Сколько стоит ваш ремонт» для главной. Все считают по настоящим ставкам Скаута.</p>
+
+  <section class="ideas__block">
+    <h2 class="ideas__n">Идея 1 · Три квартиры</h2>
+    <div class="sc-card">
+      <span class="sc-card__k">Скаут · расчёт бюджета</span>
+      <h3 class="sc-card__t">Сколько стоит ваш ремонт</h3>
+      <div class="flats" id="flats"></div>
+      <span class="sc-card__note">Нажмите на свою — площадь подставится в Скаут</span>
+    </div>
+  </section>
+
+  <section class="ideas__block">
+    <h2 class="ideas__n">Идея 2 · Фото с ценниками</h2>
+    <a class="tags2" href="scout.html">
+      <span class="tags2__pic">
+        <img src="assets/img/capsules/k1-living.jpg" alt="">
+        <span id="tags2-dots"></span>
+      </span>
+      <span class="tags2__foot">
+        <span class="tags2__text"><i>Скаут · расчёт бюджета</i><b>Сколько стоит ваш ремонт</b><small>Квартира 45&nbsp;м² с такими вещами — <em id="tags2-sum"></em></small></span>
+        <span class="btn btn--primary">Посчитать свою</span>
+      </span>
+    </a>
+  </section>
+
+  <section class="ideas__block">
+    <h2 class="ideas__n">Идея 3 · Живая цифра и шкала</h2>
+    <div class="sc-card sc-card--dark">
+      <span class="sc-card__k">Скаут · расчёт бюджета</span>
+      <h3 class="sc-card__t">Сколько стоит ваш ремонт</h3>
+      <div class="live"><b id="live-num">0</b><span>млн ₽ за 45 м²</span></div>
+      <div class="scale" id="scale"></div>
+      <a class="btn btn--primary sc-card__btn" href="scout.html">Уточнить в Скауте</a>
+    </div>
+  </section>
+
+  <section class="ideas__block">
+    <h2 class="ideas__n">Идея 4 · Чек</h2>
+    <a class="receipt" href="scout.html">
+      <span class="receipt__head"><b>SOVEAPP · Скаут</b><small>расчёт бюджета, 45 м²</small></span>
+      <span class="receipt__row"><span>Работы</span><i></i><b id="r-work"></b></span>
+      <span class="receipt__row"><span>Мебель и свет</span><i></i><b id="r-furn"></b></span>
+      <span class="receipt__row"><span>Материалы</span><i></i><b id="r-mat"></b></span>
+      <span class="receipt__row receipt__row--sum"><span>Итого</span><i></i><b id="r-sum"></b></span>
+      <span class="receipt__foot">Посчитать свою квартиру →</span>
+    </a>
+  </section>
+
+  <section class="ideas__block">
+    <h2 class="ideas__n">Идея 5 · План квартиры</h2>
+    <div class="sc-card">
+      <span class="sc-card__k">Скаут · расчёт бюджета</span>
+      <h3 class="sc-card__t">Сколько стоит ваш ремонт</h3>
+      <div class="plan">
+        <svg viewBox="0 0 200 130" class="plan__svg" id="plan-svg" aria-hidden="true">
+          <rect x="4" y="4" width="192" height="122" rx="6" class="plan__wall"/>
+          <rect x="8" y="8" width="90" height="70" class="plan__room" data-r="1"/>
+          <rect x="102" y="8" width="90" height="70" class="plan__room" data-r="2"/>
+          <rect x="8" y="82" width="120" height="40" class="plan__room" data-r="3"/>
+          <rect x="132" y="82" width="60" height="40" class="plan__room plan__room--wet"/>
+        </svg>
+        <div class="plan__side">
+          <div class="seg" id="rooms"><button type="button" data-r="1">1</button><button type="button" data-r="2" class="is-on">2</button><button type="button" data-r="3">3</button></div>
+          <b id="plan-sum"></b><span id="plan-area"></span>
+          <a class="btn btn--primary btn--sm" href="scout.html">Уточнить</a>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+<div id="site-footer"></div>
+<script src="assets/js/data.js?v=20261022162032"></script>
+<script src="assets/js/site.js?v=20261022162032"></script>
+<script>
+(function () {
+  var D = SOVE.data, F = SOVE.fmt;
+  var caps = D.capsules.filter(function (c) { return !c.soon && !c.designer && c.pricePerM2; });
+  var minKit = Math.min.apply(null, caps.map(function (c) { return c.pricePerM2; })), maxKit = Math.max.apply(null, caps.map(function (c) { return c.pricePerM2; }));
+  var rates = D.scout.states.map(function (s) { return s.rate; }), minRate = Math.min.apply(null, rates), maxRate = Math.max.apply(null, rates);
+  function mln(n) { return (Math.round(n / 100000) / 10).toFixed(1).replace('.', ','); }
+  function range(a) { return 'от ' + mln((minRate + minKit) * a) + ' до ' + mln((maxRate + maxKit) * a) + ' млн ₽'; }
+
+  /* 1. три квартиры */
+  var flats = [ { n: 'Студия', a: 30, img: 'assets/img/capsules/k3-main-1.jpg' }, { n: 'Двушка', a: 55, img: 'assets/img/capsules/k1-living.jpg' }, { n: 'Трёшка', a: 80, img: 'assets/img/capsules/k2-main-1.jpg' } ];
+  document.getElementById('flats').innerHTML = flats.map(function (f) { return '<a class="flat" href="scout.html?area=' + f.a + '"><img src="' + f.img + '" alt=""><span><b>' + f.n + '</b><small>' + f.a + ' м²</small><em>от ' + mln((minRate + minKit) * f.a) + ' млн ₽</em></span></a>'; }).join('');
+
+  /* 2. ценники */
+  var SPOTS = [ { id: 201, x: 63, y: 24, n: 'люстра' }, { id: 601, x: 37, y: 50, n: 'картина' }, { id: 102, x: 82, y: 68, n: 'кресло' }, { id: 103, x: 60, y: 80, n: 'столик' } ];
+  document.getElementById('tags2-dots').innerHTML = SPOTS.map(function (sp, i) { var p = D.product(sp.id); return p ? '<span class="ptag' + (i % 2 ? ' ptag--below' : '') + '" style="--x:' + sp.x + '%;--y:' + sp.y + '%"><b>' + F.rub(p.metod) + '</b>' + sp.n + '</span>' : ''; }).join('');
+  document.getElementById('tags2-sum').textContent = 'от\u00a0' + mln((minRate + minKit) * 45) + '\u00a0млн\u00a0₽';
+
+  /* 3. живая цифра и шкала */
+  var live = document.getElementById('live-num'), scale = document.getElementById('scale'), cur = D.scout.states[3].id;
+  function liveSum() { var s = D.scout.states.filter(function (x) { return x.id === cur; })[0]; return (s.rate + minKit) * 45 / 1e6; }
+  function renderScale() { scale.innerHTML = '<i></i>' + D.scout.states.map(function (s, i) { return '<button type="button" data-s="' + s.id + '" class="' + (s.id === cur ? 'is-on' : '') + '" style="--p:' + (i / 3 * 100) + '%"><em></em><span>' + s.name.replace(' отделка', '') + '</span></button>'; }).join(''); }
+  function count(to) { var from = parseFloat(live.textContent.replace(',', '.')) || 0, t0 = null; function step(t) { if (!t0) t0 = t; var k = Math.min(1, (t - t0) / 900), e = 1 - Math.pow(1 - k, 3); live.textContent = (from + (to - from) * e).toFixed(1).replace('.', ','); if (k < 1) requestAnimationFrame(step); } requestAnimationFrame(step); }
+  renderScale(); count(liveSum());
+  scale.addEventListener('click', function (e) { var b = e.target.closest('[data-s]'); if (!b) return; cur = b.getAttribute('data-s'); renderScale(); count(liveSum()); });
+
+  /* 4. чек */
+  var work = minRate * 45, furn = Math.round(minKit * 45 * 0.65), mat = minKit * 45 - furn;
+  document.getElementById('r-work').textContent = mln(work) + ' млн'; document.getElementById('r-furn').textContent = mln(furn) + ' млн'; document.getElementById('r-mat').textContent = mln(mat) + ' млн';
+  document.getElementById('r-sum').textContent = 'от ' + mln(work + furn + mat) + ' млн ₽';
+
+  /* 5. план */
+  var areas = { 1: 35, 2: 45, 3: 62 }, svg = document.getElementById('plan-svg');
+  function plan(r) {
+    document.querySelectorAll('#rooms button').forEach(function (b) { b.classList.toggle('is-on', b.getAttribute('data-r') === String(r)); });
+    svg.querySelectorAll('[data-r]').forEach(function (el) { el.classList.toggle('is-on', Number(el.getAttribute('data-r')) <= r); });
+    document.getElementById('plan-sum').textContent = range(areas[r]); document.getElementById('plan-area').textContent = r + '-комн. · ' + areas[r] + ' м²';
+  }
+  document.getElementById('rooms').addEventListener('click', function (e) { var b = e.target.closest('[data-r]'); if (b) plan(Number(b.getAttribute('data-r'))); });
+  plan(2);
+})();
+</script>
+</body>
+</html>
