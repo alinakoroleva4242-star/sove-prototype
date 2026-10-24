@@ -460,7 +460,8 @@
         FLOW.interiorTiles(it) +
         '<small class="pz-note">свой интерьер: загрузи фото или рендер — найдём похожую мебель в Маркете</small>' +
         '<button type="button" class="pz-link pz-link--left' + (it ? '' : ' is-on') + '" data-act="later" aria-pressed="' + !it + '">Выберу позже — расставь по размерам</button></section>' +
-      group('Стены') + replanBlock(rp) +
+      /* блок «Перепланировка и стены» — на своей подложке с заголовком (Алина 24.10) */
+      '<section class="pz-wallsbox"><b class="pz-group">Перепланировка и стены</b>' + replanBlock(rp) + '</section>' +
       (sk.length ? '<div class="pz-skip"><b>Не спрашиваем:</b> ' + esc(sk.join(' · ')) + '</div>' : '') +
       (ok ? '' : '<small class="pz-note pz-c">Ответь на 3 вопроса сверху</small>') +
       '<button type="button" class="pz-btn" data-act="go"' + (ok ? '' : ' disabled') + '>' + (rp ? 'Показать варианты стен · ' + FLOW.priceTxt() : 'Расставить мебель') + '</button>' +

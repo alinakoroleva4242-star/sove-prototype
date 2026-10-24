@@ -410,7 +410,9 @@ a.ps-save { display: flex; align-items: center; justify-content: center; text-de
 .pz-tagsheet b small, .pz-tagsheet em small { font-size: 11px; font-weight: 500; color: #6B655F; }
 .pz-2p { display: grid; justify-items: end; line-height: 1.15; } .pz-2p small { font-size: 9px; color: #6B655F; font-weight: 500; }
 .pz-2p small { white-space: nowrap; }
-/* развилка «Поменять стены?» в анкете: спокойно, но заметно — тёплый фон и терракотовая полоса слева */
-.pz-toggle--walls { background: #FBF4F0; border: 1px solid #EAD3C6; border-left: 3px solid #A24E32; padding: 12px 12px 12px 14px; }
+/* блок «Перепланировка и стены» в анкете: тёплая подложка с заголовком, внутри — переключатель */
+.pz-wallsbox { display: grid; gap: 10px; background: #FBF4F0; border: 1px solid #EAD3C6; border-radius: 16px; padding: 14px 12px 12px; }
+.pz-wallsbox .pz-group { margin: 0; }
+.pz-toggle--walls { background: #fff; border: 1px solid #EAD3C6; padding: 12px; }
 .pz-toggle--walls b { font-size: 14px; } .pz-toggle--walls small { font-size: 11px; }
-.pz-toggle--walls.is-on { background: #F3E4DB; border: 1px solid #A24E32; border-left: 3px solid #A24E32; padding: 12px 12px 12px 14px; }
+.pz-toggle--walls.is-on { background: #fff; border: 1.5px solid #A24E32; padding: 12px; }
