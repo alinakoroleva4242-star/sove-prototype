@@ -72,7 +72,7 @@
       var t = by[k], b = t.box, name = t.label;
       if (/^Кровать$/.test(name)) name += ' ' + Math.round((b[2] - b[0]) / ppm * 100) + '×' + Math.round((b[3] - b[1]) / ppm * 100);
       if (t.n > 1) name += ' ×' + t.n;
-      return { name: name, p: t.p, sum: t.p.metod * t.n, x: t.x / t.n, y: t.y / t.n };
+      return { name: name, p: t.p, sum: t.p.metod * t.n, sumR: (t.p.retail || t.p.metod) * t.n, x: t.x / t.n, y: t.y / t.n };
     }).sort(function (a, b) { return b.sum - a.sum; }).slice(0, 8);
   }
   function hero(E) {
@@ -81,7 +81,7 @@
       '<img src="assets/img/demo/1-domik-vsya-kvartira.jpg" alt="Пример: 2-комнатная квартира 47 м² в 3D с мебелью, вид сверху">' +
       '<span class="pz-hero__k">ПРИМЕР · 2-КОМН · 47 М²</span>' +
       tags.map(function (t, i) {
-        return '<button type="button" class="pz-price" data-tag="' + i + '" data-x="' + t.x + '" data-y="' + t.y + '"><i></i><small>' + esc(t.name) + '</small><b>' + num(t.sum) + '</b></button>';
+        return '<button type="button" class="pz-price" data-tag="' + i + '" data-x="' + t.x + '" data-y="' + t.y + '"><i></i><small>' + esc(t.name) + '</small><b>' + num(t.sum) + '</b><s>' + num(t.sumR) + '</s></button>';
       }).join('') +
       '<div class="pz-hero__bud"><span><small>РЕМОНТ ПОД КЛЮЧ</small><em>мебель ' + mln(b && b.furniture) + ' · материалы ' + mln(b && b.materials) + ' · работы ' + mln(b && b.works) + ' млн</em></span>' +
         '<b>≈ ' + mln(b && b.total) + ' млн ₽</b></div></div>';
@@ -92,6 +92,7 @@
     var W = el.clientWidth, H = el.clientHeight, k = Math.max(W / 730, H / 610), ox = (W - 730 * k) / 2, oy = (H - 610 * k) / 2;
     var placed = [];                                   /* не даём ценникам налезать друг на друга и на полосу бюджета */
     el.querySelectorAll('.pz-price').forEach(function (t) {
+      t.hidden = false;                                /* скрытый ценник не измерить — сначала показываем */
       var w = t.offsetWidth, h = t.offsetHeight, x = ox + (+t.dataset.x) * k, y = oy + (+t.dataset.y) * k;
       var l = Math.max(4, Math.min(W - w - 4, x - w / 2)), top = Math.max(34, Math.min(H - 84 - h, y - h / 2));
       for (var i = 0; i < placed.length; i++) {
@@ -107,7 +108,7 @@
     var p = t.p, R = S.repair;
     if (R && R.registerProduct) R.registerProduct(p);
     var m = S.ui.modal({ eyebrow: t.name, title: p.name, html: '<div class="pz-tagsheet">' + (p.img ? '<img src="' + esc(p.img) + '" alt="">' : '') +
-        '<span><b>' + F.rub(p.metod) + '</b>' + (p.retail ? '<s>' + F.rub(p.retail) + '</s>' : '') + '<small>' + esc(p.brand || '') + ' · цена METOD</small></span></div>',
+        '<span><b>' + F.rub(p.metod) + ' <small>с подпиской METOD</small></b><em>' + F.rub(p.retail || p.metod) + ' <small>без подписки</small></em><small>' + esc(p.brand || '') + '</small></span></div>',
       actions: [{ label: '♡ В избранное', kind: 'ghost', onClick: function () { if (R) { R.flats.ensure(); if (!R.fav.has(p.id)) R.fav.toggle(p.id, true); R.flats.update(R.flats.active().id, {}); S.ui.toast('В избранном', 'ok'); } } },
                 { label: '🛒 В корзину', onClick: function () { if (R) { R.flats.ensure(); if (!R.cart.has(p.id)) R.cart.add(p.id, 'market', true); R.flats.update(R.flats.active().id, {}); S.ui.toast('В корзине', 'ok'); } } }] });
     return m;

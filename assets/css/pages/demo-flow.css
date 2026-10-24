@@ -404,3 +404,8 @@ a.ps-save { display: flex; align-items: center; justify-content: center; text-de
 .pz-state__cur { display: flex; align-items: center; gap: 10px; border: 2px solid #A24E32; border-radius: 12px; padding: 10px 12px; }
 .pz-state__cur span { flex: 1; display: grid; gap: 2px; min-width: 0; } .pz-state__cur b { font-size: 13px; } .pz-state__cur small { font-size: 10px; color: #6B655F; }
 .pz-state__cur [data-act="state-open"] { font-size: 12px; font-weight: 700; flex: none; }
+/* две цены: с подпиской METOD (жирно) и без (мелко, зачёркнуто или подписью) */
+.pz-price s { font-size: 8px; color: #8E867E; }
+.pz-tagsheet em { font-style: normal; font-size: 14px; color: #6B655F; }
+.pz-tagsheet b small, .pz-tagsheet em small { font-size: 11px; font-weight: 500; color: #6B655F; }
+.pz-2p { display: grid; justify-items: end; line-height: 1.15; } .pz-2p small { font-size: 9px; color: #6B655F; font-weight: 500; }

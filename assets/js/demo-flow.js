@@ -398,11 +398,13 @@
   function productList(rows, opts) {
     var R = window.SOVE.repair, F = window.SOVE.fmt, st = plState(opts.key || 'list'); st.rows = rows; st.opts = opts;
     var withP = rows.filter(function (r) { return r.p; }), sum = withP.reduce(function (a, r) { return a + (r.p.metod || 0); }, 0);
+    /* цены всегда две: с подпиской METOD и без (Алина 24.10) */
+    var sumR = withP.reduce(function (a, r) { return a + (r.p.retail || r.p.metod || 0); }, 0);
     var shown = st.on || st.all || !opts.limit ? rows : rows.slice(0, opts.limit), nSel = Object.keys(st.sel).length, key = esc(opts.key || 'list');
     var html = '<section class="pz-card pz-goods pz-pl' + (st.on ? ' is-sel' : '') + '" data-pl="' + key + '">' +
       '<div class="pz-goods__h"><b>' + esc(opts.title) + ' · ' + rows.length + '</b>' +
         (st.on ? '<span class="pz-pl__ctl"><button type="button" data-pl-act="all">' + (nSel === withP.length ? 'Снять все' : 'Выбрать все · ' + withP.length) + '</button><button type="button" data-pl-act="done">Готово</button></span>'
-               : '<span class="pz-pl__ctl"><b>≈ ' + F.rub(sum) + '</b><button type="button" data-pl-act="select">Выбрать</button></span>') + '</div>' +
+               : '<span class="pz-pl__ctl"><span class="pz-2p"><b>≈ ' + F.rub(sum) + '</b><small>с METOD · без — ' + F.rub(sumR) + '</small></span><button type="button" data-pl-act="select">Выбрать</button></span>') + '</div>' +
       shown.map(function (r, i) {
         var on = !!st.sel[i], inCart = r.p && R.cart.has(r.p.id);
         return '<div class="pz-good' + (st.on ? ' is-sel' : '') + (on ? ' is-on' : '') + '"' + (st.on && r.p ? ' data-pl-row="' + i + '" role="checkbox" aria-checked="' + on + '" tabindex="0"' : '') + '>' +

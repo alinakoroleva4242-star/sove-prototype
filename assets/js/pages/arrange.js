@@ -687,6 +687,8 @@
       '</section>';
   }
 
+  /* карточка нажатого предмета — сразу под планом, а не плавающей плашкой поверх бюджета (Алина 24.10) */
+  function dockBlock() { return '<div class="ar-dock' + (st.picked === null ? ' is-off' : '') + '">' + pickedBlock() + '</div>'; }
   function pickedBlock() {
     var it = st.items.filter(function (x) { return x.id === st.picked; })[0];
     if (!it) return '<section class="pb ar-hint"><span class="pb__k">Как двигать</span>' +
@@ -699,14 +701,15 @@
       '<b class="pb__t">' + esc(it.label) + '</b>' +
       '<p class="ar-size">' + mm(w_m(it.box)) + ' × ' + mm(d_m(it.box)) + ' м' +
         (maxW ? ' · на этом месте максимум <b>' + mm(maxW) + ' м</b>' : '') +
-        (priceOf(it.label) ? ' · от <b>' + F.rub(priceOf(it.label).metod) + '</b>' : '') + '</p>' +
+        (INT && priceOf(it.label) ? ' · от <b>' + F.rub(priceOf(it.label).metod) + '</b> с METOD · ' + F.rub(priceOf(it.label).retail || priceOf(it.label).metod) + ' без' : '') + '</p>' +
       '<div class="lane ar-ctl">' +
         '<button type="button" class="chip" data-w="-0.1">уже на 10 см</button>' +
         '<button type="button" class="chip" data-w="0.1">шире на 10 см</button>' +
         '<button type="button" class="chip" data-act="rot">повернуть на 90°</button>' +
         '<button type="button" class="chip" data-act="back">вернуть на место</button>' +
       '</div>' +
-      (kindOf(it.label) || catalogOptions(it.label).length
+      /* товары с ценами — только с выбранным интерьером */
+      (INT && (kindOf(it.label) || catalogOptions(it.label).length)
         ? '<button type="button" class="btn btn--ghost btn--block" data-act="swap">Показать товары по размеру</button>' : '') +
       '</section>';
   }
@@ -977,19 +980,17 @@
     var body;
     if (INT || VAR) {
       /* A5б · Твоя квартира в 3D: механика расстановки, товары интерьера с ♡ / 🛒 */
-      body = varPills() + plansBlock() + stageBlock() +
+      body = varPills() + plansBlock() + stageBlock() + dockBlock() +
         '<p class="pz-hint">Нажми предмет — размеры, шире / уже, замена · двигай пальцем, проверка сразу · 👁 скрыть мебель · ↺ сбросить</p>' +
         problemsBlock() + notPlacedBlock() + swapBlock() + tuneRow() + (INT ? goodsBlock() : '') +
         finish() +
         /* бюджет — под визуализациями, только с интерьером */
-        FLOW.budgetCard({ rerender: render }) +
-        '<div class="ar-dock' + (st.picked === null ? ' is-off' : '') + '">' + pickedBlock() + '</div>';
+        FLOW.budgetCard({ rerender: render }) ;
     } else {
       /* A5а · Мебель по размерам: серые габариты без цен; под визуализациями — «Выбери интерьер — покажем бюджет»
          на месте бюджета (липкая лента тогда не показывается) */
-      body = varPills() + stageBlock() + problemsBlock() + notPlacedBlock() + tuneRow() +
-        finish() + FLOW.budgetCard({ rerender: render }) +
-        '<div class="ar-dock' + (st.picked === null ? ' is-off' : '') + '">' + pickedBlock() + '</div>';
+      body = varPills() + stageBlock() + dockBlock() + problemsBlock() + notPlacedBlock() + tuneRow() +
+        finish() + FLOW.budgetCard({ rerender: render }) ;
     }
     root.innerHTML = head() + body;
     if (is3d()) mount3d();
