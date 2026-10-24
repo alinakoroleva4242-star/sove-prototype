@@ -483,7 +483,10 @@
     var V = { reading: viewReading, rooms: viewRooms, brief: viewBrief, error: viewError, placing: viewPlacing, noplan: viewNoplan, zk: viewZk, upload: viewUpload };
     root.innerHTML = (V[st.view] || viewIdle)();
     if (st.view === 'rooms') mount3d();
-    if (st.view === 'idle') { placeTags(); var hi = root.querySelector('#pd-hero img'); if (hi && !hi.complete) hi.addEventListener('load', placeTags); }
+    if (st.view === 'idle') {
+      placeTags(); var hi = root.querySelector('#pd-hero img'); if (hi && !hi.complete) hi.addEventListener('load', placeTags);
+      if (document.fonts && document.fonts.ready) document.fonts.ready.then(placeTags);   /* шрифт догрузился — ширина ценников другая */
+    }
     /* лента «Выбери интерьер» (раздел 14): на A3 — да, на A1, A2, A4 — нет */
     FLOW.interiorStrip({ show: st.view === 'rooms', chosen: !!st.interior, onPick: function (it) { st.interior = it; render(); } });
     bind();
