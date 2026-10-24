@@ -217,7 +217,29 @@
     },
     open: function (capsuleId, level) { scoutState().opened[scout.pairKey(capsuleId, level)] = true; save(); },
     requests: function () { return scoutState().requests.slice().sort(function (a, b) { return b.ts - a.ts; }); },
-    basisLabel: function (b) { return { 'first-free': 'первый бесплатный', metod: 'по подписке METOD', paid: 'оплачен', opened: 'пересчёт открытой капсулы', manual: 'выдано вручную' }[b] || b; }
+    basisLabel: function (b) { return { 'first-free': 'первый бесплатный', metod: 'по подписке METOD', paid: 'оплачен', opened: 'пересчёт открытой капсулы', manual: 'выдано вручную', plan: 'из Планировки' }[b] || b; },
+    /* движок расчёта Скаута без экрана: работы = ставка состояния × м², комплектация = цена капсулы за м² × м².
+       Его же вызывает бюджет «ремонт под ключ» в Планировке и Моём ремонте (ТЗ Планировки, 17.2 «гибрид»).
+       p: {stateId, area, capsuleId, level} → {works, kitMetod, kitRetail, total, stages[[название, ₽]], kit[[категория, ₽]]} */
+    estimate: function (p) {
+      var SC = D.scout, s = SC.states.filter(function (x) { return x.id === p.stateId; })[0] || SC.states[1], c = D.capsule(p.capsuleId) || {};
+      var area = Number(p.area) || 0, perM2 = (p.level === 'premium' && c.pricePerM2Premium) || c.pricePerM2 || 0;
+      if (!perM2) { var ps = D.capsules.filter(function (x) { return x.pricePerM2 && !x.soon; }).map(function (x) { return x.pricePerM2; }).sort(function (a, b) { return a - b; }); perM2 = ps[Math.floor(ps.length / 2)] || 0; }
+      var works = s.rate * area, kitMetod = perM2 * area;
+      return { state: s, area: area, works: works, kitMetod: kitMetod, kitRetail: kitMetod * SC.retailMarkup, total: works + kitMetod,
+        stages: SC.stages.map(function (x) { return [x[0], works * x[1] / 100]; }), kit: SC.kitShares.map(function (x) { return [x[0], kitMetod * x[1] / 100]; }) };
+    },
+    /* параметры Скаута из квартиры Моего ремонта и ответов Планировки — Скаут ничего не переспрашивает */
+    fromRepair: function (flatId) {
+      var R = window.SOVE.repair, r = R ? R.get(flatId) : {}, f = R ? (flatId ? R.flats.get(flatId) : R.flats.active()) : null, flow = {};
+      try { flow = JSON.parse(localStorage.getItem('sove.demo.flow.v1') || '{}') || {}; } catch (e) {}
+      if (r && r.scoutParams) return Object.assign({}, r.scoutParams);
+      var STATE = { concrete_free: 'concrete', concrete_walls: 'concrete', whitebox: 'pre', finished: 'secondary' };
+      var rooms = (r && r.plan && r.plan.rooms) || flow.rooms || [], area = rooms.reduce(function (a, x) { return a + (x.m2 || 0); }, 0) || (f && f.m2) || 0;
+      var it = (r && r.interior) || flow.interior || null, base = (r && r.base) || {};
+      return { stateId: STATE[base.state || flow.state] || 'concrete', area: Math.round(area * 10) / 10, rooms: rooms,
+        capsuleId: it && (it.capsuleId || it.id) || null, level: (r && r.budgetPlan && r.budgetPlan.type) || 'base' };
+    }
   };
 
   /* ---------- «Мой ремонт»: одна опора для всего, что человек делает на сайте (работает и у гостя) ---------- */

@@ -25,6 +25,18 @@
   function save() { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (e) {} renderStrip(); window.dispatchEvent(new Event('sove:repair')); }
   function uid(p) { st.seq = (st.seq || 1) + 1; return p + '-' + Date.now().toString(36) + '-' + st.seq; }
   load();
+  /* товары боевого каталога, которых нет в образце data.js (корпусная мебель, техника под расстановку):
+     запоминаем их при ♡ / 🛒, чтобы Корзина и Избранное видели их на любом экране */
+  var XKEY = 'sove.products.extra';
+  function extras() { try { return JSON.parse(localStorage.getItem(XKEY) || '{}') || {}; } catch (e) { return {}; } }
+  function addToData(p) { if (p && !D.product(p.id)) D.products.push(p); }
+  (function () { var x = extras(); Object.keys(x).forEach(function (k) { addToData(x[k]); }); })();
+  function registerProduct(p) {
+    if (!p || !p.id) return; addToData(p);
+    var x = extras(); if (x[p.id]) return;
+    x[p.id] = { id: p.id, name: p.name, brand: p.brand, metod: p.metod, retail: p.retail, img: p.img, category: p.category || 'Мебель', subcat: p.subcat || '' };
+    try { localStorage.setItem(XKEY, JSON.stringify(x)); } catch (e) {}
+  }
   window.addEventListener('storage', function (e) { if (e.key === KEY) { load(); renderStrip(); window.dispatchEvent(new Event('sove:repair')); } });
 
   function roomKey(name) { var n = String(name || '').toLowerCase(); return /кух|гост/.test(n) ? 'liv' : /спал/.test(n) ? 'bed' : /сан|ванн|душ/.test(n) ? 'bath' : /прих|корид|холл/.test(n) ? 'hall' : n.replace(/[^a-zа-я0-9]+/g, '-'); }
@@ -212,13 +224,24 @@
     if (!stripOn()) return;
     var el = document.getElementById('rp-strip');
     if (!el) { el = document.createElement('nav'); el.id = 'rp-strip'; el.className = 'rp-strip'; el.setAttribute('aria-label', 'Корзина, Избранное и Бюджет квартиры'); document.body.appendChild(el); document.body.classList.add('has-rp-strip'); }
-    var t = cartTotals(), fv = favOf().length, b = rp().budget, onMy = document.body.getAttribute('data-page') === 'my';
+    var t = cartTotals(), fv = favOf().length, b = rp().budget, bp = rp().budgetPlan, onMy = document.body.getAttribute('data-page') === 'my';
+    /* одна цифра везде (ТЗ Планировки, 12.5): бюджет «ремонт под ключ» из Планировки; нормы — заглушки, итога нет — «[сумма] ₽» */
+    /* раздел 17: полный бюджет куплен — «итого ≈ …»; нет — «мебель ≈ … · весь — узнать ›» (мебель из Планировки) */
+    /* мебель — по текущей расстановке Планировки; нет её — из последнего сохранения */
+    var furn = null; try { var fl = JSON.parse(localStorage.getItem('sove.demo.flow.v1') || '{}'); furn = fl.toSave && fl.toSave.furniture; } catch (x) {}
+    if (!furn) furn = bp && bp.furniture;
+    /* одна цифра «итого» с карточкой «Бюджет квартиры» (методология, П6): сумма известных слоёв */
+    var BL = window.SOVE_FLOW && window.SOVE_FLOW.budgetLayers && window.SOVE_FLOW.budgetLayers();
+    /* новый план ещё не расставлен — старую сумму не показываем */
+    var newPlan = document.body.getAttribute('data-page') === 'plan-demo';
+    var bTotal = newPlan ? '' : BL ? '≈ ' + F.rub(BL.total) + ' · ' + BL.known + ' из 4' : bp && bp.full ? '≈ ' + (bp.total === null || bp.total === undefined ? '[сумма] ₽' : F.rub(bp.total))
+      : furn ? null : F.rub(b && b.total ? b.total : 0);
     /* полоса ведёт на свои экраны (ТЗ 22.10, п. 0.4 и 5): корзина и бюджет квартиры — виды my.html, избранное — общая страница */
     var h = function (sec) { return { cart: 'my.html?v=basket', fav: 'favorites.html', budget: 'my.html?v=budget' }[sec]; };
     el.innerHTML =
       '<a href="' + h('cart') + '" data-strip="cart">' + CART + '<span><b>Корзина</b><small>' + (t.count ? t.qty + ' · ' + F.rub(t.metod) : 'пока пусто') + '</small></span></a>' +
       '<a href="' + h('fav') + '" data-strip="fav">' + HEART + '<span><b>Избранное</b><small>' + (fv ? fv : 'пока пусто') + '</small></span></a>' +
-      '<a href="' + h('budget') + '" data-strip="budget"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 7h8M8 11h3M13 11h3M8 15h3M13 15h3"/></svg><span><b>Бюджет</b><small>итого ' + F.rub(b && b.total ? b.total : 0) + '</small></span></a>';
+      '<a href="' + h('budget') + '" data-strip="budget"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 7h8M8 11h3M13 11h3M8 15h3M13 15h3"/></svg><span><b>Бюджет</b><small>' + (newPlan ? 'после расстановки' : bTotal === null ? 'мебель ≈ ' + F.rub(furn) + ' · весь — узнать ›' : 'итого ' + bTotal) + '</small></span></a>';
   }
 
   /* ---------- данные прототипа: 3 состояния экрана из п. 6 ТЗ ---------- */
@@ -251,12 +274,12 @@
   document.addEventListener('click', function (e) {
     var b = e.target.closest && e.target.closest('[data-reset]'); if (!b) return;
     e.stopPropagation(); e.preventDefault();
-    if (confirm('Стереть все данные прототипа в этом браузере?')) { try { localStorage.removeItem('sove.proto.v1'); localStorage.removeItem(KEY); } catch (x) {} location.href = 'index.html'; }
+    if (confirm('Стереть все данные прототипа в этом браузере?')) { try { localStorage.removeItem('sove.proto.v1'); localStorage.removeItem(KEY); localStorage.removeItem(XKEY); } catch (x) {} location.href = 'index.html'; }
   }, true);
 
   S.repair = { LINK: LINK, LEVEL: LEVEL, RANK: RANK, SRC: SRC, flats: flats, flatLine: flatLine, get: rp, level: level, rooms: roomsOf, roomKey: roomKey, rendersCount: rendersCount,
     capsuleProducts: capsuleProducts, roomProducts: roomProducts, progress: progress, budgetStale: budgetStale,
     save: saveTo, saveButton: saveButton, setMainRender: setMainRender, removeRender: removeRender, fav: fav, cart: cart, card: card, price: price, btns: btns, sync: syncButtons,
-    toast: toast, renderStrip: renderStrip, seed: seed, reset: reset };
+    toast: toast, renderStrip: renderStrip, registerProduct: registerProduct, seed: seed, reset: reset };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', renderStrip); else renderStrip();
 })();

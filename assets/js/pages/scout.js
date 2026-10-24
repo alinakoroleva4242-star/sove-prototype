@@ -100,6 +100,16 @@
     if (qa >= 10 && qa <= 999 && !st.plan) st.plan = { mode: 'manual', fileName: null, meta: null, rooms: [ { id: 'n' + (++roomSeq), name: 'Вся квартира', area: Math.round(qa * 10) / 10 } ] };
   })();
 
+  /* пришли из Планировки (ТЗ Планировки, 17.2 «гибрид»): весь бюджет уже куплен там — подставляем план, состояние,
+     интерьер и тип из квартиры (SOVE.scout.fromRepair) и ничего не переспрашиваем; ?step=result — сразу последняя страница */
+  var qFromPlan = S.ui.qs('from') === 'plan' && S.repair ? (S.ui.qs('flat') || (S.repair.flats.active() || {}).id || '') : null;
+  if (qFromPlan !== null) {
+    var fp = S.scout.fromRepair(qFromPlan), cap0 = okCapsule(fp.capsuleId) ? fp.capsuleId : (D.capsules.filter(function (x) { return okCapsule(x.id) && !x.designer; })[0] || {}).id;
+    st = Object.assign(blank(), { capsuleId: cap0, stateId: byId(SC.states, fp.stateId) ? fp.stateId : 'concrete', level: fp.level === 'premium' ? 'premium' : 'base', formatId: 'self',
+      plan: { mode: 'manual', fileName: null, meta: null, rooms: (fp.rooms && fp.rooms.length ? fp.rooms : [{ name: 'Вся квартира', m2: fp.area }]).map(function (r) { return { id: 'n' + (++roomSeq), name: r.name, area: Number(r.m2 || r.area) || null }; }) },
+      fromPlan: qFromPlan, step: 4 });
+  } else delete st.fromPlan;                       /* обычный вход в Скаут — без бесплатного пересчёта из Планировки */
+
   /* «Вся квартира» — общая площадь, она не меняется; помещения ниже — разбивка внутри неё и к общей не прибавляются (Вика 21.10) */
   function isWhole(r) { return /^(вся\s+квартира|вся\s+площадь|общая(\s+площадь)?|квартира\s+целиком)$/i.test(String(r.name || '').trim()); }
   function wholeRoom() { return st.plan ? st.plan.rooms.filter(function (r) { return isWhole(r) && typeof r.area === 'number' && r.area > 0; })[0] : null; }
@@ -206,6 +216,15 @@
     var req = existing || S.scout.register(accessParams(), resultData(calc()), basis);
     st.issued = { requestId: req.id, sig: sig() }; st.gate = false; st.payId = null; st.pendingPay = 0; st.step = 5;
     var rr = calc(); S.my.set({ capsuleId: isVis() ? null : st.capsuleId, level: st.level, area: rr.area, stateId: st.stateId, total: rr.total, works: rr.works, kitMetod: rr.kitMetod, kitRetail: rr.kitRetail });
+    /* из Планировки: правки Скаута сразу меняют бюджет квартиры — Планировка, Мой ремонт и полоса «Бюджет» (17.2) */
+    if (st.fromPlan !== undefined && st.fromPlan !== null && S.repair) {
+      var R = S.repair, fid = st.fromPlan || (R.flats.active() || {}).id, rp = fid ? R.get(fid) : null;
+      if (rp) {
+        rp.scoutParams = { stateId: st.stateId, area: rr.area, capsuleId: st.capsuleId, level: st.level, rooms: st.plan ? st.plan.rooms.map(function (r) { return { name: r.name, m2: r.area }; }) : [] };
+        if (rp.budgetPlan) rp.budgetPlan.type = st.level;
+        if (window.SOVE_FLOW && window.SOVE_FLOW.refreshBudget) window.SOVE_FLOW.refreshBudget(); else R.flats.update(fid, {});
+      }
+    }
     persist(); return req;
   }
   function showStep() {
@@ -216,6 +235,8 @@
   /* кнопка шага 4: ведём по веткам доступа */
   function proceed() {
     if (!validInputs()) return;
+    /* из Планировки весь бюджет уже оплачен — пересчёт бесплатный, без экрана-счёта */
+    if (st.fromPlan !== undefined && st.fromPlan !== null) { var ap = S.scout.access(accessParams()); issue('plan', ap.kind === 'repeat' ? ap.request : null); showStep(); return; }
     var a = S.scout.access(accessParams());
     if (a.kind === 'repeat') { issue(null, a.request); showStep(); return; }
     if (a.kind === 'first-free' || a.kind === 'metod' || a.kind === 'opened') { issue(a.kind); showStep(); return; }
@@ -844,6 +865,7 @@
 
   /* вернулись с оплаты, входа или METOD при открытом счёте: пара открыта — сразу показываем результат */
   var issuedOnLoad = resolveGate();
+  if (qFromPlan !== null && S.ui.qs('step') === 'result' && validInputs()) { var ap0 = S.scout.access(accessParams()); issue('plan', ap0.kind === 'repeat' ? ap0.request : null); }
   if (issuedOnLoad) { restoredNote = false; persist(); }
   render();
   if (issuedOnLoad) setTimeout(function () { S.ui.toast('Расчёт открыт · заявка Скаут № ' + issuedOnLoad.number, 'ok'); }, 300);

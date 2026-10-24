@@ -114,7 +114,6 @@
   var FEED = [
     { g: 'g1', grp: 'ПЛАНИРОВКА', c: '#2E6B4E', t: 'План → 3D', d: 'план, расстановка мебели', img: 'g-domik.jpg' },
     { g: 'g2', grp: 'МАТЕРИАЛЫ', c: '#A24E32', t: 'Мудборд по рендеру', d: 'своя картинка → мудборд и ДНК', img: 'k1-living.jpg' },
-    { g: 'g3', grp: 'МАТЕРИАЛЫ', c: '#A24E32', t: 'Материал по фото', d: 'аналог по закрытой цене', img: 'k1-sideboard.jpg' },
     { g: 'g4', grp: 'ВИЗУАЛИЗАЦИИ', c: '#3E5440', t: 'Примерка капсулы', d: 'капсула SOVE в ваших комнатах', img: 'k2-kitchen.jpg' },
     { g: 'g5', grp: 'ВИЗУАЛИЗАЦИИ', c: '#3E5440', t: 'Своя капсула', d: 'с нуля → рендеры комнат', img: 'k5.jpg' },
     { g: 'g6', grp: 'ВИЗУАЛИЗАЦИИ', c: '#3E5440', t: 'Замена предмета', d: 'по зонам: стены, пол, свет, мебель', img: 'g-hall.jpg' }
@@ -177,6 +176,8 @@
     var body = (v === 'F' ? variantF() : v === 'B' ? variantB() : V[v]).replace(/\[N\] токенов/g, function () { n++; return price(n === 1 ? 'g2' : 'g3'); });
     root.innerHTML = switcher(v) + header() + '<div class="sai-body">' + body + '</div>' + adept(h);
     var b = root.querySelector('.sai-body');
+    /* Алина 22.10: «Материал по фото» — не генерация, а поиск товара по фото в Маркете; из блока Материалы убираем */
+    b.querySelectorAll('b').forEach(function (x) { if ((x.textContent || '').trim() === 'Материал по фото') { var el = x.closest('button, a') || x.parentNode; if (el && b.contains(el)) el.remove(); } });
     /* второй заход: заголовок сворачивается в одну строку */
     if (CFG.collapseOnReturn && count(h) > 0 && b.firstElementChild) {
       var line = document.createElement('div'); line.className = 'sai-line';

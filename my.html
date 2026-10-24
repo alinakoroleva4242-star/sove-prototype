@@ -8,14 +8,15 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Montserrat:wght@400;500;600;700;800&display=swap">
-<link rel="stylesheet" href="assets/css/site.css?v=20261022162032">
-<link rel="stylesheet" href="assets/css/app-theme.css?v=20261022162032">
-<link rel="stylesheet" href="assets/css/pages/my.css?v=20261022162032">
-<link rel="stylesheet" href="assets/css/pages/my-warm.css?v=20261022162032">
-<link rel="stylesheet" href="assets/css/pages/my-repair.css?v=20261022162032">
-<link rel="stylesheet" href="assets/css/pages/sove-ai-create.css?v=20261022162032">
-<link rel="stylesheet" href="assets/css/pages/my-budget.css?v=20261022162032">
-<link rel="stylesheet" href="assets/css/pages/my-dash.css?v=20261022162032">
+<link rel="stylesheet" href="assets/css/site.css?v=20261024160747">
+<link rel="stylesheet" href="assets/css/app-theme.css?v=20261024160747">
+<link rel="stylesheet" href="assets/css/pages/my.css?v=20261024160747">
+<link rel="stylesheet" href="assets/css/pages/my-warm.css?v=20261024160747">
+<link rel="stylesheet" href="assets/css/pages/demo-flow.css?v=20261024160747">
+<link rel="stylesheet" href="assets/css/pages/my-repair.css?v=20261024160747">
+<link rel="stylesheet" href="assets/css/pages/sove-ai-create.css?v=20261024160747">
+<link rel="stylesheet" href="assets/css/pages/my-budget.css?v=20261024160747">
+<link rel="stylesheet" href="assets/css/pages/my-dash.css?v=20261024160747">
 </head>
 <body data-page="my" data-title="Мой ремонт" data-repair-strip>
 <a class="skip" href="#main">К содержанию</a>
@@ -26,18 +27,50 @@
   </div>
 </main>
 <div id="site-footer"></div>
-<script src="assets/js/data.js?v=20261022162032"></script>
-<script src="assets/js/site.js?v=20261022162032"></script>
-<script src="assets/js/order-scenarios.js?v=20261022162032"></script>
-<script src="assets/js/orders.js?v=20261022162032"></script>
-<script src="assets/js/partner-extra.js?v=20261022162032"></script>
-<script src="assets/js/repair.js?v=20261022162032"></script>
-<script src="assets/js/pages/my-repair.js?v=20261022162032"></script>
-<script src="assets/js/sove-ai-config.js?v=20261022162032"></script>
-<script src="assets/js/sove-ai-create.js?v=20261022162032"></script>
-<script src="assets/js/my-etalons.js?v=20261022162032"></script>
-<script src="assets/js/pages/my-budget.js?v=20261022162032"></script>
-<script src="assets/js/pages/my-dash.js?v=20261022162032"></script>
-<script src="assets/js/pages/my.js?v=20261022162032"></script>
+<script src="assets/js/data.js?v=20261024160747"></script>
+<script src="assets/js/site.js?v=20261024160747"></script>
+<script src="assets/js/order-scenarios.js?v=20261024160747"></script>
+<script src="assets/js/orders.js?v=20261024160747"></script>
+<script src="assets/js/partner-extra.js?v=20261024160747"></script>
+<script src="assets/js/repair.js?v=20261024160747"></script>
+<script src="assets/js/pages/my-repair.js?v=20261024160747"></script>
+<script src="assets/js/sove-ai-config.js?v=20261024160747"></script>
+<script src="assets/js/sove-ai-create.js?v=20261024160747"></script>
+<script src="assets/js/my-etalons.js?v=20261024160747"></script>
+<script src="assets/js/pages/my-budget.js?v=20261024160747"></script>
+<script src="assets/js/pages/my-dash.js?v=20261024160747"></script>
+<script src="assets/js/arrange-data.js?v=20261024160747"></script>
+<script src="assets/js/budget-norms.js?v=20261024160747"></script>
+<script src="assets/js/budget.js?v=20261024160747"></script>
+<script src="assets/js/demo-flow.js?v=20261024160747"></script>
+<script src="assets/js/pages/my.js?v=20261024160747"></script>
+<script>
+/* лента «Выбери интерьер» на дашборде Моего ремонта (ТЗ Планировки, раздел 14): пока интерьер квартиры не выбран */
+(function () {
+  var F = window.SOVE_FLOW, R = window.SOVE && window.SOVE.repair; if (!F || !R) return;
+  var v = new URLSearchParams(location.search).get('v');
+  function draw() { F.interiorStrip({ show: !v || v === 'home', chosen: !!R.get().interior }); }
+  draw(); window.addEventListener('sove:repair', draw);
+  /* плитка «Сохранено из Планировки» (раздел 15.4): «↓ Скачать планировку» и «✦ Визуализации».
+     Дашборд перерисовывают разные варианты экрана — вставляем плитку после каждой перерисовки */
+  var root = document.getElementById('my-root'); if (!root || (v && v !== 'home')) return;
+  function tile() {
+    var r = R.get(), P = F.planDoc(); if (!r.plan || !r.plan.historyId || !P || root.querySelector('#pz-saved')) return;
+    F.planFinish({ getImg: function () { return P.T.img; } });
+    var el = document.createElement('section'); el.id = 'pz-saved'; el.className = 'pz-saved';
+    el.innerHTML = '<b class="pz-saved__t">Сохранено из Планировки</b>' +
+      '<ul><li class="is-ok">✓ План в 3D + мебель · ' + P.T.count + ' предметов</li>' +
+      '<li class="' + (r.interior ? 'is-ok' : '') + '">' + (r.interior ? '✓ Интерьер: ' + r.interior.name : '○ Интерьер — выбери ›') + '</li>' +
+      '<li class="' + (r.replan ? 'is-ok' : '') + '">' + (r.replan ? '✓ Перепланировка · вариант ' + r.replan.variant : '○ Перепланировка — <a href="plan-demo.html?replan=1">попробовать ›</a>') + '</li></ul>' +
+      '<div class="pz-saved__a"><button type="button" class="pz-btn2" data-pf="download">↓ Скачать планировку</button><button type="button" class="pz-btn" data-pf="visual">✦ Визуализации</button></div>';
+    var first = root.firstElementChild; if (first && first.nextSibling) root.insertBefore(el, first.nextSibling); else root.appendChild(el);
+    /* бюджет из Планировки (раздел 17): до покупки — мебель и «Узнать весь бюджет», после — 11 строк и База / Премиум */
+    var bud = document.createElement('div'); bud.id = 'pz-mybud';
+    bud.innerHTML = F.budgetCard({ full: true, noFurniture: true, rerender: function () { var o = root.querySelector('#pz-mybud'); if (o) o.innerHTML = F.budgetCard({ full: true, noFurniture: true, rerender: arguments.callee }); } });
+    el.after(bud);
+  }
+  new MutationObserver(tile).observe(root, { childList: true }); tile();
+})();
+</script>
 </body>
 </html>

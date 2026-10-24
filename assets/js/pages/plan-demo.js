@@ -1,117 +1,409 @@
-/* Экран 1 сценария: план квартиры → разметка комнат, дверей и окон → четыре вопроса анкеты.
-   Разметку в бою делает POST /ai/plan/markup (один вызов зрения ≈ 0,0002 $); здесь показываем
-   готовый результат по плану ЖК PRIDE, чтобы пройти сценарий без оплаты. */
+/* Блок «Планировка», сценарий 1 «3D + мебель» (ТЗ-planirovka, эталоны A1–A4):
+   A1 какой план есть → A2 чтение плана → A3 проверь план → A4 вопросы по плану → расстановка (arrange.html).
+   Разметку своего плана делает POST /ai/plan/markup; пример ЖК PRIDE показываем готовым, без вызова.
+   Вопросы строятся по найденному в плане: чего в плане нет — не спрашиваем, варианты отсекаем по метражу. */
 (function () {
-  var S = window.SOVE, F = S.fmt, esc = F.esc, FLOW = window.SOVE_FLOW;
+  var S = window.SOVE, F = S.fmt, esc = F.esc, FLOW = window.SOVE_FLOW, D = S.data;
   var root = document.getElementById('pd-root'); if (!root) return;
+  var P3 = window.SOVE_PLAN3D || { ok: false };
   var SRC = window.SOVE_ARRANGE || { rooms: [], flat: '' };
+  var KIND = new URLSearchParams(location.search).get('scn') === 'project' ? 'project' : 'flow';
 
-  var ROOMS = SRC.rooms.filter(function (r) { return !r.part_of; });
-  var st = { view: 'idle', fileName: null, live: null, error: null,
-             brief: FLOW.load().brief || { bed: '160×200', sofa: 'раскладной, до 220 см', work: 'да', bath: 'душ' } };
-  /* live — свой план клиента: файл, размер, ответ разметки и картинка с подписями.
-     Разметка на сервере — один вызов зрения ≈ 0,001 $; расстановка бесплатна. */
+  /* пример ЖК PRIDE: комнаты из arrange-data.js, гостиная в плане — кухня-гостиная */
+  var SAMPLE_ROOMS = SRC.rooms.filter(function (r) { return !r.part_of; })
+    .map(function (r) { return { name: r.type === 'гостиная' ? 'Кухня-гостиная' : r.name, m2: r.m2 }; })
+    .sort(function (a, b) { return b.m2 - a.m2; });
+  var PLAN_IMG = 'assets/img/sove-ai/g-domik.jpg';
+  /* подписи на плане примера: комнаты и техническая разметка (п. A3), координаты — в долях картинки */
+  var SAMPLE_TAGS = [
+    { t: 'Спальня · 14,4 м²', x: 24, y: 25 }, { t: 'Санузел · 5,6', x: 68, y: 22 },
+    { t: 'Кухня-гостиная · 21,5 м²', x: 38, y: 74 }, { t: 'Прихожая · 5,5', x: 80, y: 57 },
+    { t: '▮ несущая', x: 12, y: 50, k: 'wall' }, { t: '● стояк', x: 86, y: 12, k: 'riser' },
+    { t: '▦ вентшахта', x: 60, y: 58, k: 'riser' }, { t: '◫ окно', x: 40, y: 94, k: 'win' }, { t: '⇥ вход', x: 92, y: 68, k: 'door' }
+  ];
+  /* что нашли в плане примера: ширина стены у стояка, проход у кровати, ниша, место под ванну */
+  var SAMPLE_FACTS = { bedMax: '160×200', bedWhy: 'не останется прохода 70 см', kitchenWall: 3.1, kitchenWide: false, niche: true, bathBoth: false, dineZone: 8 };
 
-  var READ_STAGES = ['Читаю стены…', 'Нахожу комнаты и считаю площади…', 'Ищу двери, окна и вход…', 'Проверяю ниши и углы вне квартиры…'];
+  var SOURCES = [
+    { k: 'developer', t: 'План застройщика', d: 'из договора или с сайта ЖК', tag: 'бюджет примерно' },
+    { k: 'measure', t: 'Обмерный план', d: 'после замера, точные размеры', tag: 'бюджет точнее' }
+    /* «Дизайн-проект» и «Плана нет» с первого экрана убраны (Алина 24.10): проект загружают в Мой ремонт — ссылка внизу экрана */
+  ];
+  var ACCURACY = { developer: 'примерно', measure: 'точнее', project: 'точно', none: 'примерно' };
 
-  function head(sub) {
-    return FLOW.stepsBar(1) +
-      '<div class="df-head"><h1 class="h2">Ваш план квартиры</h1>' +
-      '<p class="small muted">' + esc(sub) + '</p></div>';
-  }
+  var saved = FLOW.load();
+  var st = { view: 'idle', source: 'developer', fileName: null, live: null, error: null, typical: null,
+             noplan: { m2: '', rooms: 2 }, answers: {}, interior: null, state: null, mode: '3d', geo: null,
+             rp: { purpose: null, who: '2', guests: 'не нужно', add: [] } };
 
+  var READ_STAGES = ['Стены: несущие и перегородки', 'Комнаты и площади', 'Двери, окна, вход', 'Стояки и вентшахты'];
+  var STEP = { idle: 'plan', noplan: 'plan', error: 'plan', reading: 'read', rooms: 'check', brief: 'questions', placing: 'questions' };
+
+  function head() { return FLOW.blockHead(KIND, STEP[st.view] || 'plan'); }
+  function title(t, sub) { return '<div class="pz-title"><h2>' + esc(t) + '</h2>' + (sub ? '<span>' + esc(sub) + '</span>' : '') + '</div>'; }
+  function flatName() { return st.live ? (st.fileName || 'твой план') : st.typical ? 'типовой план · ' + F.area(st.typical.m2) : 'ЖК PRIDE · 47,3 м²'; }
+
+  /* ── A1 · Загрузи план ── */
   function viewIdle() {
-    return head('Шаг 1 из 3 · фото плана из договора или скрин с сайта застройщика') +
-      '<label class="pl-drop df-drop"><input type="file" id="pd-file" accept="image/*,application/pdf" hidden>' +
-        '<b>Загрузить план</b><span>PNG, JPG, PDF · до 20 МБ</span>' +
-        '<span class="pl-drop__hint">перетащите файл или нажмите, чтобы выбрать</span></label>' +
-      '<button type="button" class="btn btn--ghost btn--block" data-act="sample">Взять план ЖК PRIDE, 47,3 м²</button>' +
-      '<p class="small muted">Разметка плана бесплатна. Платные только картинки интерьера на третьем шаге.</p>';
+    return head() + title('Загрузи план — покажем в 3D с мебелью', 'бесплатно · 20 секунд') +
+      '<div class="pz-src">' + SOURCES.map(function (s) {
+        return '<button type="button" class="pz-src__i' + (s.dark ? ' is-dark' : '') + (st.source === s.k ? ' is-on' : '') + '" data-src="' + s.k + '">' +
+          '<span><b>' + esc(s.t) + '</b><small>' + esc(s.d) + '</small></span><em>' + esc(s.tag) + '</em></button>';
+      }).join('') + '</div>' +
+      '<label class="pz-btn"><input type="file" id="pd-file" accept="image/*,application/pdf,.dwg" hidden>Загрузить план</label>' +
+      '<small class="pz-note pz-c">PNG, JPG, PDF, DWG · до 20 МБ</small>' +
+      '<button type="button" class="pz-link" data-act="sample">Взять пример: ЖК PRIDE, 47,3 м²</button>' +
+      '<a class="pz-note pz-c pz-proj" href="my.html#sec-plan">Есть дизайн-проект? Загрузи в Мой ремонт — разложим по всем блокам ›</a>';
   }
 
+  /* «Плана нет»: площадь и число комнат → типовой план → сразу вопросы */
+  function viewNoplan() {
+    return head() + title('Плана нет — соберём типовой', 'площадь и комнаты · бюджет примерно') +
+      '<section class="pz-card"><label class="pz-field"><b>Площадь, м²</b>' +
+        '<input class="input" id="pd-m2" type="number" inputmode="decimal" min="15" max="300" placeholder="например, 47" value="' + esc(st.noplan.m2) + '"></label>' +
+        '<div class="pz-q__h"><b>Комнат</b></div><div class="pz-chips">' + ['студия', '1', '2', '3', '4+'].map(function (o, i) {
+          return '<button type="button" class="pz-chip' + (st.noplan.rooms === i ? ' is-on' : '') + '" data-rooms="' + i + '">' + o + '</button>';
+        }).join('') + '</div></section>' +
+      '<button type="button" class="pz-btn" data-act="typical">Дальше</button>' +
+      '<button type="button" class="pz-link" data-act="again">Назад</button>';
+  }
+  function typicalRooms(m2, n) {
+    var r = [{ name: n === 0 ? 'Комната-студия' : 'Кухня-гостиная', m2: m2 * (n === 0 ? .62 : .4) }];
+    var beds = Math.min(n, 4), bedShare = n === 0 ? 0 : .34;
+    for (var i = 0; i < beds; i++) r.push({ name: i === 0 ? 'Спальня' : i === 1 && n >= 3 ? 'Детская' : 'Комната ' + (i + 1), m2: m2 * bedShare / beds });
+    r.push({ name: 'Санузел', m2: Math.max(3.5, m2 * .1) }, { name: 'Прихожая', m2: Math.max(3.5, m2 * .1) });
+    return r.map(function (x) { return { name: x.name, m2: Math.round(x.m2 * 10) / 10 }; });
+  }
+
+  /* ── A2 · Чтение плана ── */
   function viewReading() {
-    return head(st.fileName || 'план ЖК PRIDE') +
-      '<div class="pl-read"><div class="pl-read__bar"><i id="pd-bar"></i></div><span id="pd-stage">' + READ_STAGES[0] + '</span></div>' +
-      '<img class="df-plan is-dim" src="' + (st.live ? st.live.src : 'assets/img/demo/0-plan-razmetka.jpg') + '" alt="">';
+    return head() + title('Читаю твой план', flatName()) +
+      '<div class="pz-plan pz-plan--scan"><img src="' + (st.live ? st.live.src : PLAN_IMG) + '" alt=""><i class="pz-scan"></i></div>' +
+      '<div class="pz-prog"><i id="pd-bar"></i></div>' +
+      '<ul class="pz-stages" id="pd-stages">' + READ_STAGES.map(function (t, i) {
+        return '<li class="' + (i === 0 ? 'is-now' : '') + '"><i>' + (i === 0 ? '◌' : '·') + '</i>' + esc(t) + '</li>';
+      }).join('') + '</ul>';
+  }
+  function setStage(i) {
+    var bar = document.getElementById('pd-bar'); if (bar) bar.style.width = Math.min(100, (i + 1) * 25) + '%';
+    document.querySelectorAll('#pd-stages li').forEach(function (li, k) {
+      li.className = k < i ? 'is-done' : k === i ? 'is-now' : '';
+      li.querySelector('i').textContent = k < i ? '✓' : k === i ? '◌' : '·';
+    });
   }
 
   function viewError() {
-    return head(st.fileName || '') +
-      '<section class="pb df-err"><span class="pb__k">Не получилось разметить</span><b class="pb__t">' + esc(st.error) + '</b>' +
-      '<p class="text">Подойдёт чёткий план из договора или с сайта застройщика: стены тёмные, комнаты подписаны. ' +
-      'Фото под углом и скан с тенями читаются хуже.</p>' +
-      '<div class="lane"><button type="button" class="btn btn--primary btn--sm" data-act="again">Другой файл</button>' +
-      '<button type="button" class="btn btn--ghost btn--sm" data-act="sample">Взять план PRIDE</button></div></section>';
+    return head() + title('Не получилось разметить', st.fileName || '') +
+      '<section class="pz-card"><b>' + esc(st.error) + '</b>' +
+      '<p class="pz-note">Подойдёт чёткий план из договора или с сайта застройщика: стены тёмные, комнаты подписаны. ' +
+      'Фото под углом и скан с тенями читаются хуже.</p></section>' +
+      '<button type="button" class="pz-btn" data-act="again">Другой файл</button>' +
+      '<button type="button" class="pz-link" data-act="sample">Взять пример: ЖК PRIDE, 47,3 м²</button>';
   }
 
+  /* ── A3 · Проверь план ── */
   function liveRooms() {
     return (st.live.res.rooms || []).filter(function (r) { return r.seeded !== false && r.box_2d; })
       .map(function (r) { return { name: r.label || FLOW.RU[r.type] || r.type || 'Помещение', m2: r.area_m2 || 0, recess: !!r.recess }; });
   }
-  function liveNote() {
-    var res = st.live.res, ops = res.openings || [];
-    var n = function (k) { return ops.filter(function (o) { return o.kind === k; }).length; };
-    var parts = [];
-    if (liveRooms().some(function (r) { return r.recess; })) parts.push('есть ниша под встроенный шкаф');
-    if ((res.outside || []).length) parts.push('угол вне квартиры отмечен');
-    parts.push(n('window') + ' окн., ' + (n('door') + n('passage')) + ' двер.' + (n('entrance') ? ', вход' : ''));
-    return parts.join(' · ') + '.';
+  function rooms() {
+    var base = st.live ? liveRooms() : st.typical ? st.typical.rooms : SAMPLE_ROOMS;
+    return base.map(function (r, i) { return st.names && st.names[i] ? Object.assign({}, r, { name: st.names[i] }) : r; });
   }
+  /* рамка квартиры в долях 0–1000: по найденным комнатам с полем 3% — план этажа, подписи
+     и стрелки застройщика вокруг квартиры обрезаем */
+  function liveCrop() {
+    var bs = (st.live.res.rooms || []).filter(function (r) { return r.seeded !== false && r.box_2d; }).map(function (r) { return r.main_box_2d || r.box_2d; });
+    if (!bs.length || !st.live.w) return null;
+    var pad = 30, y1 = Math.max(0, Math.min.apply(null, bs.map(function (b) { return b[0]; })) - pad), x1 = Math.max(0, Math.min.apply(null, bs.map(function (b) { return b[1]; })) - pad);
+    var y2 = Math.min(1000, Math.max.apply(null, bs.map(function (b) { return b[2]; })) + pad), x2 = Math.min(1000, Math.max.apply(null, bs.map(function (b) { return b[3]; })) + pad);
+    return { x: x1, y: y1, w: (x2 - x1) / 1000, h: (y2 - y1) / 1000, x1: x1, y1: y1 };
+  }
+  /* разметка в долях 0–1000: комнаты [y1, x1, y2, x2], проёмы — точка [y, x] */
+  function liveTags() {
+    var res = st.live.res, names = rooms(), k = 0, out = [];
+    (res.rooms || []).forEach(function (r) {
+      if (r.seeded === false || !r.box_2d) return;
+      var b = r.main_box_2d || r.box_2d, nm = (names[k] || {}).name || r.label; k++;
+      out.push({ t: nm + (r.area_m2 ? ' · ' + F.area(r.area_m2) : ''), x: (b[1] + b[3]) / 20, y: (b[0] + b[2]) / 20 });
+    });
+    (res.openings || []).forEach(function (o) {
+      var p = o.point_2d || (o.span_2d ? [(o.span_2d[0][0] + o.span_2d[1][0]) / 2, (o.span_2d[0][1] + o.span_2d[1][1]) / 2] : null);
+      if (!p) return;
+      if (o.kind === 'window') out.push({ t: '◫ окно', x: p[1] / 10, y: p[0] / 10, k: 'win' });
+      if (o.kind === 'entrance') out.push({ t: '⇥ вход', x: p[1] / 10, y: p[0] / 10, k: 'door' });
+    });
+    var c = liveCrop();
+    if (c) out.forEach(function (t) { t.x = (t.x * 10 - c.x1) / (c.w * 10); t.y = (t.y * 10 - c.y1) / (c.h * 10); });
+    /* плашки не вылезают за край плана */
+    return out.map(function (t) { return Object.assign(t, { x: Math.max(12, Math.min(88, t.x)), y: Math.max(4, Math.min(96, t.y)) }); });
+  }
+  function plural(n, one, few, many) { var a = n % 100, b = n % 10; return a > 10 && a < 20 ? many : b === 1 ? one : b >= 2 && b <= 4 ? few : many; }
   function viewRooms() {
-    var rooms = st.live ? liveRooms() : ROOMS;
-    var total = rooms.reduce(function (a, r) { return a + (r.m2 || 0); }, 0);
-    return head('Шаг 1 из 3 · проверьте, что комнаты названы верно') +
-      '<img class="df-plan" src="' + (st.live ? st.live.labeled : 'assets/img/demo/0-plan-razmetka.jpg') + '" alt="План с размеченными комнатами, дверями и окнами">' +
-      '<section class="pb"><span class="pb__k">Нашли ' + rooms.length + ' помещения · ' + F.area(total) + '</span>' +
-        '<ul class="df-rooms">' + rooms.map(function (r, i) {
-          return '<li><input class="input input--sm" data-room="' + i + '" value="' + esc(r.name) + '" aria-label="Название помещения">' +
-            '<span>' + F.area(r.m2 || 0) + '</span></li>';
-        }).join('') + '</ul>' +
-        '<p class="small muted">' + (st.live ? esc(liveNote()) :
-          'Ниша в прихожей распознана как место под встроенный шкаф. Угол справа внизу — вне квартиры. 2 окна, 3 двери и вход — отмечены.') + '</p>' +
-        '<button type="button" class="btn btn--link btn--sm" data-act="again">Другой план</button></section>' +
-      '<button type="button" class="btn btn--primary btn--block" data-act="ok">Всё верно, дальше</button>';
+    var rs = rooms(), total = rs.reduce(function (a, r) { return a + (r.m2 || 0); }, 0);
+    /* свой план — как пример: серый план клиента и плашки поверх (комнаты, окна, вход) по координатам разметки,
+       а не картинка с подписями от API */
+    var tags = st.live ? liveTags() : SAMPLE_TAGS, c = st.live ? liveCrop() : null;
+    var plan2d = '<div class="pz-plan' + (c ? ' pz-plan--live' : '') + '"' + (c ? ' style="aspect-ratio:' + Math.round(c.w * st.live.w) + ' / ' + Math.round(c.h * st.live.h) + '"' : '') + '>' +
+      '<img src="' + (st.live ? st.live.src : PLAN_IMG) + '" alt="План с разметкой комнат"' + (c ? ' style="width:' + (100000 / c.w / 1000) + '%;height:' + (100000 / c.h / 1000) +
+        '%;left:' + (-c.x / (c.w * 10)) + '%;top:' + (-c.y / (c.h * 10)) + '%"' : '') + '>' + tags.map(function (t) {
+        return '<span class="pz-tag' + (t.k ? ' pz-tag--' + t.k : '') + '" style="left:' + t.x + '%;top:' + t.y + '%">' + esc(t.t) + '</span>';
+      }).join('') + seg() + '</div>';
+    /* после чтения квартира сразу в 3D (правки 13:40, п. 1); 2D — дополнительная кнопка */
+    var plan = st.mode === '2d' || !P3.ok ? plan2d : '<div class="pz-plan pz-plan--3d"><div class="pz-3dslot"></div>' + seg() + '</div>';
+    /* свой план: API пока отдаёт только комнаты, окна и двери — техническую разметку не показываем */
+    var legend = st.live
+      ? '<span><b>◫ окна</b> — у жилой комнаты обязательно</span><span><b>⇥ вход и двери</b> — отмечены на плане</span>'
+      : '<span><b>▮ несущие</b> — не двигаем</span><span><b class="is-blue">● ▦ стояки, шахты</b> — кухня и санузел у них</span>' +
+        '<span><b>┆ перегородки</b> — можно двигать</span><span><b>◫ окна</b> — у жилой комнаты обязательно</span>';
+    return head() + title('Проверь план', rs.length + ' ' + plural(rs.length, 'помещение', 'помещения', 'помещений') + ' · ' + total.toFixed(1).replace('.', ',') + ' м²' + ' · названия можно исправить') +
+      plan + '<div class="pz-legend">' + legend + '</div>' +
+      '<section class="pz-card pz-rooms">' + rs.map(function (r, i) {
+        return '<div><input class="input" data-room="' + i + '" value="' + esc(r.name) + '" aria-label="Название помещения"><b>' + (r.m2 ? F.area(r.m2) : '— м²') + '</b></div>';
+      }).join('') + '</section>' +
+      '<button type="button" class="pz-btn" data-act="ok">Всё верно</button>' +
+      '<button type="button" class="pz-link" data-act="again">Другой план</button>';
+  }
+  function seg() {
+    if (!P3.ok) return '';
+    var d3 = st.mode !== '2d';
+    return '<div class="pz-seg" role="group" aria-label="Вид плана"><button type="button" data-mode="3d" aria-pressed="' + d3 + '">3D</button>' +
+      '<button type="button" data-mode="2d" aria-pressed="' + !d3 + '">2D</button></div>';
   }
 
-  var Q = [
-    { k: 'bed', t: 'Кровать', o: ['140×200', '160×200', '180×200'] },
-    { k: 'sofa', t: 'Диван', o: ['прямой, до 200 см', 'раскладной, до 220 см', 'угловой'] },
-    { k: 'work', t: 'Рабочее место дома', o: ['да', 'нет'] },
-    { k: 'bath', t: 'В санузле', o: ['душ', 'ванна'] }
+  /* В1 «Что сейчас в квартире?» (анкета v2): первый вопрос A4, обязательный; меняет строки бюджета (раздел 12).
+     У примера ЖК PRIDE состояние есть в документах застройщика — выбираем сами, с меткой. */
+  var STATES = [
+    { k: 'concrete_free', t: 'Бетон, стен нет', d: 'свободная планировка — перегородки построим где нужно' },
+    { k: 'concrete_walls', t: 'Бетон, стены стоят', d: 'черновые работы полностью' },
+    { k: 'whitebox', t: 'Предчистовая (white box)', d: 'стены и стяжка есть — черновых почти нет' },
+    { k: 'finished', t: 'С отделкой / вторичка', d: 'нужен демонтаж и вывоз' }
   ];
-  function viewBrief() {
-    return head('Шаг 1 из 3 · четыре вопроса — и расставим мебель по нормам') +
-      Q.map(function (q) {
-        return '<section class="pb df-q"><span class="pb__k">' + esc(q.t) + '</span><div class="lane">' + q.o.map(function (o) {
-          return '<button type="button" class="chip' + (st.brief[q.k] === o ? ' is-on' : '') + '" data-q="' + q.k + '" data-o="' + esc(o) + '">' + esc(o) + '</button>';
-        }).join('') + '</div></section>';
-      }).join('') +
-      '<p class="small muted">Это сокращённая анкета. В полной — 7 разделов: кухня, хранение, стирка, свет, материалы.</p>' +
-      '<button type="button" class="btn btn--primary btn--block" data-act="go">Расставить мебель</button>' +
-      '<button type="button" class="btn btn--link btn--sm" data-act="back">Назад к плану</button>';
+  /* В1 (TZ-anketa): данные из документов застройщика есть только у примера ЖК PRIDE — «без отделки» */
+  function docsState() { return !st.live && !st.typical ? { k: 'concrete_walls', t: 'без отделки' } : null; }
+  function stateBlock() {
+    var docs = docsState();
+    return '<section class="pz-card pz-state"><div class="pz-q__h"><b>Что сейчас в квартире?</b>' + (docs ? '<em class="pz-why">в документах: ' + esc(docs.t) + '</em>' : '') + '</div>' +
+      STATES.map(function (x) {
+        return '<button type="button" class="pz-state__i' + (st.state === x.k ? ' is-on' : '') + '" data-state="' + x.k + '" aria-pressed="' + (st.state === x.k) + '"><b>' + esc(x.t) + '</b><small>' + esc(x.d) + '</small></button>';
+      }).join('') + '</section>';
   }
+
+  /* геометрия для 3D: пример — из arrange-data.js, свой план — рамка из разметки, «плана нет» — типовая */
+  function geo() {
+    if (st.geo) return st.geo;
+    if (st.live && st.live.res) st.geo = FLOW.frameFromMarkup(st.live.res, st.live.w, st.live.h);
+    else if (st.typical) st.geo = P3.typicalGeo(st.typical.rooms);
+    else st.geo = SRC;
+    return st.geo;
+  }
+  /* подписи в 3D: комнаты (с исправленными названиями) и техническая разметка примера */
+  function tags3d() {
+    var g = geo(), base = rooms(), used = [], out = [];
+    g.rooms.filter(function (r) { return !r.part_of; }).forEach(function (r) {
+      var i = -1; base.forEach(function (x, k) { if (i < 0 && used.indexOf(k) < 0 && Math.abs((x.m2 || 0) - (r.m2 || r.doc_m2 || 0)) < .05) i = k; });
+      if (i >= 0) used.push(i);
+      var nm = i >= 0 ? base[i].name : r.name, m2 = i >= 0 ? base[i].m2 : (r.m2 || r.doc_m2);
+      out.push({ t: esc(nm) + (m2 ? ' · ' + F.area(m2) : ''), px: [(r.box[0] + r.box[2]) / 2, (r.box[1] + r.box[3]) / 2] });
+    });
+    var W = .25 * g.px_per_m, all = g.rooms.map(function (r) { return r.box; });
+    var minX = Math.min.apply(null, all.map(function (b) { return b[0]; }));
+    (g.windows || []).slice(0, 1).forEach(function (w) { out.push({ t: '◫ окно', k: 'win', px: [(w.box[0] + w.box[2]) / 2, (w.box[1] + w.box[3]) / 2] }); });
+    (g.doors || []).filter(function (d) { return d.kind === 'entrance'; }).forEach(function (d) { out.push({ t: '⇥ вход', k: 'door', px: [(d.box[0] + d.box[2]) / 2, (d.box[1] + d.box[3]) / 2] }); });
+    if (!st.live && !st.typical) {
+      /* пример ЖК PRIDE: несущая — наружная стена слева, стояк — угол санузла, вентшахта — у прихожей */
+      var bath = g.rooms.filter(function (r) { return r.type === 'санузел'; })[0], hall = g.rooms.filter(function (r) { return r.type === 'прихожая' && !r.part_of; })[0];
+      out.push({ t: '▮ несущая', k: 'wall', px: [minX - W / 2, (all[0][3] + all[all.length - 1][1]) / 2] });
+      if (bath) out.push({ t: '● стояк', k: 'riser', px: [bath.box[2] - 50, bath.box[1] + 55] });
+      if (hall) out.push({ t: '▦ вентшахта', k: 'riser', px: [hall.box[0] + 20, hall.box[3] - 10] });
+    }
+    return out;
+  }
+  var view3d = null;
+  function mount3d() {
+    var slot = root.querySelector('.pz-3dslot'); if (!slot) return;
+    /* «Проверь план»: стандартный белый домик в изометрии — и для примера, и для своего плана */
+    var opts = { geo: geo(), tags: tags3d(), items: [], height: 300, style: 'neutral',
+      photo: null };                              /* интерьер ещё не выбран — стандартный белый домик (Алина 24.10) */
+    if (!view3d) view3d = P3.create(slot, opts); else { view3d.mount(slot); view3d.update(opts); }
+  }
+
+  /* ── A4 · Вопросы по твоему плану ── */
+  function find(re) { var r = rooms().filter(function (x) { return re.test(x.name.toLowerCase()); }); return r[0] || null; }
+  function facts() {
+    if (!st.live && !st.typical) return SAMPLE_FACTS;
+    var bed = find(/спал/), bath = find(/сан|ванн/), live = st.live && liveRooms().some(function (r) { return r.recess; });
+    var bm = bed ? bed.m2 : 0;
+    return { bedMax: bm >= 13 ? '180×200' : bm >= 10 ? '160×200' : '140×200', bedWhy: 'не останется прохода 70 см',
+      kitchenWall: null, niche: !!live, bathBoth: !!(bath && bath.m2 >= 6) };
+  }
+  /* таблица A4 ТЗ: показываем вопрос, только если в плане есть комната; варианты отсекаем по метражу.
+     Площадь не пришла из разметки — ничего не отсекаем: не знаем — не решаем за человека */
+  function area(r) { return r && r.m2 > 0 ? r.m2 : null; }
+  function where(r) { return r.name.toLowerCase() + (area(r) ? ' ' + F.area(r.m2) : ''); }
+  function questions() {
+    var fx = facts(), bed = find(/спал/), liv = find(/гост|студ/), kit = find(/кух|студ/), bath = find(/сан|ванн/), q = [];
+    var ORDER = ['140×200', '160×200', '180×200'];
+    if (bed) {
+      var max = (area(bed) || !st.live) ? fx.bedMax : '180×200', cut = ORDER.slice(ORDER.indexOf(max) + 1);
+      q.push({ k: 'bed', t: 'Кровать', why: where(bed), rows: [ORDER.slice(0, ORDER.indexOf(max) + 1)], def: ['160×200'],
+        note: cut.length ? cut.map(function (o) { return o.split('×')[0]; }).join(', ') + ' не предлагаем — ' + fx.bedWhy : '' });
+    }
+    /* угловой — если есть угол ≥ 2,2 м: в прототипе — гостиная от 16 м² */
+    /* раздел 5: «сдавать» → раскладной по умолчанию; гости 1–2 → раскладной обязательно */
+    var rent = st.rp.purpose === 'сдавать', guest = st.rp.guests === '1' || st.rp.guests === '2';
+    if (liv) {
+      var corner = !area(liv) || liv.m2 >= 16, sleeperWhy = rent && guest ? 'раскладной — потому что сдаёшь и нужен гость' : guest ? 'раскладной — потому что нужен гость' : rent ? 'раскладной — потому что сдаёшь' : '';
+      q.push({ k: 'sofa', t: 'Диван', why: where(liv), rows: [corner ? ['прямой', 'угловой'] : ['прямой'], guest ? ['раскладной'] : ['раскладной', 'нет']], def: ['прямой', rent || guest ? 'раскладной' : 'нет'],
+        note: [corner ? '' : 'угловой не предлагаем — нет угла 2,2 м', sleeperWhy].filter(Boolean).join(' · ') });
+    }
+    /* на 6 — если обеденная зона ≥ 9 м²: у кухни-гостиной зона — половина комнаты, у отдельной кухни — вся кухня */
+    var dineRoom = kit || liv;
+    if (dineRoom) {
+      var zone = fx.dineZone !== undefined ? fx.dineZone : area(dineRoom) ? (/гост|студ/.test(dineRoom.name.toLowerCase()) ? dineRoom.m2 / 2 : dineRoom.m2) : null;
+      var six = zone === null || zone >= 9, who = st.rp.who;
+      /* раздел 5: 1 → на 2; 2 + ребёнок → на 4; 3+ → на 6, если влезает, иначе на 4 */
+      var tdef = who === '1' ? 'на 2' : who === '3+' && six ? 'на 6' : 'на 4';
+      q.push({ k: 'table', t: 'Обеденный стол', why: dineRoom.name.toLowerCase(), rows: [six ? ['на 2', 'на 4', 'на 6'] : ['на 2', 'на 4']], def: [tdef],
+        note: six ? '' : 'на 6 не предлагаем — зона меньше 9 м²' });
+    }
+    /* П и остров — по ширине кухни; длину гарнитура считаем сами по стене у стояка */
+    if (kit) {
+      var wide = fx.kitchenWide !== undefined ? fx.kitchenWide : (!area(kit) || kit.m2 >= 12);
+      q.push({ k: 'kitchen', t: 'Кухня', why: fx.kitchenWall ? 'стена у стояка ' + String(fx.kitchenWall).replace('.', ',') + ' м' : where(kit),
+        rows: [wide ? ['прямая', 'Г-образная', 'П-образная', 'с островом'] : ['прямая', 'Г-образная'], ['холодильник встроенный', 'отдельный']], def: ['Г-образная', 'холодильник встроенный'],
+        note: wide ? '' : 'П-образную и остров не предлагаем — кухня узкая' });
+    }
+    if (bath && fx.bathBoth) q.push({ k: 'bath', t: 'Санузел', why: where(bath), rows: [['душ', 'ванна']], def: ['душ'] });
+    var wash = ['в санузле']; if (fx.niche) wash.push('колонна в нише прихожей'); wash.push('на кухне', 'в шкафу');
+    if ((st.rp.add || []).indexOf('постирочная') >= 0) wash.push('отдельная постирочная');
+    q.push({ k: 'wash', t: 'Стирка', why: bath ? where(bath) : 'план', rows: [wash], def: [fx.niche ? 'колонна в нише прихожей' : 'в санузле'] });
+    return q;
+  }
+  /* плашка «Не спрашиваем» — не больше 2 строк: только то, что сняли по этому плану (эталон A4) */
+  function skipped() {
+    var fx = facts(), bath = find(/сан|ванн/), out = [];
+    if (bath && !fx.bathBoth) out.push('душ или ванна — только душ по размерам');
+    if (fx.niche) out.push('ниша в прихожей — шкаф ставим сами');
+    return out.slice(0, 2);
+  }
+  function answer(q, row) {
+    var pick = (st.answers[q.k] || [])[row];
+    return pick !== undefined && q.rows[row].indexOf(pick) >= 0 ? pick : q.def[row];
+  }
+  /* анкета v2 (TZ-anketa-planirovka, 24.10 15:31): 4 группы, 12 вопросов строго по порядку; В1–В3 обязательные */
+  function group(t) { return '<b class="pz-group">' + esc(t) + '</b>'; }
+  function lifeQ(k, t, hint, opts, multi, sub, k2, opts2) {
+    return '<section class="pz-card pz-q"><div class="pz-q__h pz-q__h--base"><b>' + esc(t) + '</b>' + (hint ? '<small class="pz-note">' + esc(hint) + '</small>' : '') + '</div>' +
+      chips(k, opts, multi) + (sub ? '<small class="pz-rq__sub">' + esc(sub) + '</small>' + chips(k2, opts2) : '') + '</section>';
+  }
+  function required() { return !!st.state && !!st.rp.purpose && !!st.rp.who; }
+  function viewBrief() {
+    var qs = questions(), sk = skipped(), it = st.interior, rp = FLOW.replanOn(), ok = required();
+    return head() + title('Вопросы по твоему плану', '12 вопросов · больше половины уже заполнили по плану — проверь') +
+      group('О квартире и жизни') + stateBlock() +
+      lifeQ('purpose', 'Для чего ремонт', '', ['для себя', 'сдавать', 'продать']) +
+      lifeQ('who', 'Кто живёт', '', ['1', '2', '2 + ребёнок', '3+'], 0, 'Место для гостей', 'guests', ['не нужно', '1', '2']) +
+      lifeQ('add', 'Что важно', 'до 3', ['спальня отдельно', 'рабочее место', 'детская', 'гардеробная', 'постирочная', 'больше хранения'], 3) +
+      group('Что ставим') +
+      /* заполнено по плану — свёрнуто одной карточкой, «проверить ›» раскрывает вопросы */
+      (!st.fitOpen ? '<section class="pz-card pz-q"><div class="pz-q__h"><b>Заполнили по плану</b><button type="button" class="pz-link pz-link--in" data-act="fit-open">развернуть ›</button></div>' +
+        '<small class="pz-note">' + esc(qs.map(function (q) { return q.t + ' — ' + q.rows.map(function (r, ri) { return answer(q, ri); }).filter(function (v) { return v && v !== 'нет'; }).join(', '); }).join(' · ')) + '</small></section>' :
+      qs.map(function (q) {
+        return '<section class="pz-card pz-q"><div class="pz-q__h"><b>' + esc(q.t) + '</b><em class="pz-why">в плане: ' + esc(q.why) + '</em></div>' +
+          q.rows.map(function (row, ri) {
+            return '<div class="pz-chips">' + row.map(function (o) {
+              return '<button type="button" class="pz-chip' + (answer(q, ri) === o ? ' is-on' : '') + '" data-q="' + q.k + '" data-row="' + ri + '" data-o="' + esc(o) + '">' + esc(o) + '</button>';
+            }).join('') + '</div>';
+          }).join('') + (q.note ? '<small class="pz-note">' + esc(q.note) + '</small>' : '') + '</section>';
+      }).join('')) +
+      group('Интерьер') +
+      '<section class="pz-card pz-q"><div class="pz-q__h"><b>Какой интерьер?</b><small class="pz-note">по нему подберём мебель</small></div>' +
+        FLOW.interiorTiles(it) +
+        '<small class="pz-note">свой интерьер: загрузи фото или рендер — найдём похожую мебель в Маркете</small>' +
+        '<button type="button" class="pz-link pz-link--left' + (it ? '' : ' is-on') + '" data-act="later" aria-pressed="' + !it + '">Выберу позже — расставь по размерам</button></section>' +
+      group('Стены') + replanBlock(rp) +
+      (sk.length ? '<div class="pz-skip"><b>Не спрашиваем:</b> ' + esc(sk.join(' · ')) + '</div>' : '') +
+      (ok ? '' : '<small class="pz-note pz-c">Ответь на 3 вопроса сверху</small>') +
+      '<button type="button" class="pz-btn" data-act="go"' + (ok ? '' : ' disabled') + '>' + (rp ? 'Показать варианты стен · ' + FLOW.priceTxt() : 'Расставить мебель') + '</button>' +
+      (rp ? '' : '<button type="button" class="pz-link" data-act="skip">Пропустить — расставит SOVE</button>');
+  }
+
+  /* ── В12 «Поменять стены?» — переключатель; дополнительных вопросов под ним нет (анкета v2) ── */
+  function chips(k, opts, multi) {
+    var cur = st.rp[k];
+    return '<div class="pz-chips">' + opts.map(function (o) {
+      var on = multi ? cur.indexOf(o) >= 0 : cur === o;
+      return '<button type="button" class="pz-chip' + (on ? ' is-on' : '') + '" data-rp="' + k + '" data-o="' + esc(o) + '"' + (multi ? ' data-multi="' + multi + '"' : '') + ' aria-pressed="' + on + '">' + esc(o) + '</button>';
+    }).join('') + '</div>';
+  }
+  function replanBlock(on) {
+    return '<label class="pz-toggle' + (on ? ' is-on' : '') + '"><span><b>Поменять стены? · ' + FLOW.priceTxt() + '</b><small>кабинет, гардероб, ещё спальня · несущие и мокрые зоны не трогаем</small></span>' +
+        '<input type="checkbox" data-replan' + (on ? ' checked' : '') + '><i></i></label>';
+  }
+  function sheet() { commit(); FLOW.save({ replanAnswers: st.rp }); FLOW.replanSheet(function () { go(true); }, function () { go(false); }); }
 
   function viewPlacing() {
-    return head(st.fileName || '') +
-      '<div class="pl-read"><div class="pl-read__bar"><i style="width:70%"></i></div><span>Расставляю мебель по анкете и нормам проходов…</span></div>';
+    return head() + title('Расставляю мебель по нормам проходов', 'мебель встанет в твою 3D-квартиру') +
+      '<div class="pz-prog"><i class="pz-prog__run"></i></div><small class="pz-note">Проверяю проходы, двери и окна…</small>';
   }
   function render() {
-    root.innerHTML = st.view === 'reading' ? viewReading() : st.view === 'rooms' ? viewRooms()
-      : st.view === 'brief' ? viewBrief() : st.view === 'error' ? viewError()
-      : st.view === 'placing' ? viewPlacing() : viewIdle();
+    var V = { reading: viewReading, rooms: viewRooms, brief: viewBrief, error: viewError, placing: viewPlacing, noplan: viewNoplan };
+    root.innerHTML = (V[st.view] || viewIdle)();
+    if (st.view === 'rooms') mount3d();
+    /* лента «Выбери интерьер» (раздел 14): на A3 — да, на A1, A2, A4 — нет */
+    FLOW.interiorStrip({ show: st.view === 'rooms', chosen: !!st.interior, onPick: function (it) { st.interior = it; render(); } });
     bind();
+  }
+
+  /* все ответы A4 + интерьер → состояние сценария; ответы переиспользуют другие блоки (п. 9 ТЗ) */
+  function answersOut() {
+    var out = {}; questions().forEach(function (q) { out[q.k] = q.rows.map(function (r, i) { return answer(q, i); }); });
+    return out;
+  }
+  /* sove.answers[flatId] — формат TZ-anketa-planirovka («Данные»); квартиры ещё может не быть — ключ draft */
+  function saveAnswers(a) {
+    var R = S.repair, fid = (R && R.flats.active() || {}).id || 'draft', all = {};
+    try { all = JSON.parse(localStorage.getItem('sove.answers') || '{}') || {}; } catch (e) {}
+    delete all.plan; delete all.ts;                    /* старый формат первой версии анкеты — убираем */
+    function first(k) { return (a[k] || [])[0]; }
+    var K = { 'прямая': 'straight', 'Г-образная': 'L', 'П-образная': 'U', 'с островом': 'island' };
+    var L = { 'в санузле': 'bathroom', 'колонна в нише прихожей': 'niche', 'на кухне': 'kitchen', 'в шкафу': 'closet', 'отдельная постирочная': 'room' };
+    var IMP = { 'спальня отдельно': 'bedroom', 'рабочее место': 'workplace', 'детская': 'kids', 'гардеробная': 'wardrobe', 'постирочная': 'laundry', 'больше хранения': 'storage' };
+    var on = FLOW.replanOn(), rp = st.rp;
+    all[fid] = {
+      state: st.state,
+      bed: a.bed ? first('bed').split('×')[0] : null,
+      sofa: a.sofa ? { shape: a.sofa[0] === 'угловой' ? 'corner' : 'straight', sleeper: a.sofa[1] !== 'нет' } : null,
+      table: a.table ? +first('table').replace(/\D/g, '') : null,
+      kitchen: a.kitchen ? { shape: K[a.kitchen[0]] || 'L', fridge: a.kitchen[1] === 'отдельный' ? 'free' : 'built-in' } : null,
+      bath: a.bath ? (first('bath') === 'ванна' ? 'bath' : 'shower') : null,
+      laundry: a.wash ? L[first('wash')] || 'bathroom' : null,
+      interior: st.interior || null,
+      replan: on,
+      /* анкета v2: «О квартире и жизни» — всегда, не только для вариантов стен */
+      purpose: rp.purpose ? { 'для себя': 'self', 'сдавать': 'rent', 'продать': 'sale' }[rp.purpose] : null,
+      people: rp.who ? rp.who.replace(' + ребёнок', '+1') : null,
+      guests: rp.guests ? (rp.guests === 'не нужно' ? 0 : +rp.guests) : null,
+      important: (rp.add || []).slice(0, 3).map(function (x) { return IMP[x] || x; })
+    };
+    try { localStorage.setItem('sove.answers', JSON.stringify(all)); } catch (e) {}
+  }
+  function commit() {
+    var a = answersOut();
+    var brief = { bed: (a.bed || [])[0], sofa: (a.sofa || [])[0], table: (a.table || [])[0], kitchen: (a.kitchen || []).join(' · '),
+      bath: (a.bath || ['душ'])[0], wash: (a.wash || [])[0], work: 'нет' };
+    saveAnswers(a);
+    FLOW.save({ brief: brief, answers: a, interior: st.interior, source: st.source, accuracy: ACCURACY[st.source], state: st.state,
+      flat: flatName(), rooms: rooms(), typical: !!st.typical, plan: 0, step: 5 });
+    return brief;
   }
 
   /* свой план: читаем размер, шлём на разметку, показываем подписанный план */
   function startLive(file) {
-    st.fileName = file.name; st.error = null; st.live = { file: file, src: URL.createObjectURL(file) };
+    st.fileName = file.name; st.error = null; st.typical = null; st.live = { file: file, src: URL.createObjectURL(file) }; st.geo = null; st.state = null; if (!/replan=1/.test(location.search)) FLOW.setReplan(false);
     st.view = 'reading'; render();
-    var i = 0, tick = setInterval(function () {
-      i = Math.min(i + 1, READ_STAGES.length - 1);
-      var bar = document.getElementById('pd-bar'), stage = document.getElementById('pd-stage');
-      if (bar) bar.style.width = Math.min(90, 25 + i * 20) + '%';
-      if (stage) stage.textContent = READ_STAGES[i];
-    }, 1500);
+    var i = 0, tick = setInterval(function () { i = Math.min(i + 1, READ_STAGES.length - 1); setStage(i); }, 1500);
     FLOW.imageSize(file).then(function (size) {
       st.live.w = size.w; st.live.h = size.h;
       return FLOW.apiMarkup(file);
@@ -123,44 +415,58 @@
     }).catch(function (e) {
       clearInterval(tick);
       st.error = e.status === 429 ? 'Дневной лимит разметок исчерпан — попробуйте завтра или возьмите пример.'
-        : e.status === 415 ? 'Нужна картинка: PNG или JPG. PDF пока не принимаем.'
+        : e.status === 415 ? 'Нужна картинка: PNG или JPG. PDF и DWG пока не принимаем.'
         : (e.message || 'сервер не ответил');
       st.view = 'error'; render();
     });
   }
 
-  /* свой план: рамка из разметки + анкета → расстановка на сервере → экран 2 */
-  function goLive() {
+  /* свой план: рамка из разметки + ответы → расстановка на сервере → экран 5 */
+  function goLive(brief, tail) {
     st.view = 'placing'; render();
-    var live = st.live;
-    var names = {};
-    liveRooms().forEach(function (r, i) { var inp = document.querySelector('[data-room="' + i + '"]'); if (inp) names[i] = inp.value; });
-    var res = JSON.parse(JSON.stringify(live.res));
-    var k = 0;
+    var live = st.live, res = JSON.parse(JSON.stringify(live.res)), k = 0;
     (res.rooms || []).forEach(function (r) { if (r.seeded !== false && r.box_2d) { if (st.names && st.names[k]) r.label = st.names[k]; k++; } });
     var frame = FLOW.frameFromMarkup(res, live.w, live.h);
-    var brief = FLOW.briefFromAnswers(st.brief);
-    FLOW.apiAuto(frame, brief).then(function (out) {
+    FLOW.apiAuto(frame, FLOW.briefFromAnswers(brief)).then(function (out) {
       var total = frame.rooms.filter(function (r) { return !r.part_of; }).reduce(function (a, r) { return a + (r.doc_m2 || 0); }, 0);
-      FLOW.save({ brief: st.brief, step: 2, live: {
+      FLOW.save({ live: {
         layout: out.layout, not_placed: out.not_placed || [], ready: out.ready_for_render,
-        flat: 'Ваш план · ' + F.area(total) + ' · ' + frame.rooms.filter(function (r) { return !r.part_of; }).length + ' помещения',
+        flat: 'Твой план · ' + F.area(total) + ' · ' + frame.rooms.filter(function (r) { return !r.part_of; }).length + ' помещения',
         labeled: live.labeled, name: st.fileName } });
-      location.href = 'arrange.html?v=panel&flow=1&live=1';
+      location.href = 'arrange.html?v=panel&flow=1&live=1' + (tail || '');
     }).catch(function (e) {
       st.error = 'Расстановка не удалась: ' + (e.message || 'сервер не ответил'); st.view = 'error'; render();
     });
   }
 
-  function startReading(name) {
-    st.fileName = name; st.view = 'reading'; render();
-    var i = 0, bar = document.getElementById('pd-bar'), stage = document.getElementById('pd-stage');
+  function startReading() {
+    st.view = 'reading'; render();
+    var i = 0;
     var tick = setInterval(function () {
-      i++;
-      if (bar) bar.style.width = Math.min(100, i * 25) + '%';
-      if (stage && READ_STAGES[i]) stage.textContent = READ_STAGES[i];
+      i++; setStage(i);
       if (i >= READ_STAGES.length) { clearInterval(tick); st.view = 'rooms'; render(); }
-    }, 650);
+    }, 700);
+  }
+
+  /* walls — после списания идём на «Варианты стен», иначе сразу на мебель */
+  /* раздел 5 анкеты: ответы меняют расстановку и без перепланировки */
+  function layoutFromAnswers() {
+    var imp = st.rp.add || [];
+    return {
+      plan: imp.indexOf('рабочее место') >= 0 ? 2 : (imp.indexOf('больше хранения') >= 0 || imp.indexOf('гардеробная') >= 0) ? 1 : 0,
+      roomHint: imp.indexOf('детская') >= 0 || imp.indexOf('спальня отдельно') >= 0,      /* подсказка «Хочешь отдельную комнату?» */
+      sturdy: st.rp.purpose === 'сдавать'                                                      /* флаг для подбора в Маркете: мебель прочнее */
+    };
+  }
+  /* 0.1: «Расставить мебель» → лоадер «Расставляю мебель по нормам проходов» → мебель встаёт в ту же 3D-квартиру */
+  function go(walls) {
+    var brief = commit(), lay = layoutFromAnswers();
+    FLOW.save({ replanAnswers: st.rp, wallVariant: null, layoutHints: lay, plan: lay.plan });
+    var tail = (walls ? '&walls=1' : '') + '&anim=1';
+    if (st.live && st.live.res) { goLive(brief, tail); return; }
+    FLOW.save({ live: null });
+    st.view = 'placing'; render();
+    setTimeout(function () { location.href = 'arrange.html?v=panel&plan=' + lay.plan + '&flow=1' + tail; }, 700);
   }
 
   function bind() {
@@ -168,30 +474,90 @@
     if (file) file.addEventListener('change', function () {
       var f = file.files && file.files[0];
       if (!f) return;
-      if (!/^image\//.test(f.type || '')) { st.fileName = f.name; st.error = 'Нужна картинка: PNG или JPG. PDF пока не принимаем.'; st.view = 'error'; render(); return; }
+      if (!/^image\//.test(f.type || '')) { st.fileName = f.name; st.error = 'Нужна картинка: PNG или JPG. PDF и DWG пока не принимаем.'; st.view = 'error'; render(); return; }
       startLive(f);
+    });
+    /* дизайн-проект — свой вход (раздел 5 ТЗ), «плана нет» — площадь и комнаты */
+    root.querySelectorAll('[data-src]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        st.source = b.dataset.src;
+        if (st.source === 'project') { location.href = FLOW.SCN.project.href; return; }
+        if (st.source === 'none') { st.view = 'noplan'; }
+        render();
+      });
+    });
+    root.querySelectorAll('[data-rooms]').forEach(function (b) {
+      b.addEventListener('click', function () { var m = document.getElementById('pd-m2'); st.noplan.m2 = m ? m.value : ''; st.noplan.rooms = +b.dataset.rooms; render(); });
     });
     root.querySelectorAll('[data-act]').forEach(function (b) {
       b.addEventListener('click', function () {
         var a = b.getAttribute('data-act');
-        if (a === 'sample') { st.live = null; st.error = null; startReading(null); }
-        if (a === 'again') { st.view = 'idle'; st.live = null; st.error = null; render(); }
+        if (a === 'sample') { if (!/replan=1/.test(location.search)) FLOW.setReplan(false); st.geo = null; st.live = null; st.typical = null; st.error = null; st.names = null; st.fileName = null; if (st.source === 'none') st.source = 'developer'; st.state = 'concrete_walls'; startReading(); }
+        if (a === 'again') { st.view = 'idle'; st.live = null; st.typical = null; st.error = null; st.names = null; if (st.source === 'none') st.source = 'developer'; render(); }
+        if (a === 'typical') {
+          var m2 = parseFloat(String((document.getElementById('pd-m2') || {}).value || '').replace(',', '.'));
+          if (!(m2 >= 15 && m2 <= 300)) { var inp = document.getElementById('pd-m2'); if (inp) { inp.focus(); inp.setCustomValidity('Площадь от 15 до 300 м²'); inp.reportValidity(); } return; }
+          st.noplan.m2 = m2; st.live = null; st.names = null;
+          st.typical = { m2: m2, rooms: typicalRooms(m2, st.noplan.rooms) }; st.geo = null; st.state = null;
+          st.view = 'brief'; render();
+        }
         if (a === 'ok') {
           st.names = {};
           root.querySelectorAll('[data-room]').forEach(function (inp) { st.names[+inp.dataset.room] = inp.value.trim(); });
-          st.view = 'brief'; render();
+          st.view = 'brief'; render(); window.scrollTo(0, 0);
         }
-        if (a === 'back') { st.view = 'rooms'; render(); }
+        
+        if (a === 'later') { st.interior = null; render(); }
+        if (a === 'fit-open') { st.fitOpen = true; render(); }
         if (a === 'go') {
-          if (st.live && st.live.res) { goLive(); return; }
-          FLOW.save({ brief: st.brief, plan: FLOW.planFor(st.brief), step: 2, live: null });
-          location.href = 'arrange.html?v=panel&plan=' + FLOW.planFor(st.brief) + '&flow=1';
+          if (!required()) { S.ui.toast('Ответь на 3 вопроса сверху'); return; }
+          if (FLOW.replanOn()) sheet(); else go(false);
+        }
+        if (a === 'skip') {
+          st.answers = {}; st.rp.purpose = st.rp.purpose || 'для себя'; st.rp.who = st.rp.who || '2'; st.rp.guests = st.rp.guests || 'не нужно';
+          st.state = st.state || (docsState() || { k: 'concrete_walls' }).k; go(false);
         }
       });
     });
+    root.querySelectorAll('[data-mode]').forEach(function (b) {
+      b.addEventListener('click', function () { st.mode = b.dataset.mode; render(); });
+    });
+    root.querySelectorAll('[data-state]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var was = st.state; st.state = b.dataset.state;
+        /* «Бетон, стен нет» включает «Варианты стен» сам (ТЗ 4.1), можно выключить */
+        if (st.state === 'concrete_free' && was !== 'concrete_free') FLOW.setReplan(true);
+        FLOW.save({ state: st.state }); render();
+      });
+    });
+    root.querySelectorAll('[data-replan]').forEach(function (b) {
+      b.addEventListener('change', function () { FLOW.setReplan(b.checked); render(); });
+    });
+    root.querySelectorAll('[data-rp]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var k = b.dataset.rp, o = b.dataset.o, max = +b.dataset.multi || 0;
+        if (max) { var l = st.rp[k], i = l.indexOf(o); if (i >= 0) l.splice(i, 1); else if (l.length < max) l.push(o); else { S.ui.toast('Можно выбрать до ' + max); return; } }
+        else st.rp[k] = o;
+        FLOW.save({ replanAnswers: st.rp }); render();
+      });
+    });
     root.querySelectorAll('[data-q]').forEach(function (b) {
-      b.addEventListener('click', function () { st.brief[b.dataset.q] = b.dataset.o; render(); });
+      b.addEventListener('click', function () {
+        var q = questions().filter(function (x) { return x.k === b.dataset.q; })[0];
+        var a = st.answers[q.k] || (st.answers[q.k] = []); a[+b.dataset.row] = b.dataset.o; render();
+      });
+    });
+    root.querySelectorAll('[data-cap]').forEach(function (b) {
+      b.addEventListener('click', function () { st.interior = FLOW.capsuleInterior(b.dataset.cap); render(); });
+    });
+    root.querySelectorAll('[data-own-open]').forEach(function (b) {
+      b.addEventListener('click', function () { FLOW.ownSheet(function (it) { st.interior = it; render(); }); });
     });
   }
+  if (saved.interior && saved.step >= 4) st.interior = saved.interior;
+  if (saved.state && /replan=1/.test(location.search)) st.state = saved.state;
+  if (saved.replanAnswers) st.rp = saved.replanAnswers;
+  /* вход «Перепланировка» (?replan=1): переключатель включён; план есть — сразу вопросы (ТЗ, п. 2) */
+  if (new URLSearchParams(location.search).get('replan') === '1') { FLOW.setReplan(true); if (saved.rooms && saved.rooms.length) st.view = 'brief'; }
   render();
 })();

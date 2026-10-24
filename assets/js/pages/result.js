@@ -18,9 +18,8 @@
   var st = { busy: {}, ver: {}, cmd: {}, fixed: {}, spent: COST * (1 + ROOMS.length), capsule: flow.capsule || 'К2 · Изумрудная неоклассика в орехе' };
 
   function head() {
-    return FLOW.stepsBar(3) +
-      '<div class="df-head"><h1 class="h2">Ваша квартира в интерьере</h1>' +
-      '<p class="small muted">Шаг 3 из 3 · ' + esc(st.capsule) + ' · по вашей расстановке</p></div>';
+    return '<div class="df-head"><h1 class="h2">Ваша квартира в интерьере</h1>' +
+      '<p class="small muted">' + esc(st.capsule) + ' · по вашей расстановке</p></div>';
   }
   function house() {
     return '<section class="df-house"><img src="assets/img/demo/1-domik-vsya-kvartira.jpg" alt="3D-домик всей квартиры">' +

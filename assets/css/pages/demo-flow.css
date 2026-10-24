@@ -1,13 +1,4 @@
-/* Сценарий «план → расстановка → интерьер»: общая полоска шагов и экраны 1 и 3. */
-.df-steps { display: flex; align-items: center; gap: 6px; margin: 2px 0 10px; }
-.df-step { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--stone); text-decoration: none; white-space: nowrap; }
-.df-step i { width: 22px; height: 22px; border-radius: 50%; display: inline-grid; place-items: center; font: 600 11px/1 var(--font); font-style: normal;
-  border: 1.5px solid var(--line-2); color: var(--stone); background: var(--white); }
-.df-step.is-now { color: var(--ink); font-weight: 600; }
-.df-step.is-now i { background: var(--accent); border-color: var(--accent); color: #fff; }
-.df-step.is-done { color: var(--graphite); }
-.df-step.is-done i { background: var(--green-soft); border-color: var(--green); color: var(--green); }
-.df-steps__line { flex: 1; height: 1px; background: var(--line-2); min-width: 10px; }
+/* Блок «Планировка» (plan-demo, arrange) и старый экран интерьера result.html. */
 .df-head { margin-bottom: 6px; }
 .df-head .h2 { margin: 0 0 2px; }
 
@@ -42,10 +33,327 @@
 .df-foot .btn { justify-content: center; white-space: normal; text-align: center; }
 @media (min-width: 480px) { .df-foot { grid-template-columns: 1fr 1.15fr; } }
 /* страховка от бокового уезда любого экрана сценария */
-body[data-page="plan-demo"] #main, body[data-page="result"] #main, body[data-page="arrange"] #main { overflow-x: hidden; }
+body[data-page="plan-demo"] #main, body[data-page="result"] #main, body[data-page="arrange"] #main, body[data-page="plan-save"] #main { overflow-x: hidden; }
 @media (prefers-reduced-motion: reduce) { .df-wait i { animation: none; } .df-card__img.is-busy img { transition: none; } }
 .df-list { list-style: none; margin: 8px 0 10px; padding: 0; display: grid; gap: 6px; }
 .df-list li { display: flex; justify-content: space-between; font-size: 14px; border-bottom: 1px solid var(--line); padding-bottom: 6px; }
 .df-list li span { color: var(--graphite); }
 .df-err .pb__t { display: block; margin: 2px 0 6px; }
 .df-err .lane { gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+
+/* шапка блока «Планировка» (ТЗ-planirovka, п. 1): белая полоса во всю ширину под шапкой приложения */
+.pz-head { display: grid; gap: 10px; background: var(--white); border-bottom: 1px solid var(--line);
+  margin: 0 calc(-1 * var(--gutter)) 4px; padding: 12px var(--gutter) 12px; }
+.pz-head__t { margin: 0; font: 600 30px/1 var(--font-display); color: var(--ink); }
+.pz-bar { display: flex; align-items: center; gap: 4px; }
+.pz-bar__i { flex: 1; height: 4px; border-radius: 2px; background: var(--line); }
+.pz-bar__i.is-done { background: #2E6B4E; }
+.pz-bar__i.is-now { background: #A24E32; }
+.pz-bar small { font-size: 10px; color: var(--graphite); margin-left: 6px; white-space: nowrap; }
+#pd-root:has(> .pz-head:first-child), #ar-root:has(> .pz-head:first-child), #ps-root:has(> .pz-head:first-child) { padding-top: 0; }
+/* в блоке своя шапка с «← Назад» и токенами (эталон A1) — шапку приложения прячем, нижнее меню остаётся */
+body[data-page="plan-demo"] .appbar, body[data-page="arrange"] .appbar, body[data-page="plan-save"] .appbar { display: none; }
+.pz-head__top { display: flex; align-items: center; justify-content: space-between; }
+.pz-back { border: 0; background: none; padding: 0; font: 700 12px/1.2 var(--font); color: #6B655F; cursor: pointer; }
+.pz-tok { font-size: 10px; font-weight: 700; color: #7E3A24; text-decoration: none; white-space: nowrap; }
+
+/* ── блок «Планировка», экраны A1–A4 (эталоны design/planirovka) ── */
+#pd-root { gap: 12px; }
+.pz-title { display: grid; gap: 4px; }
+.pz-title h2 { margin: 0; font: 600 26px/1.05 var(--font-display); color: var(--ink); }
+.pz-title span { font-size: 12px; color: #6B655F; }
+.pz-card { background: var(--white); border-radius: 14px; padding: 12px; display: grid; gap: 8px; min-width: 0; }
+.pz-note { font-size: 10px; color: #6B655F; line-height: 1.4; }
+.pz-c { text-align: center; }
+.pz-btn { display: flex; align-items: center; justify-content: center; height: 50px; border-radius: 14px; border: 0; background: #A24E32; color: #fff;
+  font: 800 14px var(--font); cursor: pointer; width: 100%; text-decoration: none; }
+.pz-btn:hover { background: #7E3A24; }
+.pz-link { border: 0; background: none; padding: 4px; font: 700 12px var(--font); color: #A24E32; cursor: pointer; text-align: center; }
+.pz-link--left { text-align: left; padding: 2px 0; font-size: 11px; }
+/* A1: карточки «какой план есть» */
+.pz-src { display: grid; gap: 12px; }
+.pz-src__i { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 14px; background: var(--white); color: #1E1C1A;
+  border: 1px solid #E6E1DA; text-align: left; font: inherit; cursor: pointer; }
+.pz-src__i span { flex: 1; display: grid; gap: 2px; min-width: 0; }
+.pz-src__i b { font-size: 14px; }
+.pz-src__i small { font-size: 11px; color: #6B655F; }
+.pz-src__i em { font-style: normal; font-size: 9px; font-weight: 800; padding: 3px 7px; border-radius: 6px; background: #F4F2EE; color: #6B655F; white-space: nowrap; }
+.pz-src__i.is-on { border: 2px solid #A24E32; padding: 11px; }
+.pz-src__i.is-dark { background: #2B2926; color: #fff; }
+.pz-src__i.is-dark small { color: #CFC6BC; }
+.pz-src__i.is-dark em { background: #3A3734; color: #9FD3B5; }
+.pz-field { display: grid; gap: 6px; font-size: 13px; }
+/* A2–A3: план */
+.pz-plan { position: relative; height: 290px; border-radius: 16px; overflow: hidden; background: var(--white); }
+.pz-plan img { width: 100%; height: 100%; object-fit: cover; display: block; filter: grayscale(1) brightness(1.1); }
+.pz-plan--live { height: auto; }
+.pz-plan--live img { height: auto; object-fit: contain; filter: none; }
+.pz-plan--scan img { opacity: .55; }
+.pz-scan { position: absolute; left: 0; right: 0; top: 0; height: 3px; background: #A24E32; box-shadow: 0 0 14px 4px rgba(162,78,50,.45); animation: pz-scan 2.2s ease-in-out infinite alternate; }
+@keyframes pz-scan { to { top: calc(100% - 3px); } }
+@media (prefers-reduced-motion: reduce) { .pz-scan { animation: none; top: 50%; } }
+.pz-stages { list-style: none; margin: 0; padding: 12px; display: grid; gap: 8px; background: var(--white); border-radius: 14px; }
+.pz-stages li { display: flex; gap: 8px; font-size: 13px; color: #9a938c; }
+.pz-stages li i { font-style: normal; width: 14px; text-align: center; }
+.pz-stages li.is-done { color: #1E1C1A; } .pz-stages li.is-done i { color: #2E6B4E; font-weight: 800; }
+.pz-stages li.is-now { color: #1E1C1A; font-weight: 700; } .pz-stages li.is-now i { color: #A24E32; }
+.pz-tag { position: absolute; transform: translate(-50%, -50%); font-size: 9px; font-weight: 800; padding: 4px 8px; border-radius: 10px; background: #fff; color: #1E1C1A;
+  box-shadow: 0 2px 8px rgba(0,0,0,.2); white-space: nowrap; }
+.pz-tag--wall { background: #1E1C1A; color: #fff; }
+.pz-tag--riser { background: #2F5E8C; color: #fff; }
+.pz-tag--win { background: #6B655F; color: #fff; }
+.pz-tag--door { background: #A24E32; color: #fff; }
+.pz-legend { background: var(--white); border-radius: 12px; padding: 10px 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; font-size: 10px; color: #6B655F; line-height: 1.45; }
+.pz-legend b { color: #1E1C1A; } .pz-legend b.is-blue { color: #2F5E8C; }
+.pz-rooms { padding: 4px 12px 8px; gap: 0; }
+.pz-rooms div { display: flex; align-items: center; gap: 8px; padding: 7px 0; border-top: 1px solid #E6E1DA; }
+.pz-rooms div:first-child { border-top: 0; }
+.pz-rooms .input { flex: 1; min-width: 0; height: 34px; border-radius: 9px; font-size: 13px; }
+.pz-rooms b { font-size: 13px; width: 60px; text-align: right; flex: none; }
+/* A4: вопросы */
+.pz-q__h { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.pz-q__h b { font-size: 13px; }
+.pz-why { font-style: normal; font-size: 9px; font-weight: 800; padding: 3px 7px; border-radius: 6px; background: #E8EEF5; color: #2F5E8C; text-align: right; }
+.pz-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.pz-chip { font: 700 11px var(--font); padding: 7px 10px; border-radius: 16px; background: #F4F2EE; color: #1E1C1A; border: 0; cursor: pointer; }
+.pz-chip.is-on { background: #1E1C1A; color: #fff; }
+.pz-caps { display: flex; gap: 8px; overflow-x: auto; min-width: 0; padding-bottom: 2px; scrollbar-width: none; }
+.pz-caps::-webkit-scrollbar { display: none; }
+.pz-cap { flex: none; width: 92px; display: grid; gap: 4px; align-content: start; border: 0; background: none; padding: 0; text-align: left; font: inherit; cursor: pointer; }
+.pz-cap__img { height: 120px; border-radius: 10px; background: #F4F2EE center / cover; border: 3px solid transparent; box-sizing: border-box; }
+.pz-cap.is-on .pz-cap__img { border-color: #A24E32; }
+.pz-cap b { font-size: 10px; font-weight: 700; line-height: 1.2; color: #1E1C1A; }
+.pz-cap--own .pz-cap__img { border: 1.5px dashed #A24E32; background: #fff; color: #A24E32; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-size: 22px; }
+.pz-cap--own.is-on .pz-cap__img { border: 3px solid #A24E32; }
+.pz-cap--own small { font-size: 9px; font-weight: 800; text-align: center; padding: 0 6px; }
+.pz-skip { background: #F4F2EE; border-radius: 12px; padding: 10px 12px; font-size: 11px; color: #6B655F; line-height: 1.45; }
+.pz-own { display: grid; gap: 8px; }
+.pz-own__i { display: grid; gap: 2px; padding: 12px; border-radius: 12px; border: 1px solid #E6E1DA; background: #fff; cursor: pointer; }
+.pz-own__i b { font-size: 14px; } .pz-own__i small { font-size: 11px; color: #6B655F; }
+.pz-own__url { display: flex; gap: 6px; margin-top: 6px; } .pz-own__url .input { flex: 1; min-width: 0; height: 36px; }
+.pz-prog { height: 4px; border-radius: 2px; background: #E6E1DA; overflow: hidden; }
+.pz-prog i { display: block; height: 100%; width: 25%; background: #A24E32; transition: width .4s; }
+.pz-rooms .input { min-height: 0; padding: 0 10px; }
+body[data-page="plan-demo"].has-rp-strip #main, body[data-page="arrange"].has-rp-strip #main, body[data-page="plan-save"].has-rp-strip #main { padding-bottom: 76px; }
+
+/* ── A5а / A5б: экран расстановки в блоке ── */
+#ar-root { gap: 12px; }
+.pz-link--in { padding: 0; font-size: inherit; font-weight: 600; text-decoration: underline; }
+.pz-stage { position: relative; }
+.pz-stage .pz-3d { width: 100%; height: auto; display: block; border-radius: 16px; }
+.pz-tools { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); display: grid; gap: 8px; z-index: 2; }
+.pz-tools button { width: 36px; height: 36px; border-radius: 10px; border: 1px solid #E6E1DA; background: #fff; font: 700 12px var(--font); cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,.12); }
+.pz-tools button[aria-pressed="true"] { background: #1E1C1A; color: #fff; }
+.pz-tools button:disabled { opacity: .45; cursor: default; }
+.pz-verdict { position: absolute; left: 10px; bottom: 10px; max-width: calc(100% - 20px); z-index: 2; font-size: 10px; font-weight: 800; line-height: 1.3;
+  padding: 5px 9px; border-radius: 10px; background: #2E6B4E; color: #fff; }
+.pz-verdict.is-bad { background: #D9822B; }
+.ar-plan.is-sizes .ar-item rect { fill: #E9E6E1; stroke: #8E8780; }
+.ar-plan.is-sizes .ar-item text { fill: #4A4540; }
+.ar-plan.is-empty .ar-item, .ar-plan.is-empty .ar-call { display: none; }
+.pz-hint { margin: 0; font-size: 10px; color: #6B655F; line-height: 1.45; }
+.pz-goods { gap: 0; padding-bottom: 6px; }
+.pz-goods__h { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; padding-bottom: 6px; }
+.pz-good { display: grid; grid-template-columns: 46px minmax(0, 1fr) auto auto; gap: 8px; align-items: center; padding: 8px 0; border-top: 1px solid #E6E1DA; }
+.pz-good img, .pz-good__ph { width: 46px; height: 46px; border-radius: 8px; object-fit: cover; background: #F4F2EE; display: block; }
+.pz-good__t { border: 0; background: none; padding: 0; text-align: left; font: inherit; cursor: pointer; display: grid; gap: 2px; min-width: 0; }
+.pz-good__t b { font-size: 12px; } .pz-good__t small { font-size: 10px; color: #6B655F; }
+.pz-good .rp-price { font-size: 11px; text-align: right; }
+.pz-good__act { display: flex; gap: 4px; }
+.pz-btn2 { display: flex; align-items: center; justify-content: center; height: 48px; border-radius: 14px; border: 1px solid #E6E1DA; background: #fff; color: #1E1C1A;
+  font: 800 14px var(--font); cursor: pointer; width: 100%; text-decoration: none; }
+.pz-replan { display: block; background: #F4E8E1; border-radius: 12px; padding: 10px 12px; font-size: 11px; color: #1E1C1A; line-height: 1.45; text-decoration: none; }
+.pz-replan u { color: #A24E32; font-weight: 700; }
+.pz-pick-int { background: #2B2926; color: #fff; border-radius: 16px; padding: 14px; display: grid; gap: 8px; min-width: 0; }
+.pz-pick-int > b { font-size: 15px; line-height: 1.25; } .pz-pick-int > span { font-size: 11px; color: #CFC6BC; }
+.pz-caps.is-dark .pz-cap b { color: #fff; }
+/* план в блоке — карточка как в эталоне A5: высота 340 px, масштаб и механика прежние */
+.pz-stage { margin: 0; border-radius: 16px; overflow: hidden; background: #fff; }
+.pz-stage .ar-plan { height: 340px; border: 0; border-radius: 16px; }
+.pz-stage .ar-zoom { top: 10px; bottom: auto; right: 10px; }
+.pz-stage .pz-3d { height: 340px; object-fit: cover; }
+.ar-stage.pz-stage, .ar-stage.pz-stage.is-sticky { position: relative; }
+/* свой план: пропорции картинки клиента, чтобы плашки стояли на своих комнатах */
+.pz-plan--live { height: auto; }
+.pz-plan--live img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: fill; filter: grayscale(1) brightness(1.08) contrast(.9); }
+.pz-plan--live img { inset: auto; max-width: none; }
+.pz-skip { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+/* ── 3D-вид квартиры (plan3d.js) ── */
+.pz-plan--3d { height: auto; background: #F4F2EE; }
+.p3d { position: relative; }
+.p3d canvas { display: block; width: 100%; border-radius: 16px; cursor: grab; }
+.p3d canvas:active { cursor: grabbing; }
+.p3d__labels { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.p3d__labels .pz-tag { position: absolute; }
+.pz-seg { position: absolute; right: 10px; top: 10px; z-index: 3; display: flex; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,.18); }
+.pz-seg button { border: 0; padding: 4px 9px; font: 800 10px var(--font); background: #fff; color: #6B655F; cursor: pointer; }
+.pz-seg button[aria-pressed="true"] { background: #1E1C1A; color: #fff; }
+/* «Что сейчас в квартире?» */
+.pz-state__i { display: grid; gap: 1px; text-align: left; padding: 8px 10px; border-radius: 10px; border: 1px solid #E6E1DA; background: #fff; font: inherit; color: #1E1C1A; cursor: pointer; }
+.pz-state__i b { font-size: 12px; } .pz-state__i small { font-size: 10px; color: #6B655F; }
+.pz-state__i.is-on { border: 2px solid #A24E32; padding: 7px 9px; }
+/* переключатель «Варианты стен» */
+.pz-toggle { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; border: 1px solid #E6E1DA; background: #fff; cursor: pointer; }
+.pz-toggle span { flex: 1; display: grid; gap: 2px; min-width: 0; } .pz-toggle b { font-size: 12px; } .pz-toggle small { font-size: 10px; color: #6B655F; }
+.pz-toggle input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.pz-toggle i { flex: none; width: 44px; height: 26px; border-radius: 13px; background: #D8D2CB; position: relative; transition: background .2s; }
+.pz-toggle i::after { content: ''; position: absolute; left: 3px; top: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; transition: left .2s; box-shadow: 0 1px 3px rgba(0,0,0,.25); }
+.pz-toggle input:checked + i { background: #2E6B4E; }
+.pz-toggle input:checked + i::after { left: 21px; }
+.pz-toggle input:focus-visible + i { outline: 2px solid #A24E32; outline-offset: 2px; }
+.pz-toggle.is-on { border: 2px solid #A24E32; background: #FBF4F0; padding: 9px 11px; }
+/* A4: доп. вопросы для вариантов стен и окно списания (эталоны B2, B2c) */
+.pz-toggle.is-on { background: #F3E4DB; border: 1px solid #A24E32; padding: 10px 12px; }
+.pz-rq { border-left: 3px solid #A24E32; padding-left: 10px; display: grid; gap: 10px; }
+.pz-q__h--base { align-items: baseline; }
+.pz-rq__sub { font-size: 11px; color: #6B655F; }
+.pz-sheet-back { position: fixed; inset: 0; z-index: 100; background: rgba(30,28,26,.55); display: flex; align-items: flex-end; justify-content: center; }
+.pz-sheet { width: 100%; max-width: 520px; background: #fff; border-radius: 22px 22px 0 0; padding: 18px 16px calc(28px + env(safe-area-inset-bottom)); display: grid; gap: 12px; }
+.pz-sheet__grip { width: 40px; height: 4px; border-radius: 2px; background: #E6E1DA; justify-self: center; }
+.pz-sheet__t { font: 600 26px/1.05 var(--font-display); }
+.pz-sheet__s { font-size: 12px; color: #6B655F; }
+.pz-sheet__row { display: flex; justify-content: space-between; padding: 10px 12px; border-radius: 12px; background: #F4F2EE; font-size: 13px; }
+.pz-sheet__row--plain { background: none; padding: 0 12px; font-size: 12px; color: #6B655F; }
+.pz-sheet__row--plain b { color: #1E1C1A; }
+.pz-stage .ar-zoom { top: auto; bottom: 10px; right: 10px; }
+.pz-stage .ar-zoom { bottom: 50px; }
+/* «Варианты стен» (эталон B3) */
+.pz-var { display: grid; gap: 4px; padding: 0 0 10px; border-radius: 14px; border: 1px solid #E6E1DA; background: #fff; overflow: hidden; text-align: left; font: inherit; color: #1E1C1A; cursor: pointer; }
+.pz-var.is-on { border: 2px solid #A24E32; }
+.pz-var__img { position: relative; height: 150px; background: #F4F2EE; display: block; }
+.pz-var__img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.pz-badge { position: absolute; left: 8px; top: 8px; font-style: normal; font-size: 9px; font-weight: 800; padding: 4px 8px; border-radius: 10px; background: #2E6B4E; color: #fff; }
+.pz-badge.is-warn { background: #D9A23B; color: #1E1C1A; }
+.pz-badge--advice { left: auto; right: 8px; background: #A24E32; }
+.pz-var__h { display: flex; justify-content: space-between; gap: 8px; padding: 6px 12px 0; font-size: 13px; }
+.pz-var > small { padding: 0 12px; font-size: 11px; color: #6B655F; }
+.pz-var__g { padding: 0 12px; font-size: 10px; color: #1E1C1A; }
+.pz-vpills { margin-bottom: -2px; }
+
+/* ── A6 «Моя планировка» (эталоны A6, B5) ── */
+#ps-root { gap: 12px; }
+.ps-img { border-radius: 16px; overflow: hidden; background: #F4F2EE; }
+.ps-img img { width: 100%; height: auto; display: block; }
+.ps-img.is-gray img { filter: grayscale(1) brightness(1.08); }
+.ps-rows { padding: 4px 12px; gap: 0; }
+.ps-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-top: 1px solid #E6E1DA; }
+.ps-row:first-child { border-top: 0; }
+.ps-row__ic { flex: none; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; font-style: normal; font-size: 12px; font-weight: 800; background: #E4EFE8; color: #2E6B4E; }
+.ps-row__ic.is-warn { background: #FBEEDD; color: #B0701E; }
+.ps-row span { flex: 1; display: grid; gap: 1px; min-width: 0; }
+.ps-row b { font-size: 13px; } .ps-row small { font-size: 10px; color: #6B655F; }
+.ps-row em { font-style: normal; font-size: 12px; font-weight: 800; text-align: right; }
+.ps-row em.is-green { color: #2E6B4E; } .ps-row em.is-warn { color: #B0701E; }
+.ps-budget { background: #2B2926; color: #fff; border-radius: 16px; padding: 14px; display: grid; gap: 0; }
+.ps-budget__k { font-size: 10px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: #CFC6BC; }
+.ps-budget__t { font: 600 30px/1.1 var(--font-display); margin: 4px 0 8px; }
+.ps-budget__l { display: grid; grid-template-columns: 1fr auto auto; gap: 8px; align-items: baseline; padding: 6px 0; border-top: 1px solid rgba(255,255,255,.1); font-size: 11px; }
+.ps-budget__l small { font-size: 9px; color: #A8A099; } .ps-budget__l small.is-int { color: #9FD3B5; }
+.ps-budget__l b { font-size: 11px; white-space: nowrap; }
+.ps-budget__n { font-size: 9px; color: #A8A099; margin-top: 6px; }
+.ps-two { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.pz-link--left.is-on { text-decoration: underline; }
+.pz-btn:disabled { opacity: .45; cursor: not-allowed; }
+.pz-pick-int .pz-btn2 { margin-top: 4px; } .pz-pick-int__n { font-size: 10px; color: #CFC6BC; text-align: center; }
+
+.pz-proj { display: block; color: #6B655F; text-decoration: underline; text-underline-offset: 2px; margin-top: 2px; }
+
+/* ── лента «Выбери интерьер» (раздел 14): над полосой «Корзина · Избранное · Бюджет» ── */
+.pz-istrip { position: fixed; left: 8px; right: 8px; z-index: 46; bottom: calc(var(--tabbar-h, 64px) + env(safe-area-inset-bottom) + 70px);
+  background: #fff; border-radius: 16px; box-shadow: 0 -6px 24px -10px rgba(46,31,24,.35); padding: 10px 10px 8px; display: grid; gap: 8px; }
+.pz-istrip__h { display: flex; align-items: center; gap: 6px; }
+.pz-istrip__h b { flex: 1; font: 800 13px/1.2 Montserrat, var(--font), sans-serif; color: #1E1C1A; }
+.pz-istrip__h button { width: 28px; height: 28px; border-radius: 50%; border: 1px solid #E6E1DA; background: #fff; font: 700 16px/1 var(--font); color: #1E1C1A; cursor: pointer; }
+.pz-istrip__l { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; min-width: 0; }
+.pz-istrip__l::-webkit-scrollbar { display: none; }
+.pz-istrip__t { flex: none; width: 64px; display: grid; gap: 3px; border: 0; background: none; padding: 0; cursor: pointer; text-align: left; font: inherit; }
+.pz-istrip__t span { width: 64px; height: 64px; border-radius: 10px; background: #F4F2EE center / cover; display: grid; place-items: center; }
+.pz-istrip__t b { font-size: 9px; font-weight: 700; line-height: 1.15; color: #1E1C1A; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.pz-istrip__t--own span { border: 1.5px dashed #A24E32; background: #fff; color: #A24E32; font-size: 22px; }
+.pz-istrip.is-folded { left: auto; right: 12px; padding: 0; background: none; box-shadow: none; }
+.pz-istrip__fab { border: 0; border-radius: 16px; padding: 8px 12px; background: #1E1C1A; color: #fff; font: 800 12px var(--font); box-shadow: 0 6px 16px -6px rgba(0,0,0,.4); cursor: pointer; }
+body.has-istrip #main { padding-bottom: 196px !important; }
+@media (min-width: 960px) { .pz-istrip { left: auto; right: 24px; width: 420px; bottom: 86px; } }
+
+/* ── финал блока (раздел 15) ── */
+.pz-finish { display: grid; gap: 10px; }
+.pz-finish__two { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.pz-finish__two .pz-btn2 { font-size: 12px; height: 46px; }
+.pz-visual { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; border: 0; border-radius: 16px; padding: 14px; background: #2B2926; color: #fff; font: inherit; cursor: pointer; }
+.pz-visual__t { flex: 1; display: grid; gap: 4px; min-width: 0; }
+.pz-visual__t b { font-size: 15px; } .pz-visual__t small { font-size: 11px; color: #CFC6BC; }
+.pz-visual__th { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 6px; }
+.pz-visual__th i { aspect-ratio: 1; border-radius: 8px; background: #3A3734 center / cover; filter: grayscale(1) brightness(.85); }
+.pz-visual em { font-style: normal; font-size: 24px; color: #CFC6BC; }
+.pz-dl { display: grid; gap: 2px; text-align: left; padding: 12px; border-radius: 12px; border: 1px solid #E6E1DA; background: #fff; font: inherit; color: #1E1C1A; cursor: pointer; }
+.pz-dl b { font-size: 14px; } .pz-dl small { font-size: 11px; color: #6B655F; }
+.pz-toast2 { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; }
+.pz-toast2 a, .pz-toast2 button { color: inherit; font: inherit; font-weight: 800; text-decoration: underline; background: none; border: 0; padding: 0; cursor: pointer; }
+/* плитка «Сохранено из Планировки» в Моём ремонте */
+.pz-saved { background: #fff; border-radius: 16px; padding: 14px; display: grid; gap: 8px; border: 1px solid #E6E1DA; }
+.pz-saved__t { font: 800 14px var(--font); }
+.pz-saved ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; font-size: 12px; color: #6B655F; }
+.pz-saved li.is-ok { color: #2E6B4E; font-weight: 700; } .pz-saved a { color: #A24E32; }
+.pz-saved__a { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.pz-saved__a .pz-btn, .pz-saved__a .pz-btn2 { height: 44px; font-size: 12px; }
+
+/* ── список товаров с выбором (раздел 16) ── */
+.pz-pl__ctl { display: flex; align-items: center; gap: 10px; }
+.pz-pl__ctl button { border: 0; background: none; padding: 0; font: 800 12px var(--font); color: #A24E32; cursor: pointer; }
+.pz-good.is-sel { grid-template-columns: 22px 46px minmax(0, 1fr) auto; cursor: pointer; }
+.pz-good.is-on { background: #FBF4F0; }
+.pz-check { width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid #CFC6BC; display: grid; place-items: center; font-style: normal; font-size: 12px; font-weight: 800; color: #fff; }
+.pz-good.is-on .pz-check { background: #A24E32; border-color: #A24E32; }
+.pz-good__t em { font-style: normal; color: #2E6B4E; font-weight: 700; }
+.pz-pl__quick { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 10px; }
+.pz-plbar { position: fixed; left: 8px; right: 8px; z-index: 48; bottom: calc(var(--tabbar-h, 64px) + env(safe-area-inset-bottom) + 70px);
+  background: #fff; border-radius: 16px; box-shadow: 0 -6px 24px -10px rgba(46,31,24,.35); padding: 10px; display: grid; gap: 8px; }
+.pz-plbar b { font: 800 13px var(--font); }
+.pz-plbar div { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.pz-plbar .pz-btn, .pz-plbar .pz-btn2 { height: 44px; font-size: 12px; }
+.pz-plbar button:disabled { opacity: .45; cursor: not-allowed; }
+body.has-plbar #pz-istrip { display: none; }
+body.has-plbar #main { padding-bottom: 196px !important; }
+@media (min-width: 960px) { .pz-plbar { left: auto; right: 24px; width: 420px; bottom: 86px; } }
+
+/* ── бюджет за токены (раздел 17) ── */
+.pz-furn { gap: 8px; }
+.pz-furn .pz-goods__h { font-size: 14px; padding: 0; }
+.pz-btype { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 3px; border-radius: 12px; background: #3A3734; margin: 0 0 8px; }
+.pz-btype button { border: 0; border-radius: 9px; padding: 7px; background: none; color: #CFC6BC; font: 800 12px var(--font); cursor: pointer; }
+.pz-btype button[aria-pressed="true"] { background: #fff; color: #1E1C1A; }
+#pz-mybud { display: grid; }
+.pz-furn__t { font: 800 20px var(--font); }
+.pz-furn__h { font: 800 14px var(--font); }
+.ps-budget__more { font-size: 11px; color: #CFC6BC; padding-top: 6px; border-top: 1px solid rgba(255,255,255,.1); }
+.pz-scout { margin-top: -4px; }
+
+/* анкета v2: заголовки групп; лоадер «Расставляю мебель» */
+.pz-group { font-size: 10px; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase; color: #A24E32; margin: 6px 2px -4px; }
+.pz-prog__run { width: 40% !important; animation: pz-run 1.1s ease-in-out infinite; }
+@keyframes pz-run { 0% { transform: translateX(-100%); } 100% { transform: translateX(260%); } }
+.pz-drop { position: absolute; left: 50%; top: 14px; transform: translateX(-50%); z-index: 4; padding: 7px 12px; border-radius: 12px; background: rgba(30,28,26,.86); color: #fff; font-size: 11px; font-weight: 700; white-space: nowrap; }
+@media (prefers-reduced-motion: reduce) { .pz-prog__run { animation: none; } }
+.ps-rows .ps-save { margin: 6px 0 8px; width: 100%; box-sizing: border-box; }
+a.ps-save { display: flex; align-items: center; justify-content: center; text-decoration: none; color: #2E6B4E; }
+/* бюджет квартиры по слоям (методология, П6): «известно N из 4» */
+.pz-bud { gap: 0; padding: 12px 14px; }
+.pz-bud__h { display: flex; justify-content: space-between; align-items: baseline; padding-bottom: 6px; }
+.pz-bud__h b { font-size: 15px; } .pz-bud__h small { font-size: 11px; color: #6B655F; }
+.pz-bud__r { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-top: 1px solid #E6E1DA; }
+.pz-bud__r i { flex: none; width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; font-style: normal; font-size: 11px; font-weight: 800; background: #E5F0E9; color: #2E6B4E; }
+.pz-bud__r.is-off i { background: none; border: 1.5px solid #CFC6BC; color: transparent; }
+.pz-bud__r span { flex: 1; display: grid; gap: 1px; min-width: 0; }
+.pz-bud__r b { font-size: 13px; } .pz-bud__r small { font-size: 10px; color: #6B655F; }
+.pz-bud__r.is-off b { color: #6B655F; }
+.pz-bud__r em { font-style: normal; font-size: 13px; font-weight: 800; white-space: nowrap; }
+.pz-bud__go { flex: none; border: 1px solid #E0D9D0; background: #fff; border-radius: 999px; padding: 6px 10px; font: 700 11px var(--font); color: #1E1C1A; text-decoration: none; cursor: pointer; white-space: nowrap; }
+.pz-bud__go--pay { border-color: #A24E32; color: #A24E32; }
+.pz-bud__t { display: flex; justify-content: space-between; align-items: baseline; padding-top: 10px; border-top: 1px solid #1E1C1A; margin-top: 2px; }
+.pz-bud__t span { font-size: 13px; font-weight: 700; } .pz-bud__t b { font: 600 22px/1.1 var(--font-display); }
+.pz-bud .pz-btype { background: #F1EDE7; margin: 2px 0 8px; } .pz-bud .pz-btype button { color: #6B655F; }
+.pz-bud .pz-btype button[aria-pressed="true"] { background: #fff; color: #1E1C1A; }
+.pz-ipick .pz-bud__h { align-items: center; }
+.pz-ipick .pz-istrip__l { padding: 4px 0 2px; }
+.pz-q__h [data-act="fit-open"] { font-size: 12px; font-weight: 700; flex: none; }

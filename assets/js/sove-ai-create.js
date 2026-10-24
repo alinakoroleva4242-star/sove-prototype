@@ -8,8 +8,7 @@
   var GROUPS = [
     { t: 'ПЛАНИРОВКА', items: [{ g: 'g1', t: 'План → 3D', img: 'g-domik.jpg', href: planHref }] },
     { t: 'МАТЕРИАЛЫ', items: [
-      { g: 'g2', t: 'Мудборд по рендеру', img: 'k1-living.jpg', href: function () { return 'moodboard.html'; } },
-      { g: 'g3', t: 'Материал по фото', img: 'k1-sideboard.jpg', href: function () { return 'ai.html?mode=photo'; } }] },
+      { g: 'g2', t: 'Мудборд по рендеру', img: 'k1-living.jpg', href: function () { return 'moodboard.html'; } }] },   /* «Материал по фото» убран (Алина 22.10) — это поиск товара по фото в Маркете */
     { t: 'ВИЗУАЛИЗАЦИИ', items: [
       { g: 'g4', t: 'Примерка капсулы', img: 'k2-kitchen.jpg', href: function () { return 'result.html?gen=g4'; } },
       { g: 'g5', t: 'Своя капсула', img: 'k5.jpg', href: function () { return 'result.html?gen=g5'; } },
