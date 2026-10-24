@@ -439,7 +439,7 @@
       lifeQ('add', 'Что важно', 'до 3', ['спальня отдельно', 'рабочее место', 'детская', 'гардеробная', 'постирочная', 'больше хранения'], 3) +
       group('Что ставим') +
       /* заполнено по плану — свёрнуто одной карточкой, «проверить ›» раскрывает вопросы */
-      (!st.fitOpen ? '<section class="pz-card pz-q"><div class="pz-q__h"><b>Заполнили по плану</b><button type="button" class="pz-link pz-link--in" data-act="fit-open">развернуть ›</button></div>' +
+      (!st.fitOpen ? '<section class="pz-card pz-q"><div class="pz-q__h"><b>Заполнили по плану</b><button type="button" class="pz-link pz-link--in" data-act="fit-open">изменить ›</button></div>' +
         '<small class="pz-note">' + esc(qs.map(function (q) { return q.t + ' — ' + q.rows.map(function (r, ri) { return answer(q, ri); }).filter(function (v) { return v && v !== 'нет'; }).join(', '); }).join(' · ')) + '</small></section>' :
       qs.map(function (q) {
         return '<section class="pz-card pz-q"><div class="pz-q__h"><b>' + esc(q.t) + '</b><em class="pz-why">в плане: ' + esc(q.why) + '</em></div>' +
