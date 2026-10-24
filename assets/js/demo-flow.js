@@ -219,12 +219,13 @@
     var rec = list.filter(function (x) { return x.key === key; })[0], dup = !!rec;
     if (!rec) { rec = { id: 'pl-' + Date.now().toString(36), key: key, flatId: flat.id, type: V ? 'replan' : '3d', variant: V ? V.letter : null, createdAt: Date.now() }; list.unshift(rec); }
     Object.assign(rec, { planImg: T.img, layout: T.items, arrangement: T.arrangement, interiorId: INT ? (INT.id || INT.type) : null, interiorName: INT ? INT.name : null,
-      items: T.goods, count: T.count, budget: { lines: P.budget.lines, total: P.budget.total, type: P.budget.type }, flat: P.flatName, answers: P.answers });
+      items: INT ? T.goods : null, count: T.count, budget: INT ? { lines: P.budget.lines, total: P.budget.total, type: P.budget.type } : null, flat: P.flatName, answers: P.answers });
     list.forEach(function (x) { x.isMain = x === rec; });
     try { localStorage.setItem(HKEY, JSON.stringify(all)); } catch (e) { list.forEach(function (x) { if (x !== rec) x.planImg = null; }); try { localStorage.setItem(HKEY, JSON.stringify(all)); } catch (e2) {} }
     r.base = { historyId: rec.id, source: P.source, accuracy: P.accuracy, state: P.state };
     r.replan = V ? { historyId: rec.id, variant: V.letter, approval: V.approval } : null;
-    r.budgetPlan = { lines: P.budget.lines, type: P.budget.type, total: P.budget.total, ts: Date.now(), full: !!(r.budgetPlan && r.budgetPlan.full), furniture: P.furniture };
+    /* мебель и бюджет сохраняем только с интерьером: без него цены мебели и бюджета нет (Алина 24.10) */
+    if (INT) r.budgetPlan = { lines: P.budget.lines, type: P.budget.type, total: P.budget.total, ts: Date.now(), full: !!(r.budgetPlan && r.budgetPlan.full), furniture: P.furniture };
     r.progress = INT ? 50 : 25;
     if (INT) {
       var c = INT.type === 'capsule' ? S.data.capsule(INT.id) : null;
@@ -274,10 +275,11 @@
       '<h1>' + esc(P.flatName) + '</h1><p class="sub">' + esc((P.INT ? P.INT.name + ' · ' : '') + '«' + T.arrangement + '» · ' + T.count + ' предметов') + '</p>' +
       (img ? '<img class="plan" src="' + esc(absUrl(img)) + '" alt="">' : '') +
       '<div class="rooms">' + P.rooms.slice(0, 4).map(function (r) { return '<div><b>' + String(r.m2 || '').replace('.', ',') + '</b>' + esc(r.name.toLowerCase()) + '</div>'; }).join('') + '</div>' +
-      '<div class="tot"><span>Мебель</span><span>≈ ' + rub(P.furniture) + '</span></div><div class="list">' +
+      /* без интерьера — только план и расстановка, без цен мебели и бюджета */
+      (P.INT ? '<div class="tot"><span>Мебель</span><span>≈ ' + rub(P.furniture) + '</span></div><div class="list">' +
       (T.goods || []).slice(0, 4).map(function (g) { return '<div><span>' + esc(g.label + ' · ' + String(g.room || '').toLowerCase()) + '</span><span>' + rub(g.metod) + '</span></div>'; }).join('') +
-      (rest ? '<div><span>ещё ' + rest + ' предметов …</span><span></span></div>' : '') + '</div>' +
-      (budgetFull() ? '<div class="tot"><span>Ремонт под ключ</span><span>≈ ' + rub(P.budget.total) + '</span></div>' : '') +
+      (rest ? '<div><span>ещё ' + rest + ' предметов …</span><span></span></div>' : '') + '</div>' : '') +
+      (P.INT && budgetFull() ? '<div class="tot"><span>Ремонт под ключ</span><span>≈ ' + rub(P.budget.total) + '</span></div>' : '') +
       '<div class="foot">Сделано в SOVE · sove.app<br>Расстановка по нормам проходов. Перед стройкой проверьте размеры по обмеру. Цены METOD на ' + d + '.</div>');
   }
   /* план с размерами: вид сверху, комнаты с размерами, мебель с габаритами в мм — для бригады */
@@ -472,7 +474,7 @@
   function budgetFull() { var R = window.SOVE.repair; return !!(R && R.flats.active() && R.get().budgetPlan && R.get().budgetPlan.full); }
   /* полный бюджет куплен — держим строки актуальными при любых изменениях (бесплатно) */
   function refreshBudget() {
-    var R = window.SOVE.repair, P = planDoc(); if (!budgetFull() || !P || !window.SOVE_BUDGET) return;   /* без расчёта не затираем итог */
+    var R = window.SOVE.repair, P = planDoc(); if (!budgetFull() || !P || !P.INT || !window.SOVE_BUDGET) return;   /* без расчёта и без интерьера не затираем итог */
     var bp = R.get().budgetPlan; Object.assign(bp, { lines: P.budget.lines, total: P.budget.total, type: P.budget.type, furniture: P.furniture, ts: Date.now() });
     R.flats.update(R.flats.active().id, {});
   }
@@ -484,6 +486,7 @@
      Мебель — из расстановки, материалы — по выбранному интерьеру (бесплатно), декор — после визуализаций,
      работы — за токены через Скаут (П5). Одна цифра «итого» — и здесь, и в полосе «Бюджет» над меню. */
   function budgetLayers() {
+    if (!interiorChosen()) return null;                /* без интерьера бюджета нет */
     var P = window.SOVE_BUDGET && planDoc(); if (!P) return null;
     var R = window.SOVE.repair, r = R && R.flats.active() ? R.get() : {}, L = {};
     P.budget.lines.forEach(function (l) { L[l.key] = l.value || 0; });

@@ -228,20 +228,22 @@
     /* одна цифра везде (ТЗ Планировки, 12.5): бюджет «ремонт под ключ» из Планировки; нормы — заглушки, итога нет — «[сумма] ₽» */
     /* раздел 17: полный бюджет куплен — «итого ≈ …»; нет — «мебель ≈ … · весь — узнать ›» (мебель из Планировки) */
     /* мебель — по текущей расстановке Планировки; нет её — из последнего сохранения */
-    var furn = null; try { var fl = JSON.parse(localStorage.getItem('sove.demo.flow.v1') || '{}'); furn = fl.toSave && fl.toSave.furniture; } catch (x) {}
+    var furn = null, fl = {}; try { fl = JSON.parse(localStorage.getItem('sove.demo.flow.v1') || '{}') || {}; furn = fl.toSave && fl.toSave.furniture; } catch (x) {}
+    /* интерьер не выбран — ни мебели, ни бюджета не показываем (Алина 24.10): только «выбери интерьер» */
+    var noInt = !(rp().interior || fl.interior);
     if (!furn) furn = bp && bp.furniture;
     /* одна цифра «итого» с карточкой «Бюджет квартиры» (методология, П6): сумма известных слоёв */
     var BL = window.SOVE_FLOW && window.SOVE_FLOW.budgetLayers && window.SOVE_FLOW.budgetLayers();
     /* новый план ещё не расставлен — старую сумму не показываем */
     var newPlan = document.body.getAttribute('data-page') === 'plan-demo';
-    var bTotal = newPlan ? '' : BL ? '≈ ' + F.rub(BL.total) + ' · ' + BL.known + ' из 4' : bp && bp.full ? '≈ ' + (bp.total === null || bp.total === undefined ? '[сумма] ₽' : F.rub(bp.total))
+    var bTotal = newPlan || noInt ? '' : BL ? '≈ ' + F.rub(BL.total) + ' · ' + BL.known + ' из 4' : bp && bp.full ? '≈ ' + (bp.total === null || bp.total === undefined ? '[сумма] ₽' : F.rub(bp.total))
       : furn ? null : F.rub(b && b.total ? b.total : 0);
     /* полоса ведёт на свои экраны (ТЗ 22.10, п. 0.4 и 5): корзина и бюджет квартиры — виды my.html, избранное — общая страница */
     var h = function (sec) { return { cart: 'my.html?v=basket', fav: 'favorites.html', budget: 'my.html?v=budget' }[sec]; };
     el.innerHTML =
       '<a href="' + h('cart') + '" data-strip="cart">' + CART + '<span><b>Корзина</b><small>' + (t.count ? t.qty + ' · ' + F.rub(t.metod) : 'пока пусто') + '</small></span></a>' +
       '<a href="' + h('fav') + '" data-strip="fav">' + HEART + '<span><b>Избранное</b><small>' + (fv ? fv : 'пока пусто') + '</small></span></a>' +
-      '<a href="' + h('budget') + '" data-strip="budget"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 7h8M8 11h3M13 11h3M8 15h3M13 15h3"/></svg><span><b>Бюджет</b><small>' + (newPlan ? 'после расстановки' : bTotal === null ? 'мебель ≈ ' + F.rub(furn) + ' · весь — узнать ›' : 'итого ' + bTotal) + '</small></span></a>';
+      '<a href="' + h('budget') + '" data-strip="budget"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 7h8M8 11h3M13 11h3M8 15h3M13 15h3"/></svg><span><b>Бюджет</b><small>' + (newPlan ? 'после расстановки' : noInt && !(b && b.total) ? 'выбери интерьер' : noInt ? 'итого ' + F.rub(b.total) : bTotal === null ? 'мебель ≈ ' + F.rub(furn) + ' · весь — узнать ›' : 'итого ' + bTotal) + '</small></span></a>';
   }
 
   /* ---------- данные прототипа: 3 состояния экрана из п. 6 ТЗ ---------- */

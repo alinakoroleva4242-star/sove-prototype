@@ -985,10 +985,10 @@
         FLOW.budgetCard({ rerender: render }) +
         '<div class="ar-dock' + (st.picked === null ? ' is-off' : '') + '">' + pickedBlock() + '</div>';
     } else {
-      /* A5а · Мебель по размерам: серые габариты, сумма по средним ценам, выбор интерьера */
+      /* A5а · Мебель по размерам: серые габариты без цен; под визуализациями — «Выбери интерьер — покажем бюджет»
+         на месте бюджета (липкая лента тогда не показывается) */
       body = varPills() + stageBlock() + problemsBlock() + notPlacedBlock() + tuneRow() +
-        /* тёмную плашку «Выбери интерьер» заменила лента снизу (раздел 14) */
-        finish() +
+        finish() + FLOW.budgetCard({ rerender: render }) +
         '<div class="ar-dock' + (st.picked === null ? ' is-off' : '') + '">' + pickedBlock() + '</div>';
     }
     root.innerHTML = head() + body;
