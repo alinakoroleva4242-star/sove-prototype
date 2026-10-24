@@ -671,15 +671,6 @@
   }
 
   /* квартира из базы ЖК — анкету не проходили: «Подстроить под тебя» открывает анкету v2 (18.2, 18.3) */
-  /* развилка «Поменять стены?» (перепланировка) — отдельной заметной карточкой под планом, а не в «Ещё» (Алина 24.10) */
-  function wallsCard() {
-    if (FL.wallVariant || !WALLS.length) return '';
-    var room = (FL.layoutHints || {}).roomHint;
-    return '<section class="pz-card pz-walls"><span class="pz-walls__k">ПЕРЕПЛАНИРОВКА</span>' +
-      '<b class="pz-walls__t">' + (room ? 'Хочешь отдельную комнату?' : 'Хочешь поменять стены?') + '</b>' +
-      '<small>кабинет, гардероб, ещё спальня — покажем ' + WALLS.length + ' ' + (WALLS.length < 5 ? 'варианта' : 'вариантов') + ' стен в 3D · несущие и мокрые зоны не трогаем</small>' +
-      '<button type="button" class="pz-btn2 pz-walls__b" data-act="replan">Показать варианты стен · ' + FLOW.priceTxt() + '</button></section>';
-  }
   function tuneRow() {
     if (!FL.zk) return '';
     return '<a class="pz-tune" href="plan-demo.html?tune=1"><span><b>Подстроить под тебя</b><small>12 вопросов · кровать, диван, кто живёт</small></span><em>›</em></a>';
@@ -991,14 +982,14 @@
       /* A5б · Твоя квартира в 3D: механика расстановки, товары интерьера с ♡ / 🛒 */
       body = varPills() + plansBlock() + stageBlock() + dockBlock() +
         '<p class="pz-hint">Нажми предмет — размеры, шире / уже, замена · двигай пальцем, проверка сразу · 👁 скрыть мебель · ↺ сбросить</p>' +
-        problemsBlock() + notPlacedBlock() + swapBlock() + tuneRow() + wallsCard() + (INT ? goodsBlock() : '') +
+        problemsBlock() + notPlacedBlock() + swapBlock() + tuneRow() + (INT ? goodsBlock() : '') +
         finish() +
         /* бюджет — под визуализациями, только с интерьером */
         FLOW.budgetCard({ rerender: render }) ;
     } else {
       /* A5а · Мебель по размерам: серые габариты без цен; под визуализациями — «Выбери интерьер — покажем бюджет»
          на месте бюджета (липкая лента тогда не показывается) */
-      body = varPills() + stageBlock() + dockBlock() + problemsBlock() + notPlacedBlock() + tuneRow() + wallsCard() +
+      body = varPills() + stageBlock() + dockBlock() + problemsBlock() + notPlacedBlock() + tuneRow() +
         finish() + FLOW.budgetCard({ rerender: render }) ;
     }
     root.innerHTML = head() + body;

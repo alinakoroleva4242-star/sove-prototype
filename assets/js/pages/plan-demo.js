@@ -476,7 +476,7 @@
     }).join('') + '</div>';
   }
   function replanBlock(on) {
-    return '<label class="pz-toggle' + (on ? ' is-on' : '') + '"><span><b>Поменять стены? · ' + FLOW.priceTxt() + '</b><small>кабинет, гардероб, ещё спальня · несущие и мокрые зоны не трогаем</small></span>' +
+    return '<label class="pz-toggle pz-toggle--walls' + (on ? ' is-on' : '') + '"><span><b>Поменять стены? · ' + FLOW.priceTxt() + '</b><small>кабинет, гардероб, ещё спальня · несущие и мокрые зоны не трогаем</small></span>' +
         '<input type="checkbox" data-replan' + (on ? ' checked' : '') + '><i></i></label>';
   }
   function sheet() { commit(); FLOW.save({ replanAnswers: st.rp }); FLOW.replanSheet(function () { go(true); }, function () { go(false); }); }
