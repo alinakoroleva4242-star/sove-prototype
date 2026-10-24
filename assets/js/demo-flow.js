@@ -363,7 +363,7 @@
       '<button type="button" class="pz-visual" data-pf="visual"><span class="pz-visual__t"><b>✦ Дальше: визуализации</b><small>Покажем каждую комнату в интерьере · ' + priceTxt() + ' за комнату</small>' +
         '<span class="pz-visual__th">' + thumbs.map(function (t) { return '<i style="background-image:url(assets/img/demo/' + t + '.jpg)"></i>'; }).join('') + '</span></span><em>›</em></button>' +
       /* одно «Дальше» на экране (методология, П2): скачать, поделиться и перепланировка — в «Ещё» */
-      '<button type="button" class="pz-link" data-pf="more">Ещё ⋯ скачать, поделиться' + (finishOpts.more && finishOpts.more.length ? ', стены' : '') + '</button>' +
+      '<button type="button" class="pz-link" data-pf="more">Ещё ⋯ скачать, поделиться</button>' +
       '</section>';
   }
   document.addEventListener('click', function (e) {
@@ -404,7 +404,7 @@
     var html = '<section class="pz-card pz-goods pz-pl' + (st.on ? ' is-sel' : '') + '" data-pl="' + key + '">' +
       '<div class="pz-goods__h"><b>' + esc(opts.title) + ' · ' + rows.length + '</b>' +
         (st.on ? '<span class="pz-pl__ctl"><button type="button" data-pl-act="all">' + (nSel === withP.length ? 'Снять все' : 'Выбрать все · ' + withP.length) + '</button><button type="button" data-pl-act="done">Готово</button></span>'
-               : '<span class="pz-pl__ctl"><span class="pz-2p"><b>≈ ' + F.rub(sum) + '</b><small>с METOD · без — ' + F.rub(sumR) + '</small></span><button type="button" data-pl-act="select">Выбрать</button></span>') + '</div>' +
+               : '<span class="pz-pl__ctl"><span class="pz-2p"><b>≈ ' + F.rub(sum) + '</b><small>без подписки ' + F.rub(sumR) + '</small></span><button type="button" data-pl-act="select">Выбрать</button></span>') + '</div>' +
       shown.map(function (r, i) {
         var on = !!st.sel[i], inCart = r.p && R.cart.has(r.p.id);
         return '<div class="pz-good' + (st.on ? ' is-sel' : '') + (on ? ' is-on' : '') + '"' + (st.on && r.p ? ' data-pl-row="' + i + '" role="checkbox" aria-checked="' + on + '" tabindex="0"' : '') + '>' +
