@@ -313,9 +313,14 @@
   ];
   /* В1 (TZ-anketa): данные из документов застройщика есть только у примера ЖК PRIDE — «без отделки» */
   function docsState() { return !st.live && !st.typical ? { k: 'concrete_walls', t: 'без отделки' } : null; }
+  /* выбранное состояние — одной строкой со «развернуть ›»; список из 4 карточек — по нажатию или пока ничего не выбрано */
   function stateBlock() {
-    var docs = docsState();
-    return '<section class="pz-card pz-state"><div class="pz-q__h"><b>Что сейчас в квартире?</b>' + (docs ? '<em class="pz-why">в документах: ' + esc(docs.t) + '</em>' : '') + '</div>' +
+    var docs = docsState(), cur = STATES.filter(function (x) { return x.k === st.state; })[0];
+    var headHtml = '<div class="pz-q__h"><b>Что сейчас в квартире?</b>' + (docs ? '<em class="pz-why">в документах: ' + esc(docs.t) + '</em>' : '') + '</div>';
+    if (cur && !st.stateOpen) return '<section class="pz-card pz-state">' + headHtml +
+      '<div class="pz-state__cur"><span><b>' + esc(cur.t) + '</b><small>' + esc(cur.d) + '</small></span>' +
+      '<button type="button" class="pz-link pz-link--in" data-act="state-open">развернуть ›</button></div></section>';
+    return '<section class="pz-card pz-state">' + headHtml +
       STATES.map(function (x) {
         return '<button type="button" class="pz-state__i' + (st.state === x.k ? ' is-on' : '') + '" data-state="' + x.k + '" aria-pressed="' + (st.state === x.k) + '"><b>' + esc(x.t) + '</b><small>' + esc(x.d) + '</small></button>';
       }).join('') + '</section>';
@@ -663,6 +668,7 @@
         
         if (a === 'later') { st.interior = null; render(); }
         if (a === 'fit-open') { st.fitOpen = true; render(); }
+        if (a === 'state-open') { st.stateOpen = true; render(); }
         if (a === 'go') {
           if (!required()) { S.ui.toast('Ответь на 3 вопроса сверху'); return; }
           if (FLOW.replanOn()) sheet(); else go(false);
@@ -678,7 +684,7 @@
     });
     root.querySelectorAll('[data-state]').forEach(function (b) {
       b.addEventListener('click', function () {
-        var was = st.state; st.state = b.dataset.state;
+        var was = st.state; st.state = b.dataset.state; st.stateOpen = false;
         /* «Бетон, стен нет» включает «Варианты стен» сам (ТЗ 4.1), можно выключить */
         if (st.state === 'concrete_free' && was !== 'concrete_free') FLOW.setReplan(true);
         FLOW.save({ state: st.state }); render();

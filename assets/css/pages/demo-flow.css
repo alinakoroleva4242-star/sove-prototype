@@ -401,3 +401,6 @@ a.ps-save { display: flex; align-items: center; justify-content: center; text-de
 .pz-tune { display: flex; align-items: center; gap: 10px; background: #fff; border: 1px solid #E6E1DA; border-radius: 14px; padding: 12px 14px; text-decoration: none; color: #1E1C1A; }
 .pz-tune span { flex: 1; display: grid; gap: 2px; } .pz-tune b { font-size: 14px; } .pz-tune small { font-size: 11px; color: #6B655F; }
 .pz-tune em { font-style: normal; font-size: 18px; color: #A24E32; }
+.pz-state__cur { display: flex; align-items: center; gap: 10px; border: 2px solid #A24E32; border-radius: 12px; padding: 10px 12px; }
+.pz-state__cur span { flex: 1; display: grid; gap: 2px; min-width: 0; } .pz-state__cur b { font-size: 13px; } .pz-state__cur small { font-size: 10px; color: #6B655F; }
+.pz-state__cur [data-act="state-open"] { font-size: 12px; font-weight: 700; flex: none; }
