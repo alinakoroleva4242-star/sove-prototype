@@ -27,7 +27,8 @@
   function tokensLabel() { return S.auth.isIn() ? F.tokens(S.tokens.balance()) : F.tokens(CFG.giftTokens) + ' 🎁'; }
 
   /* куда ведёт каждая генерация */
-  function planHref() { var f = FLOW ? FLOW.load() : {}; return f.step >= 2 ? 'arrange.html?v=panel&flow=1' : 'plan-demo.html'; }
+  /* Планировка всегда открывается с первой продающей страницы (ТЗ-planirovka 18.0), а не сразу с мебели */
+  function planHref() { return 'plan-demo.html'; }
   var GEN = [
     { re: /^План → 3D/, href: function () { return planHref(); } },
     { re: /^Расстановка/, href: function () { return 'arrange.html?v=panel&flow=1'; } },
@@ -39,7 +40,7 @@
     { re: /^Спальня/, href: function () { return 'result.html?gen=g4'; } },
     { re: /^Открыть мудборд/, href: function () { return 'moodboard.html'; } }
   ];
-  var BLOCK_HREF = { plan: 'arrange.html?v=panel&flow=1', materials: 'moodboard.html', visual: 'result.html?gen=g4' };
+  var BLOCK_HREF = { plan: 'plan-demo.html', materials: 'moodboard.html', visual: 'result.html?gen=g4' };
   var CAPS = { 'Изумрудная неоклассика': 'k2', 'Бургундский камень': 'k1', 'Минимализм с голубым': 'k3', 'Тёплая классика': 'k4', 'Органика в песочном': 'k5' };
 
   /* к какому блоку относится элемент: ближайший предок, в тексте которого ровно один из трёх блоков */

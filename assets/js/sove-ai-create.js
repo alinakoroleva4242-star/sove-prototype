@@ -4,7 +4,8 @@
 (function () {
   var S = window.SOVE, F = S.fmt, esc = F.esc, CFG = window.SOVE_AI_CONFIG;
   var IMG = 'assets/img/sove-ai/';
-  function planHref() { var f = window.SOVE_FLOW ? window.SOVE_FLOW.load() : {}; return f.step >= 2 ? 'arrange.html?v=panel&flow=1' : 'plan-demo.html'; }
+  /* Планировка всегда открывается с первой продающей страницы (ТЗ-planirovka 18.0) */
+  function planHref() { return 'plan-demo.html'; }
   var GROUPS = [
     { t: 'ПЛАНИРОВКА', items: [{ g: 'g1', t: 'План → 3D', img: 'g-domik.jpg', href: planHref }] },
     { t: 'МАТЕРИАЛЫ', items: [

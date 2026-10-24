@@ -670,6 +670,12 @@
     return '<span class="pz-verdict">' + (INT ? '✓ Замечаний нет · проходы и двери свободны' : '✓ Всё влезло · проходы свободны') + '</span>';
   }
 
+  /* квартира из базы ЖК — анкету не проходили: «Подстроить под тебя» открывает анкету v2 (18.2, 18.3) */
+  function tuneRow() {
+    if (!FL.zk) return '';
+    return '<a class="pz-tune" href="plan-demo.html?tune=1"><span><b>Подстроить под тебя</b><small>12 вопросов · кровать, диван, кто живёт</small></span><em>›</em></a>';
+  }
+
   function problemsBlock() {
     if (!st.problems.length) return '';
     var seen = {}, list = [];
@@ -973,14 +979,14 @@
       /* A5б · Твоя квартира в 3D: механика расстановки, товары интерьера с ♡ / 🛒 */
       body = varPills() + plansBlock() + stageBlock() +
         '<p class="pz-hint">Нажми предмет — размеры, шире / уже, замена · двигай пальцем, проверка сразу · 👁 скрыть мебель · ↺ сбросить</p>' +
-        problemsBlock() + notPlacedBlock() + swapBlock() + (INT ? goodsBlock() : '') +
+        problemsBlock() + notPlacedBlock() + swapBlock() + tuneRow() + (INT ? goodsBlock() : '') +
         finish() +
         /* бюджет — под визуализациями, только с интерьером */
         FLOW.budgetCard({ rerender: render }) +
         '<div class="ar-dock' + (st.picked === null ? ' is-off' : '') + '">' + pickedBlock() + '</div>';
     } else {
       /* A5а · Мебель по размерам: серые габариты, сумма по средним ценам, выбор интерьера */
-      body = varPills() + stageBlock() + problemsBlock() + notPlacedBlock() +
+      body = varPills() + stageBlock() + problemsBlock() + notPlacedBlock() + tuneRow() +
         /* тёмную плашку «Выбери интерьер» заменила лента снизу (раздел 14) */
         finish() +
         '<div class="ar-dock' + (st.picked === null ? ' is-off' : '') + '">' + pickedBlock() + '</div>';
@@ -1217,6 +1223,11 @@
   });
 
   st.restored = restore();
+  /* пришли из «Найди свой ЖК» (ТЗ-planirovka 18.2): тост «Нашли твою квартиру» один раз */
+  if (FL.zkFound && FL.zk) {
+    FLOW.save({ zkFound: false });
+    setTimeout(function () { S.ui.toast('✓ Нашли твою квартиру · ' + FL.zk.name + ' · ' + FL.zk.type + ' · ' + F.area(FL.zk.m2), 'ok'); }, 300);
+  }
   if (S.ui.qs('walls') && WALLS.length && !FL.wallVariant) { FLOW.setReplan(true); openWalls(); }
   else { if (FL.wallVariant) VAR = WALLS.filter(function (w) { return w.id === FL.wallVariant; })[0] || null; render(); }
 })();

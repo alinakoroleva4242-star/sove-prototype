@@ -357,3 +357,47 @@ a.ps-save { display: flex; align-items: center; justify-content: center; text-de
 .pz-ipick .pz-bud__h { align-items: center; }
 .pz-ipick .pz-istrip__l { padding: 4px 0 2px; }
 .pz-q__h [data-act="fit-open"] { font-size: 12px; font-weight: 700; flex: none; }
+
+/* ── первый экран Планировки — итог 18.0 (эталон etalon-StFinal.html) и «Найди свой план у застройщика» (18.2) ── */
+.pz-hero { position: relative; height: 420px; border-radius: 18px; overflow: hidden; background: #2B2926; box-shadow: 0 10px 30px rgba(0,0,0,.12); }
+.pz-hero > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.pz-hero__k { position: absolute; left: 10px; top: 10px; z-index: 2; font-size: 9px; font-weight: 800; letter-spacing: 1px; padding: 5px 9px; border-radius: 8px; background: #fff; color: #1E1C1A; }
+.pz-price { position: absolute; z-index: 2; display: inline-flex; align-items: center; gap: 4px; border: 0; border-radius: 9px; background: #fff; padding: 4px 7px; box-shadow: 0 2px 8px rgba(0,0,0,.25); font: inherit; cursor: pointer; white-space: nowrap; }
+.pz-price i { width: 6px; height: 6px; border-radius: 50%; background: #A24E32; flex: none; }
+.pz-price small { font-size: 8px; color: #6B655F; } .pz-price b { font-size: 9px; font-weight: 800; color: #1E1C1A; }
+.pz-hero__bud { position: absolute; left: 10px; right: 10px; bottom: 10px; z-index: 3; display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  background: rgba(255,255,255,.85); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); border-radius: 12px; padding: 9px 12px; }
+.pz-hero__bud span { display: grid; gap: 1px; min-width: 0; }
+.pz-hero__bud small { font-size: 9px; font-weight: 800; letter-spacing: 1px; color: #1E1C1A; } .pz-hero__bud em { font-style: normal; font-size: 9px; color: #6B655F; }
+.pz-hero__bud b { font: 600 24px/1 var(--font-display); white-space: nowrap; color: #1E1C1A; }
+.pz-btn--up { height: 54px; font-size: 15px; }
+.pz-or { font-size: 10px; font-weight: 800; letter-spacing: 1.5px; color: #6B655F; }
+.pz-tagsheet { display: flex; gap: 12px; align-items: center; }
+.pz-tagsheet img { width: 96px; height: 96px; object-fit: contain; border-radius: 12px; background: #F4F2EE; flex: none; }
+.pz-tagsheet span { display: grid; gap: 2px; } .pz-tagsheet b { font-size: 18px; } .pz-tagsheet s { font-size: 12px; color: #6B655F; } .pz-tagsheet small { font-size: 11px; color: #6B655F; }
+.pz-zks { display: flex; align-items: center; gap: 10px; height: 44px; border-radius: 12px; background: #fff; border: 1px solid #1E1C1A; padding: 0 12px; box-sizing: border-box; }
+.pz-zks span { font-size: 16px; } .pz-zks input { flex: 1; min-width: 0; border: 0; outline: 0; font: 500 13px var(--font); background: none; }
+.pz-zklist { display: grid; gap: 6px; }
+.pz-zkrow { display: flex; align-items: center; gap: 10px; text-align: left; border: 1px solid #E6E1DA; background: #fff; border-radius: 14px; padding: 10px 12px; font: inherit; cursor: pointer; }
+.pz-zkrow span { flex: 1; display: grid; gap: 2px; min-width: 0; } .pz-zkrow b { font-size: 14px; } .pz-zkrow small { font-size: 11px; color: #6B655F; }
+.pz-zkrow em { font-style: normal; font-size: 11px; font-weight: 800; color: #2E6B4E; white-space: nowrap; }
+.pz-zkno { gap: 6px; }
+.pz-zkfeed { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; min-width: 0; }
+.pz-zkfeed::-webkit-scrollbar { display: none; }
+.pz-zkcard { flex: none; width: 96px; display: grid; gap: 2px; text-align: left; border: 0; background: none; padding: 0; font: inherit; cursor: pointer; }
+/* миниатюры планов — чёрно-белые (уточнение 24.10); главный пример — цветной */
+.pz-zkcard span, .pz-zklay__img { background: #fff center / contain no-repeat; border: 1px solid #E6E1DA; filter: grayscale(1) contrast(1.1); }
+.pz-zkcard span { height: 72px; border-radius: 10px; margin-bottom: 2px; }
+.pz-zkcard b { font-size: 10px; line-height: 1.2; } .pz-zkcard small { font-size: 9px; color: #6B655F; }
+.pz-zklays { display: grid; gap: 8px; }
+.pz-zklay { display: flex; align-items: center; gap: 12px; text-align: left; border: 1px solid #E6E1DA; background: #fff; border-radius: 16px; padding: 8px; font: inherit; cursor: pointer; }
+.pz-zklay:first-child:not(.is-off) { border: 2px solid #A24E32; }
+.pz-zklay.is-off { opacity: .6; cursor: default; }
+.pz-zklay__img { flex: none; width: 72px; height: 60px; border-radius: 10px; box-sizing: border-box; }
+.pz-zklay__t { flex: 1; display: grid; gap: 2px; min-width: 0; } .pz-zklay__t b { font-size: 14px; } .pz-zklay__t small { font-size: 11px; color: #6B655F; }
+.pz-zklay__t em { font-style: normal; font-size: 11px; font-weight: 700; color: #2E6B4E; } .pz-zklay__t em.is-off { color: #6B655F; }
+.pz-zklay i { font-style: normal; font-size: 18px; color: #6B655F; padding-right: 6px; }
+.pz-zkadd { cursor: pointer; }
+.pz-tune { display: flex; align-items: center; gap: 10px; background: #fff; border: 1px solid #E6E1DA; border-radius: 14px; padding: 12px 14px; text-decoration: none; color: #1E1C1A; }
+.pz-tune span { flex: 1; display: grid; gap: 2px; } .pz-tune b { font-size: 14px; } .pz-tune small { font-size: 11px; color: #6B655F; }
+.pz-tune em { font-style: normal; font-size: 18px; color: #A24E32; }
