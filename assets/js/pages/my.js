@@ -466,7 +466,7 @@
     first.concat(second).forEach(function (p) { O.basket.add(p.id, 'budget'); });
   }
   if (ui.qs('demo')) { seedDemo(); try { history.replaceState(null, '', PAGE + (view !== 'home' ? '?v=' + view : '')); } catch (e) {} }
-  var TITLES = { home: 'Мой ремонт', new: 'Добавить квартиру', object: 'Объект', visual: 'Визуал и планировки', budget: 'Бюджет', basket: 'Корзина', orders: 'Заказы', order: 'Заказ', feed: 'Лента', inspire: 'Вдохновение', rooms: 'Комнаты и этапы', doc: 'Документ' };
+  var TITLES = { center: 'Мой ремонт', home: 'Мой ремонт', new: 'Добавить квартиру', object: 'Объект', visual: 'Визуал и планировки', budget: 'Бюджет', basket: 'Корзина', orders: 'Заказы', order: 'Заказ', feed: 'Лента', inspire: 'Вдохновение', rooms: 'Комнаты и этапы', doc: 'Документ' };
   document.title = (TITLES[view] || 'Мой ремонт') + ' — SOVEAPP';
   var t = document.querySelector('.appbar__title'); if (t) t.textContent = TITLES[view] || 'Мой ремонт';
   O.autoReceive();
@@ -477,5 +477,5 @@
     var strip = root.querySelector('#obj-strip'), dots = root.querySelector('#obj-dots'); if (!strip || !dots) return;
     strip.addEventListener('scroll', function () { var i = Math.round(strip.scrollLeft / strip.clientWidth); dots.querySelectorAll('i').forEach(function (d, j) { d.classList.toggle('is-on', j === i); }); }, { passive: true });
   }
-  ({ home: bindHome, new: viewNew, object: viewObject, visual: viewVisual, budget: window.SOVE_MY_BUDGET ? function () { window.SOVE_MY_BUDGET(root); } : viewBudget, basket: viewBasket, orders: viewOrders, order: viewOrder, feed: viewFeed, inspire: viewInspire, rooms: viewRooms, doc: viewDoc }[view] || bindHome)();
+  ({ home: bindHome, new: viewNew, object: viewObject, visual: viewVisual, budget: window.SOVE_MY_BUDGET ? function () { window.SOVE_MY_BUDGET(root); } : viewBudget, basket: viewBasket, orders: viewOrders, order: viewOrder, feed: viewFeed, inspire: viewInspire, rooms: viewRooms, doc: viewDoc, center: window.SOVE_MY_CENTER ? function () { window.SOVE_MY_CENTER(root); } : bindHome }[view] || bindHome)();
 })();

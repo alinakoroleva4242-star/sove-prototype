@@ -33,6 +33,8 @@
     date: function (ts) { var d = new Date(ts); return ('0' + d.getDate()).slice(-2) + '.' + ('0' + (d.getMonth() + 1)).slice(-2); },
     dateLong: function (ts) { return new Date(ts).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' }); },
     tokens: function (n) { var a = Math.abs(n) % 100, b = a % 10; var w = (a > 10 && a < 20) ? 'токенов' : b === 1 ? 'токен' : (b >= 2 && b <= 4) ? 'токена' : 'токенов'; return fmt.num(n) + ' ' + w; },
+    /* цена действия словами: fmtTokens(10) → «+10 токенов»; значков 🎟 🎁 нет (ТЗ Интерьера и Моего ремонта, 26.10) */
+    fmtTokens: function (n) { return '+' + fmt.tokens(n); },
     phone: function (p) { var d = (p || '').replace(/\D/g, ''); return d.length >= 11 ? '+7 ' + d.slice(1, 4) + ' ··· ' + d.slice(7, 9) + ' ' + d.slice(9, 11) : p; },
     esc: function (s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   };
@@ -238,7 +240,7 @@
       var rooms = (r && r.plan && r.plan.rooms) || flow.rooms || [], area = rooms.reduce(function (a, x) { return a + (x.m2 || 0); }, 0) || (f && f.m2) || 0;
       var it = (r && r.interior) || flow.interior || null, base = (r && r.base) || {};
       return { stateId: STATE[base.state || flow.state] || 'concrete', area: Math.round(area * 10) / 10, rooms: rooms,
-        capsuleId: it && (it.capsuleId || it.id) || null, level: (r && r.budgetPlan && r.budgetPlan.type) || 'base' };
+        capsuleId: it && (it.capsuleId || it.baseCapsuleId || it.id) || null, level: (r && r.budgetPlan && r.budgetPlan.type) || 'base' };
     }
   };
 

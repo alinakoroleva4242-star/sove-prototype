@@ -121,7 +121,7 @@
 .ar-stage.is-sticky { position: static; }
 .ar-dock {
   /* нижнее меню приложения фиксировано и 64 px высотой — плашка садится над ним */
-  position: static; margin-top: 4px;
+  position: sticky; bottom: calc(64px + 8px); z-index: 3; margin-top: 12px;
   background: var(--white); border: 1px solid var(--line-2); border-radius: var(--r-sm);
   box-shadow: 0 -8px 24px -18px rgba(31,31,31,.5);
 }

@@ -22,31 +22,30 @@
     var p = CFG.GEN_PRICES[g];
     if (p === 0) return 'бесплатно';
     if (p === null || p === undefined) return '[N] токенов';
-    return F.tokens(p) + (CFG.perFrame[g] ? ' за кадр' : '');
+    return (CFG.fromPrice && CFG.fromPrice[g] ? 'от ' : '') + F.tokens(p) + (CFG.perFrame[g] ? (g === 'g5' ? ' за комнату' : ' за кадр') : '');
   }
   function tokensLabel() { return S.auth.isIn() ? F.tokens(S.tokens.balance()) : F.tokens(CFG.giftTokens) + ' 🎁'; }
 
   /* куда ведёт каждая генерация */
-  /* Планировка всегда открывается с первой продающей страницы (ТЗ-planirovka 18.0), а не сразу с мебели */
-  function planHref() { return 'plan-demo.html'; }
+  function planHref() { var f = FLOW ? FLOW.load() : {}; return f.step >= 2 ? 'arrange.html?v=panel&flow=1' : 'plan-demo.html'; }
   var GEN = [
     { re: /^План → 3D/, href: function () { return planHref(); } },
     { re: /^Расстановка/, href: function () { return 'arrange.html?v=panel&flow=1'; } },
-    { re: /^Мудборд по рендеру/, href: function () { return 'moodboard.html'; } },
+    { re: /^Мудборд по рендеру/, href: function () { return 'interior.html'; } },
     { re: /^Материал по фото/, href: function () { return 'ai.html?mode=photo'; } },
-    { re: /^Примерка капсулы/, href: function () { return 'result.html?gen=g4'; } },
-    { re: /^Своя капсула/, href: function () { return 'result.html?gen=g5'; } },
+    { re: /^Примерка капсулы/, href: function () { return 'interior.html?tab=rooms'; } },
+    { re: /^Своя капсула/, href: function () { return 'interior.html'; } },
     { re: /^Замена предмета/, href: function () { return 'result.html?gen=g6'; } },
-    { re: /^Спальня/, href: function () { return 'result.html?gen=g4'; } },
-    { re: /^Открыть мудборд/, href: function () { return 'moodboard.html'; } }
+    { re: /^Спальня/, href: function () { return 'interior.html?tab=rooms'; } },
+    { re: /^Открыть мудборд/, href: function () { return 'interior.html'; } }
   ];
-  var BLOCK_HREF = { plan: 'plan-demo.html', materials: 'moodboard.html', visual: 'result.html?gen=g4' };
+  var BLOCK_HREF = { plan: 'arrange.html?v=panel&flow=1', materials: 'interior.html', visual: 'interior.html?tab=rooms', interior: 'interior.html' };
   var CAPS = { 'Изумрудная неоклассика': 'k2', 'Бургундский камень': 'k1', 'Минимализм с голубым': 'k3', 'Тёплая классика': 'k4', 'Органика в песочном': 'k5' };
 
   /* к какому блоку относится элемент: ближайший предок, в тексте которого ровно один из трёх блоков */
   function blockOf(el) {
     for (var n = el; n && n !== root; n = n.parentElement) {
-      var t = n.textContent, hit = [['plan', 'Планировка'], ['materials', 'Материалы'], ['visual', 'Визуализации']].filter(function (b) { return t.indexOf(b[1]) >= 0; });
+      var t = n.textContent, hit = [['plan', 'Планировка'], ['materials', 'Материалы'], ['visual', 'Визуализации'], ['interior', 'Интерьер']].filter(function (b) { return t.indexOf(b[1]) >= 0; });
       if (hit.length === 1) return hit[0][0];
       if (hit.length > 1) return null;
     }
@@ -68,7 +67,7 @@
       if (/^пример\s›/i.test(t)) { var bt = blockOf(el); if (bt) el.setAttribute('href', BLOCK_HREF[bt]); return; }
       if (/^Все 7/.test(t)) { el.setAttribute('href', 'capsules.html'); return; }
       var cap = Object.keys(CAPS).filter(function (n) { return tb === n; })[0];
-      if (cap) { el.setAttribute('href', 'result.html?gen=g4&capsule=' + CAPS[cap] + '&step=rooms'); return; }
+      if (cap) { el.setAttribute('href', 'interior.html?capsule=' + CAPS[cap] + '&tab=rooms'); return; }
       for (var i = 0; i < GEN.length; i++) {
         if (GEN[i].re.test(tb)) {
           var href = GEN[i].href();
@@ -104,7 +103,7 @@
       return '<span class="sai-hv__tag" style="left:' + t.x + '%;top:' + t.y + '%"><b>' + esc(p.name.split(',')[0]) + '</b>' + F.rub(p.metod) + '</span>';
     }).join('');
     return '<div class="sai-hv">' +
-      '<a class="sai-hv__r" href="result.html?gen=g4"><img src="assets/img/demo/3-kuhnya-gostinaya.jpg" alt="Визуализация кухни-гостиной с товарами">' + tags +
+      '<a class="sai-hv__r" href="interior.html?tab=rooms"><img src="assets/img/demo/3-kuhnya-gostinaya.jpg" alt="Визуализация кухни-гостиной с товарами">' + tags +
         '<i>визуализация с товарами</i></a>' +
       '<a class="sai-hv__p" href="' + planHref() + '"><img src="assets/img/demo/1-domik-vsya-kvartira.jpg" alt="Планировка квартиры в 3D"><i>планировка</i></a>' +
       '</div>';
@@ -114,25 +113,24 @@
      вместо трёх блоков одна лента из 6 карточек; фото живое, подписи тёмным на белом */
   var FEED = [
     { g: 'g1', grp: 'ПЛАНИРОВКА', c: '#2E6B4E', t: 'План → 3D', d: 'план, расстановка мебели', img: 'g-domik.jpg' },
-    { g: 'g2', grp: 'МАТЕРИАЛЫ', c: '#A24E32', t: 'Мудборд по рендеру', d: 'своя картинка → мудборд и ДНК', img: 'k1-living.jpg' },
-    { g: 'g4', grp: 'ВИЗУАЛИЗАЦИИ', c: '#3E5440', t: 'Примерка капсулы', d: 'капсула SOVE в ваших комнатах', img: 'k2-kitchen.jpg' },
-    { g: 'g5', grp: 'ВИЗУАЛИЗАЦИИ', c: '#3E5440', t: 'Своя капсула', d: 'с нуля → рендеры комнат', img: 'k5.jpg' },
-    { g: 'g6', grp: 'ВИЗУАЛИЗАЦИИ', c: '#3E5440', t: 'Замена предмета', d: 'по зонам: стены, пол, свет, мебель', img: 'g-hall.jpg' }
+    { g: 'g4', grp: 'ИНТЕРЬЕР', c: '#A24E32', t: 'Капсула SOVE', d: 'ДНК, 12 материалов и комнаты дизайнера', img: 'k2-kitchen.jpg' },
+    { g: 'g2', grp: 'ИНТЕРЬЕР', c: '#A24E32', t: 'Своя картинка → капсула', d: 'рендер, фото, Pinterest → ДНК и доска', img: 'k1-living.jpg' },
+    { g: 'g5', grp: 'ИНТЕРЬЕР', c: '#A24E32', t: 'Комнаты · рендеры', d: 'на твоём плане · тап по материалу — замена', img: 'k5.jpg' }
   ];
   function variantF() {
     var tmp = document.createElement('div'); tmp.innerHTML = V.A;
     var kids = tmp.children, hero = kids[0].outerHTML, caps = kids[kids.length - 1].outerHTML;
     return hero +
-      '<section class="sai-f"><div class="sai-f__h"><b>Что можно создать</b><span>6 генераций · листай ›</span></div>' +
+      '<section class="sai-f"><div class="sai-f__h"><b>Что можно создать</b><span>' + FEED.length + ' генерации · листай ›</span></div>' +
       '<div class="sai-f__row">' + FEED.map(function (x) {
         return '<a class="sai-f__c" href="#"><span class="sai-f__pic" style="background-image:url(assets/img/sove-ai/' + x.img + ')"><i style="background:' + x.c + '">' + x.grp + '</i></span>' +
           '<span class="sai-f__b"><b>' + esc(x.t) + '</b><small>' + esc(x.d) + '</small><em class="' + (CFG.GEN_PRICES[x.g] === 0 ? 'is-free' : '') + '">' + esc(price(x.g)) + '</em></span></a>';
       }).join('') + '</div>' +
-      '<div class="sai-f__hist"><a href="#">Планировки · 0 ›</a><a href="#">Мудборды · 0 ›</a><a href="#">Рендеры · 0 ›</a></div></section>' + caps;
+      '<div class="sai-f__hist"><a href="#">Планировки · 0 ›</a><a href="#">Капсулы · 0 ›</a></div></section>' + caps;
   }
 
   /* вариант B по правке Алины 22.10: в шапке вместо фото — визуализация с товарами,
-     ниже — блок «Планировка» во всю ширину, затем Материалы и Визуализации */
+     ниже — блок «Планировка» во всю ширину, затем один блок «Интерьер» (бывшие Материалы и Визуализации) */
   function vizTags() {
     return HERO_TAGS.map(function (t) {
       var p = D.product(t.id); if (!p) return '';
@@ -149,18 +147,29 @@
   ];
   function variantB() {
     var tmp = document.createElement('div'); tmp.innerHTML = V.B;
-    var kids = tmp.children, mid = kids[1], caps = kids[kids.length - 1].outerHTML;
-    var materials = mid.children[0].outerHTML, visEl = mid.children[1].children[1];
+    var kids = tmp.children, mid = kids[1], capsHtml = kids[kids.length - 1].outerHTML;
+    var visEl = mid.children[1].children[1];
     /* комнаты в блоке Визуализаций: главный кадр + тонкий ряд комнат той же квартиры */
-    var top = visEl.children[0], badge = top.querySelector('span') ? top.querySelector('span').outerHTML : '';
+    var top = visEl.children[0], badge = '';   /* метка «3 Визуализации» не нужна — блок теперь «2 Интерьер» */
     top.outerHTML = '<div class="sai-rm"><div class="sai-rm__main"><img src="assets/img/demo/' + ROOMS[0].img + '.jpg" alt="' + esc(ROOMS[0].t) + '" data-rm-img>' + badge +
       '<span class="sai-rm__cap" data-rm-cap>' + esc(ROOMS[0].t) + '</span></div>' +
       '<div class="sai-rm__row">' + ROOMS.map(function (r, i) {
         return '<button type="button" class="sai-rm__t' + (i === 0 ? ' is-on' : '') + '" data-rm="' + i + '" aria-pressed="' + (i === 0) + '"><img src="assets/img/demo/' + r.img + '.jpg" alt=""><span>' + esc(r.s) + '</span></button>';
       }).join('') + '</div></div>';
-    var vis = visEl.outerHTML;
+    /* блоки Материалы (2) и Визуализации (3) → один блок «Интерьер» (2) (Алина 25.10, design/interior/TZ-interior.md): капсула = ДНК + материалы + комнаты.
+       Внутри — превью материалов (мудборд капсулы) и комнаты квартиры, одна кнопка-призыв «✦ Создать интерьер» */
+    var matEl = mid.children[0].children[0];
+    matEl.querySelectorAll('span, a, b').forEach(function (x) { var t = x.textContent.replace(/\s+/g, ' ').trim(); if (/^2\s*Материалы/.test(t) || /^Материалы$/.test(t) || /^2$/.test(t) || /^пример$/.test(t) || /Открыть мудборд/.test(t)) x.remove(); });   /* старая метка «2 Материалы · пример» — убираем, своя стоит на карточке */
+    var rooms = visEl.querySelector('.sai-rm') ? visEl.querySelector('.sai-rm').outerHTML : '';
+    /* одна карточка — одна ссылка (Алина 25.10): без строк Материалы / Визуализации и без «Ваши капсулы» */
+    var vis = '<div style="background: #FFFFFF; border-radius: 16px; overflow: hidden; display: flex; flex-direction: column">' +
+      '<div style="position: relative">' + matEl.outerHTML +
+      '<span style="position: absolute; left: 8px; top: 8px; z-index: 2; display: flex; align-items: center; gap: 6px; padding: 3px 8px 3px 3px; border-radius: 14px; background: rgba(255,255,255,0.94)"><span style="' + NUM + '">2</span><b style="font-size: 12px">Интерьер</b></span>' +
+      '<span style="position: absolute; right: 8px; top: 8px; z-index: 2; font-size: 10px; font-weight: 700; color: #2E6B4E; background: rgba(255,255,255,0.94); padding: 4px 8px; border-radius: 10px">пример</span></div>' +
+      '<div style="padding: 0 8px">' + rooms + '</div>' +
+      '<div style="padding: 8px"><a href="interior.html" style="display: flex; align-items: center; justify-content: center; height: 46px; border-radius: 12px; background: #A24E32; color: #FFFFFF; font: 800 13px Montserrat, Arial, sans-serif; text-decoration: none">✦ Создать интерьер</a></div></div>';
     var hero = '<div class="sai-hb"><div class="sai-hb__t">Создай<br>свой интерьер</div><div class="sai-hb__s">Твой карманный дизайнер</div>' +
-      '<a class="sai-hb__v" href="result.html?gen=g4"><img src="assets/img/demo/3-kuhnya-gostinaya.jpg" alt="Визуализация кухни-гостиной с товарами">' + vizTags() + '<i>визуализация с товарами</i></a>' +
+      '<a class="sai-hb__v" href="interior.html?tab=rooms"><img src="assets/img/demo/3-kuhnya-gostinaya.jpg" alt="Визуализация кухни-гостиной с товарами">' + vizTags() + '<i>визуализация с товарами</i></a>' +
       '<button type="button" class="sai-hb__c">＋ Создать</button></div>';
     var plan = '<div style="background: #FFFFFF; border-radius: 16px; overflow: hidden; display: flex; flex-direction: column">' +
       '<div style="position: relative"><img src="assets/img/demo/1-domik-vsya-kvartira.jpg" alt="План в 3D" style="width: 100%; height: 210px; object-fit: cover; display: block">' +
@@ -168,7 +177,7 @@
       '<span style="position: absolute; right: 8px; top: 8px; font-size: 10px; font-weight: 700; color: #2E6B4E; background: rgba(255,255,255,0.94); padding: 4px 8px; border-radius: 10px">пример</span></div>' +
       '<div style="padding: 8px; display: flex; flex-direction: column; gap: 5px"><button type="button" style="' + BTN + '"><span style="color: #A24E32; font-size: 13px; width: 14px; text-align: center">✦</span><span style="flex: 1; display: flex; flex-direction: column; gap: 1px"><b style="font-size: 11px">План → 3D</b><small style="font-size: 9px; color: #6B655F">план, расстановка мебели, комнаты</small></span><span style="font-size: 8px; font-weight: 800; padding: 2px 5px; border-radius: 5px; background: #E2EEE6; color: #2E6B4E">БЕСПЛАТНО</span><span style="font-size: 12px; color: #A8A19A">›</span></button>' +
       '<div style="text-align: right"><a href="#" style="font-size: 10px; font-weight: 700; text-decoration: none; white-space: nowrap">Ваши планировки · 0 ›</a></div></div></div>';
-    return hero + '<div style="display: flex; flex-direction: column; gap: 10px; padding: 12px">' + plan + materials + vis + '</div>' + caps;
+    return hero + '<div style="display: flex; flex-direction: column; gap: 10px; padding: 12px">' + plan + vis + '</div>' + capsHtml;
   }
 
   function render() {
@@ -191,7 +200,7 @@
   }
 
   function showHist(type) {
-    var names = { plan: 'Ваши планировки', materials: 'Ваши мудборды', visual: 'Ваши рендеры' };
+    var names = { plan: 'Ваши планировки', materials: 'Ваши капсулы', visual: 'Ваши комнаты', interior: 'Ваши капсулы' };
     var list = hist()[type];
     S.ui.modal({ eyebrow: 'История SOVE AI', title: names[type] + ' · ' + list.length,
       html: list.length ? '<ul class="sai-hl">' + list.map(function (x) {

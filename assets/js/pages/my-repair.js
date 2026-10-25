@@ -62,9 +62,12 @@
     var it = R.get().interior;
     if (!it) return { sub: 'пусто', html: empty('interior', 'Выберите интерьер — мудборд материалов с ценами', 'Выбрать в SOVE AI', R.LINK.materials) };
     var ids = it.productIds || [], prods = ids.map(function (id) { return D.product(id); }).filter(Boolean), shown = ui$.open === 'mat' ? prods : prods.slice(0, 3);
-    return { sub: it.name || 'Своя капсула', pic: (it.dna && it.dna[0]) || it.img, n: prods.length,
-      html: '<div class="rs-mb">' + (it.dna || []).slice(0, 4).map(function (s) { return '<img src="' + s + '" alt="" loading="lazy">'; }).join('') + '</div>' +
-        '<div class="rs-mb__t"><b>' + esc(it.name || 'Своя капсула') + '</b><span class="rs-dna" aria-label="ДНК интерьера">' + (it.dna || []).map(function (s) { return '<i style="background-image:url(\'' + s + '\')"></i>'; }).join('') + '</span></div>' +
+    /* ДНК: у капсулы — картинки, у своей доски отделки (блок Материалы) — цвета {hex, name} */
+    var own = it.type === 'own', imgs = own ? (it.img ? [it.img] : []) : (it.dna || []).slice(0, 4);
+    var sw = function (s) { return typeof s === 'string' ? 'background-image:url(\'' + s + '\')' : 'background:' + s.hex; };
+    return { sub: it.name || 'Своя капсула', pic: own ? it.img : (it.dna && it.dna[0]) || it.img, n: prods.length,
+      html: '<div class="rs-mb">' + imgs.map(function (s) { return '<img src="' + s + '" alt="" loading="lazy">'; }).join('') + '</div>' +
+        '<div class="rs-mb__t"><b>' + esc(it.name || 'Своя капсула') + '</b><span class="rs-dna" aria-label="ДНК интерьера">' + (it.dna || []).map(function (s) { return '<i style="' + sw(s) + '"></i>'; }).join('') + '</span></div>' +
         '<div class="rs-sub"><b>Материалы · ' + prods.length + ' · ' + F.rub(sum(ids)) + '</b>' + more(R.LINK.materials, 'Изменить в SOVE AI') + '</div>' +
         '<div class="rp-list">' + shown.map(function (p) { return R.card(p, { source: 'moodboard' }); }).join('') + '</div>' +
         (prods.length > 3 ? '<button type="button" class="btn btn--link btn--sm" data-open="mat">' + (ui$.open === 'mat' ? 'Свернуть' : 'Показать все · ' + prods.length) + '</button>' : '') +

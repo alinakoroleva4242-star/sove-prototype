@@ -219,13 +219,12 @@
     var rec = list.filter(function (x) { return x.key === key; })[0], dup = !!rec;
     if (!rec) { rec = { id: 'pl-' + Date.now().toString(36), key: key, flatId: flat.id, type: V ? 'replan' : '3d', variant: V ? V.letter : null, createdAt: Date.now() }; list.unshift(rec); }
     Object.assign(rec, { planImg: T.img, layout: T.items, arrangement: T.arrangement, interiorId: INT ? (INT.id || INT.type) : null, interiorName: INT ? INT.name : null,
-      items: INT ? T.goods : null, count: T.count, budget: INT ? { lines: P.budget.lines, total: P.budget.total, type: P.budget.type } : null, flat: P.flatName, answers: P.answers });
+      items: T.goods, count: T.count, budget: { lines: P.budget.lines, total: P.budget.total, type: P.budget.type }, flat: P.flatName, answers: P.answers });
     list.forEach(function (x) { x.isMain = x === rec; });
     try { localStorage.setItem(HKEY, JSON.stringify(all)); } catch (e) { list.forEach(function (x) { if (x !== rec) x.planImg = null; }); try { localStorage.setItem(HKEY, JSON.stringify(all)); } catch (e2) {} }
     r.base = { historyId: rec.id, source: P.source, accuracy: P.accuracy, state: P.state };
     r.replan = V ? { historyId: rec.id, variant: V.letter, approval: V.approval } : null;
-    /* мебель и бюджет сохраняем только с интерьером: без него цены мебели и бюджета нет (Алина 24.10) */
-    if (INT) r.budgetPlan = { lines: P.budget.lines, type: P.budget.type, total: P.budget.total, ts: Date.now(), full: !!(r.budgetPlan && r.budgetPlan.full), furniture: P.furniture };
+    r.budgetPlan = { lines: P.budget.lines, type: P.budget.type, total: P.budget.total, ts: Date.now(), full: !!(r.budgetPlan && r.budgetPlan.full), furniture: P.furniture };
     r.progress = INT ? 50 : 25;
     if (INT) {
       var c = INT.type === 'capsule' ? S.data.capsule(INT.id) : null;
@@ -275,11 +274,10 @@
       '<h1>' + esc(P.flatName) + '</h1><p class="sub">' + esc((P.INT ? P.INT.name + ' · ' : '') + '«' + T.arrangement + '» · ' + T.count + ' предметов') + '</p>' +
       (img ? '<img class="plan" src="' + esc(absUrl(img)) + '" alt="">' : '') +
       '<div class="rooms">' + P.rooms.slice(0, 4).map(function (r) { return '<div><b>' + String(r.m2 || '').replace('.', ',') + '</b>' + esc(r.name.toLowerCase()) + '</div>'; }).join('') + '</div>' +
-      /* без интерьера — только план и расстановка, без цен мебели и бюджета */
-      (P.INT ? '<div class="tot"><span>Мебель</span><span>≈ ' + rub(P.furniture) + '</span></div><div class="list">' +
+      '<div class="tot"><span>Мебель</span><span>≈ ' + rub(P.furniture) + '</span></div><div class="list">' +
       (T.goods || []).slice(0, 4).map(function (g) { return '<div><span>' + esc(g.label + ' · ' + String(g.room || '').toLowerCase()) + '</span><span>' + rub(g.metod) + '</span></div>'; }).join('') +
-      (rest ? '<div><span>ещё ' + rest + ' предметов …</span><span></span></div>' : '') + '</div>' : '') +
-      (P.INT && budgetFull() ? '<div class="tot"><span>Ремонт под ключ</span><span>≈ ' + rub(P.budget.total) + '</span></div>' : '') +
+      (rest ? '<div><span>ещё ' + rest + ' предметов …</span><span></span></div>' : '') + '</div>' +
+      (budgetFull() ? '<div class="tot"><span>Ремонт под ключ</span><span>≈ ' + rub(P.budget.total) + '</span></div>' : '') +
       '<div class="foot">Сделано в SOVE · sove.app<br>Расстановка по нормам проходов. Перед стройкой проверьте размеры по обмеру. Цены METOD на ' + d + '.</div>');
   }
   /* план с размерами: вид сверху, комнаты с размерами, мебель с габаритами в мм — для бригады */
@@ -350,7 +348,7 @@
     if (finishOpts && finishOpts.before) finishOpts.before();
     var r = savePlan();
     window.SOVE.ui.toast('Сохранено в Мой ремонт', 'ok');
-    setTimeout(function () { location.href = 'result.html?from=plan&flat=' + encodeURIComponent(r ? r.flatId : ''); }, 600);
+    setTimeout(function () { location.href = 'interior.html?from=plan&tab=rooms&flat=' + encodeURIComponent(r ? r.flatId : ''); }, 600);
   }
   var finishOpts = null;
   /* opts: { getImg() — картинка 3D-плана сейчас; before() — экран дописывает расстановку; after(res) — после сохранения } */
@@ -363,7 +361,7 @@
       '<button type="button" class="pz-visual" data-pf="visual"><span class="pz-visual__t"><b>✦ Дальше: визуализации</b><small>Покажем каждую комнату в интерьере · ' + priceTxt() + ' за комнату</small>' +
         '<span class="pz-visual__th">' + thumbs.map(function (t) { return '<i style="background-image:url(assets/img/demo/' + t + '.jpg)"></i>'; }).join('') + '</span></span><em>›</em></button>' +
       /* одно «Дальше» на экране (методология, П2): скачать, поделиться и перепланировка — в «Ещё» */
-      '<button type="button" class="pz-link" data-pf="more">Ещё ⋯ скачать, поделиться</button>' +
+      '<button type="button" class="pz-link" data-pf="more">Ещё ⋯ скачать, поделиться' + (finishOpts.more && finishOpts.more.length ? ', стены' : '') + '</button>' +
       '</section>';
   }
   document.addEventListener('click', function (e) {
@@ -398,13 +396,11 @@
   function productList(rows, opts) {
     var R = window.SOVE.repair, F = window.SOVE.fmt, st = plState(opts.key || 'list'); st.rows = rows; st.opts = opts;
     var withP = rows.filter(function (r) { return r.p; }), sum = withP.reduce(function (a, r) { return a + (r.p.metod || 0); }, 0);
-    /* цены всегда две: с подпиской METOD и без (Алина 24.10) */
-    var sumR = withP.reduce(function (a, r) { return a + (r.p.retail || r.p.metod || 0); }, 0);
     var shown = st.on || st.all || !opts.limit ? rows : rows.slice(0, opts.limit), nSel = Object.keys(st.sel).length, key = esc(opts.key || 'list');
     var html = '<section class="pz-card pz-goods pz-pl' + (st.on ? ' is-sel' : '') + '" data-pl="' + key + '">' +
       '<div class="pz-goods__h"><b>' + esc(opts.title) + ' · ' + rows.length + '</b>' +
         (st.on ? '<span class="pz-pl__ctl"><button type="button" data-pl-act="all">' + (nSel === withP.length ? 'Снять все' : 'Выбрать все · ' + withP.length) + '</button><button type="button" data-pl-act="done">Готово</button></span>'
-               : '<span class="pz-pl__ctl"><span class="pz-2p"><b>≈ ' + F.rub(sum) + '</b><small>без подписки ' + F.rub(sumR) + '</small></span><button type="button" data-pl-act="select">Выбрать</button></span>') + '</div>' +
+               : '<span class="pz-pl__ctl"><b>≈ ' + F.rub(sum) + '</b><button type="button" data-pl-act="select">Выбрать</button></span>') + '</div>' +
       shown.map(function (r, i) {
         var on = !!st.sel[i], inCart = r.p && R.cart.has(r.p.id);
         return '<div class="pz-good' + (st.on ? ' is-sel' : '') + (on ? ' is-on' : '') + '"' + (st.on && r.p ? ' data-pl-row="' + i + '" role="checkbox" aria-checked="' + on + '" tabindex="0"' : '') + '>' +
@@ -476,7 +472,7 @@
   function budgetFull() { var R = window.SOVE.repair; return !!(R && R.flats.active() && R.get().budgetPlan && R.get().budgetPlan.full); }
   /* полный бюджет куплен — держим строки актуальными при любых изменениях (бесплатно) */
   function refreshBudget() {
-    var R = window.SOVE.repair, P = planDoc(); if (!budgetFull() || !P || !P.INT || !window.SOVE_BUDGET) return;   /* без расчёта и без интерьера не затираем итог */
+    var R = window.SOVE.repair, P = planDoc(); if (!budgetFull() || !P || !window.SOVE_BUDGET) return;   /* без расчёта не затираем итог */
     var bp = R.get().budgetPlan; Object.assign(bp, { lines: P.budget.lines, total: P.budget.total, type: P.budget.type, furniture: P.furniture, ts: Date.now() });
     R.flats.update(R.flats.active().id, {});
   }
@@ -488,19 +484,32 @@
      Мебель — из расстановки, материалы — по выбранному интерьеру (бесплатно), декор — после визуализаций,
      работы — за токены через Скаут (П5). Одна цифра «итого» — и здесь, и в полосе «Бюджет» над меню. */
   function budgetLayers() {
-    if (!interiorChosen()) return null;                /* без интерьера бюджета нет */
     var P = window.SOVE_BUDGET && planDoc(); if (!P) return null;
     var R = window.SOVE.repair, r = R && R.flats.active() ? R.get() : {}, L = {};
     P.budget.lines.forEach(function (l) { L[l.key] = l.value || 0; });
-    var INT = P.INT || (r.interior ? { name: r.interior.name } : null), renders = R && R.flats.active() ? R.rendersCount() : 0;
+    var INT = P.INT || (r.interior ? { name: r.interior.name } : null), renders = R && R.flats.active() ? R.rendersCount() : 0, OWN = R && R.flats.active() && R.ownMat ? R.ownMat() : null;
     var parts = [
-      { key: 'furniture', t: 'Мебель', sub: P.T.count + ' ' + plural3(P.T.count, 'предмет', 'предмета', 'предметов') + ' по расстановке', known: true, value: P.furniture },
-      { key: 'materials', t: 'Материалы', sub: INT ? 'по интерьеру «' + INT.name + '»' : 'пол, стены, плитка, свет', known: !!INT, value: L.finish_mat + L.plumbing + L.electric + L.kitchen },
+      /* мебель — расстановка Планировки + разница от предметов, заменённых на рендерах Интерьера (ТЗ Интерьера, 3: уровень 3 меняет строку «Мебель») */
+      { key: 'furniture', t: 'Мебель', sub: P.T.count + ' ' + plural3(P.T.count, 'предмет', 'предмета', 'предметов') + ' по расстановке', known: true, value: P.furniture + (r.interior && r.interior.objectDelta || 0) },
+      /* «Материалы» — один источник (ТЗ Интерьера, 9): interior — сумма товаров капсулы (только вся квартира), norm — нормы Скаута, метка «план».
+         Цифры не складываются и рядом не показываются; «дороже нормы» не пишем */
+      OWN ? { key: 'materials', src: 'interior', t: 'Материалы', sub: OWN.known ? 'по выбору · 12 позиций' : OWN.zones === 1 ? '1 комната' : OWN.zones + ' из ' + OWN.total + ' зон', known: OWN.known, value: OWN.value }
+        : { key: 'materials', src: 'norm', t: 'Материалы', sub: INT ? 'план · по интерьеру «' + INT.name + '»' : 'план · пол, стены, плитка, свет', known: !!INT, value: L.finish_mat + L.plumbing + L.electric + L.kitchen },
       { key: 'decor', t: 'Декор и текстиль', sub: renders ? 'по визуализациям' : 'после визуализаций', known: renders > 0, value: L.decor },
       { key: 'works', t: 'Работы', sub: 'черновые и чистовые · Скаут', known: budgetFull(), value: (L.demolition || 0) + L.rough_works + (L.partitions || 0) + L.rough_mat + L.finish_works }
     ];
-    var known = parts.filter(function (x) { return x.known; });
-    return { P: P, parts: parts, known: known.length, total: known.reduce(function (a, x) { return a + (x.value || 0); }, 0), type: P.budget.type };
+    /* полный бюджет куплен — 4 слоя = свёртка 9 категорий + 5 этапов (design/budget/TZ-budget.md): итог = totals.plan экрана Бюджета, одна цифра везде */
+    var C = budgetFull() && window.SOVE_BUDGET.current ? window.SOVE_BUDGET.current() : null;
+    if (C && C.totals.plan !== null) {
+      var kv = {}; C.kit.forEach(function (k) { kv[k.key] = k.plan || 0; });
+      parts[0].value = kv.furniture + kv.furniture_custom;
+      parts[1] = Object.assign({}, parts[1], { known: true, value: kv.finish + kv.light + kv.sockets + kv.plumbing + kv.doors + kv.appliances });
+      parts[2] = Object.assign({}, parts[2], { known: true, value: kv.decor });
+      parts[3] = Object.assign({}, parts[3], { known: true, value: C.totals.worksAndRough });
+    }
+    var known = parts.filter(function (x) { return x.known; }), tot = known.reduce(function (a, x) { return a + (x.value || 0); }, 0);
+    if (C && C.totals.plan !== null && tot !== C.totals.plan) console.warn('Бюджет: 4 слоя ' + tot + ' ≠ totals.plan ' + C.totals.plan);
+    return { P: P, parts: parts, known: known.length, total: tot, type: P.budget.type, C: C };
   }
   /* карточка бюджета: только когда интерьер выбран (Алина 24.10), без него — подсказка в ленте интерьеров.
      В Моём ремонте (opts.full) после расчёта работ — ещё переключатель База / Премиум */

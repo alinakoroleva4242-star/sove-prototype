@@ -1,5 +1,7 @@
 /* «Избранное» — перенос экрана /marketplace/favorites: папки и сохранённые товары.
-   Папки живут в этом браузере; товар лежит в одной папке, по умолчанию — «Все». */
+   Папки живут в этом браузере; товар лежит в одной папке, по умолчанию — «Все».
+   Сверху (Алина 25.10): «Интерьеры» — сохранённые интерьеры квартир и «＋ свой интерьер», «Подборки» — блоки товаров к интерьеру целиком
+   (R.favSets; позже — посты Ленты METOD), ниже — товары по папкам. Избранное — квартиры из Моего ремонта (repair.js). */
 (function () {
   var S = window.SOVE, D = S.data, F = S.fmt, esc = F.esc, ui = S.ui;
   var root = document.getElementById('fv-root'); if (!root) return;
@@ -26,11 +28,31 @@
     return cur === 'all' ? list : list.filter(function (p) { return inFolder(p.id) === cur; });
   }
 
+  var openSet = null;
+  function interiors() {
+    var R = S.repair; if (!R) return '';
+    var cards = R.flats.list().map(function (fl) { var x = R.get(fl.id).interior; return x && x.slots && x.imageUrl ? '<a class="fv-int" href="interior.html?v=b&flat=' + encodeURIComponent(fl.id) + '"><span style="background-image:url(' + esc(x.imageUrl) + ')"></span><b>' + esc(x.name || x.style) + '</b><small>' + esc(fl.name) + '</small></a>' : ''; }).join('');
+    return '<div class="stack stack--3"><h2 class="h3">Интерьеры</h2><div class="fv-ints">' + cards +
+      '<a class="fv-int fv-int--add" href="interior.html?v=a"><span>＋</span><b>Свой интерьер</b><small>картинка, фото, Pinterest</small></a></div></div>';
+  }
+  function sets() {
+    var R = S.repair; if (!R || !R.favSets) return '';
+    var list = R.favSets.list();
+    return '<div class="stack stack--3"><h2 class="h3">Подборки' + (list.length ? ' · ' + list.length : '') + '</h2>' + (list.length ? list.map(function (x) {
+      var ps = (x.productIds || []).map(function (id) { return D.product(id); }).filter(Boolean), sum = ps.reduce(function (a, p) { return a + p.metod; }, 0), on = openSet === x.id;
+      return '<div class="fv-set"><button type="button" class="fv-set__h" data-set="' + esc(x.id) + '" aria-expanded="' + on + '"><span class="fv-set__pic" style="background-image:url(' + esc(x.cover || (ps[0] || {}).img || '') + ')"></span>' +
+        '<span class="fv-set__t"><b>' + esc(x.title) + '</b><small>' + ps.length + ' ' + (ps.length % 10 === 1 && ps.length % 100 !== 11 ? 'товар' : ps.length % 10 >= 2 && ps.length % 10 <= 4 && (ps.length % 100 < 10 || ps.length % 100 >= 20) ? 'товара' : 'товаров') + ' · ' + F.rub(sum) + '</small></span><i>' + (on ? '▴' : '▾') + '</i></button>' +
+        '<div class="fv-set__strip">' + ps.slice(0, 6).map(function (p) { return '<a href="product.html?id=' + p.id + '" style="background-image:url(' + esc(p.img) + ')" aria-label="' + esc(p.name) + '"></a>'; }).join('') + '</div>' +
+        (on ? '<div class="fav-grid">' + ps.map(function (p) { return ui.productCard(p); }).join('') + '</div>' : '') +
+        '<div class="fv-set__acts"><button type="button" class="btn btn--primary btn--sm" data-set-cart="' + esc(x.id) + '">🛒 Все в корзину</button><button type="button" class="btn btn--link" data-set-off="' + esc(x.id) + '">Убрать</button></div></div>';
+    }).join('') : '<p class="fav-empty">Сохрани блок товаров к интерьеру целиком — кнопка «♡ Товары к интерьеру» в Интерьере. Подборки из Ленты METOD появятся здесь после подключения канала.</p>') + '</div>';
+  }
   function paint() {
     var fs = folders(), list = items();
     root.innerHTML =
       '<div class="stack stack--3"><span class="eyebrow">Маркетплейс</span><h1 class="h1">Избранное</h1>' +
-      '<p class="text">Сохранённые товары. Разложите по папкам — например, «Кухня» и «Свет», — чтобы не искать заново.</p></div>' +
+      '<p class="text">Интерьеры, подборки товаров к интерьеру и отдельные товары.</p></div>' +
+      interiors() + sets() + '<h2 class="h3">Товары</h2>' +
 
       '<div class="fav-folders">' +
         '<button type="button" class="chip' + (cur === 'all' ? ' is-on' : '') + '" data-f="all">Все</button>' +
@@ -62,6 +84,9 @@
 
       '<a class="btn btn--ghost btn--block" href="market.html">Открыть каталог</a>';
 
+    root.querySelectorAll('[data-set]').forEach(function (b) { b.addEventListener('click', function () { var id = b.getAttribute('data-set'); openSet = openSet === id ? null : id; paint(); }); });
+    root.querySelectorAll('[data-set-cart]').forEach(function (b) { b.addEventListener('click', function () { var x = S.repair.favSets.list().filter(function (y) { return y.id === b.getAttribute('data-set-cart'); })[0]; if (x) S.repair.cart.addMany(x.productIds, 'market'); }); });
+    root.querySelectorAll('[data-set-off]').forEach(function (b) { b.addEventListener('click', function () { var x = S.repair.favSets.list().filter(function (y) { return y.id === b.getAttribute('data-set-off'); })[0]; if (x) { S.repair.favSets.toggle(x); paint(); } }); });
     root.querySelectorAll('[data-f]').forEach(function (b) {
       b.addEventListener('click', function () { cur = b.getAttribute('data-f'); paint(); });
     });
@@ -109,5 +134,6 @@
   if (S.favs.list().length) root.innerHTML = '<div class="stack stack--3"><span class="eyebrow">Маркетплейс</span><h1 class="h1">Избранное</h1><p class="text">Загружаем сохранённые товары…</p></div>';
   refresh();
   window.addEventListener('sove:my', refresh);
+  window.addEventListener('sove:repair', paint);
   if (S.onChange) S.onChange(refresh);
 })();

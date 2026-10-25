@@ -1,4 +1,4 @@
-/* Мой ремонт — главный вид my.html по ТЗ design/moy-remont/TZ-moy-remont.md, шаг 1 (п. 8):
+/* Мой ремонт — главный вид my.html по ТЗ design/moy-remont/TZ-moy-remont.md, шаг 1 (п. 8); вариант D — новое оформление design/my/TZ-my-design.md:
    шапка + дашборд по эталонам B–E (вид — assets/js/my-etalons.js, собирается из design/moy-remont/etalon-*.html),
    переключатель вариантов сверху, по умолчанию D (⚠️ — в CFG). Данные эталона пока показные; живые цифры — шаг 2 (repairProgress). */
 (function () {
@@ -30,6 +30,10 @@
     root.querySelectorAll('.myv-page button, .myv-page a').forEach(function (el) {
       var t = txt(el), h = null;
       if (el.closest('[data-my="pros"]')) return;                       /* дизайнер / стройка — свои ссылки */
+      if (/^Подключить дизайнера/.test(t)) h = 'adept.html';
+      else if (/^Подключить строительную/.test(t)) h = 'track.html';
+      else if (/^Загрузить план$/.test(t)) { el.addEventListener('click', function (e) { e.preventDefault(); openUpload(); }); return; }
+      if (h) { el.setAttribute('href', h); return; }
       if (/^＋ Создать/.test(t)) { el.addEventListener('click', function (e) { e.preventDefault(); if (window.SOVE_AI_CREATE) SOVE_AI_CREATE.open(); }); return; }
       if (/^Моя квартира/.test(t) && el.tagName !== 'A') return;
       if (t === 'изменить') h = L.object;
@@ -41,6 +45,8 @@
       else if (/Загрузить/.test(t)) h = L.upload;
       if (h) { if (el.tagName === 'A') el.setAttribute('href', h); el.addEventListener('click', go(h)); }
     });
+    /* цены — словами через fmtTokens: «+10 токенов» */
+    root.querySelectorAll('.myv-page span, .myv-page small').forEach(function (s) { var m = !s.children.length && /^\+(\d+) токен/.exec(txt(s)); if (m) s.textContent = S.fmt.fmtTokens(+m[1]); });
     /* метки комнат на проявке: ✦ — сгенерировать эту комнату */
     root.querySelectorAll('.myv-page span').forEach(function (s) { if (/^✦ /.test(txt(s)) && !s.children.length) { s.style.cursor = 'pointer'; s.setAttribute('role', 'button'); s.addEventListener('click', go(L.generate)); } });
     /* «Моя квартира ▾» — переключатель квартир + «+ Добавить квартиру» */
@@ -62,7 +68,8 @@
     return g.concat(sc).sort(function (a, b) { return b.ts - a.ts; });
   }
   function histLink(el) {
-    var n = histItems().length, sp = el.querySelector('span');
+    /* подпись — тот элемент, где написано «История генераций» (в D первый span — кружок с иконкой) */
+    var n = histItems().length, sp = [].filter.call(el.querySelectorAll('b, span'), function (x) { return !x.children.length && /^История генераций/.test(txt(x)); })[0];
     if (sp) sp.textContent = 'История генераций · ' + n;
     el.setAttribute('href', '#history');
     el.addEventListener('click', function (e) { e.preventDefault(); openHistory(); });
@@ -104,13 +111,19 @@
   /* ---------- Основа квартиры: 3 плитки и шкала точности — по тому, что загружено (ТЗ п. 4.1; вид — плитки эталона) ---------- */
   var RANK = { none: 0, developer_plan: 1, measured_plan: 2, design_project: 3 };
   var ACC = [ ['—', 'загрузи план — посчитаем бюджет'], ['примерно', 'загрузи обмерный план или дизайн-проект — посчитаем точнее'], ['точнее', 'загрузи дизайн-проект — посчитаем точно'], ['точно', 'бюджет считаем по твоему проекту'] ];
-  function baseBlock(page) {
+  function baseBlock(page, keep) {
     var title = [].filter.call(page.querySelectorAll('b'), function (b) { return txt(b) === 'Основа квартиры'; })[0]; if (!title) return;
     var box = title.closest('div[style*="border-radius: 16px"]') || title.parentNode.parentNode;
     var plan = R && R.get().plan, lvl = plan ? plan.level : 'none', n = RANK[lvl] || 0;
     box.querySelectorAll('b').forEach(function (b) {
       var k = KINDS.filter(function (x) { return x.t === txt(b); })[0]; if (!k) return;
       var tile = b.parentNode, on = k.id === lvl;
+      if (keep) {   /* D: плитки эталона как есть (белые, иконка, «Загрузить ›»); загруженная — миниатюра плана и «✓ загружен» */
+        tile.style.cursor = 'pointer'; tile.onclick = function (e) { e.preventDefault(); openUpload(k.id); };
+        if (on) { var ic = tile.firstElementChild; if (ic && plan.img) ic.outerHTML = '<span style="width: 100%; height: 56px; border-radius: 8px; background: url(' + esc(plan.img) + ') center / cover"></span>';
+          var go_ = tile.lastElementChild; if (go_) { go_.textContent = '✓ загружен'; go_.style.color = '#2E6B4E'; } }
+        return;
+      }
       var pic = on ? (plan.img ? '<span style="height: 64px; border-radius: 8px; background: url(' + esc(plan.img) + ') center / cover"></span>'
           : '<span style="height: 64px; border-radius: 8px; background: #FFFFFF; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: #2E6B4E"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + DOC_IC[k.id] + '</svg><small style="font-size: 8px; color: #6B655F; max-width: 90%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">' + esc(plan.file || '') + '</small></span>')
         : '<span style="height: 64px; border-radius: 8px; border: 1.5px dashed #CFC6BC; display: flex; align-items: center; justify-content: center; font-size: 20px; color: #A24E32">⇪</span>';
@@ -161,14 +174,32 @@
     m.el.querySelectorAll('[data-flat]').forEach(function (b) { b.addEventListener('click', function () { R.flats.setActive(b.getAttribute('data-flat')); m.close(); }); });
   }
 
+  /* D · шапка: кольцо готовности и шаги — по R.progress() (сделано / 4); кнопка «Загрузить план» — что уже загружено */
+  var CHECK = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+  function liveHead(page) {
+    if (!R || !R.progress) return;
+    var P = R.progress(), done = P.steps.filter(function (x) { return x.done; }).length, pct = Math.round(done / P.steps.length * 100);
+    var ring = page.querySelector('span[style*="conic-gradient"]');
+    if (ring) { ring.style.background = 'conic-gradient(#A24E32 0 ' + pct + '%, #EADBCF ' + pct + '% 100%)'; var b = ring.querySelector('b'); if (b) b.textContent = pct + '%'; }
+    var circles = [].filter.call(page.querySelectorAll('span[style*="width: 40px; height: 40px"]'), function (c) { return c.nextElementSibling && c.nextElementSibling.tagName === 'B'; });
+    circles.forEach(function (c, i) {
+      var s0 = P.steps[i]; if (!s0) return;
+      c.style.background = s0.done ? '#A24E32' : '#FFFFFF'; c.style.color = s0.done ? '#FFFFFF' : '#8A7F74'; c.style.borderColor = s0.done ? '#A24E32' : '#E6DCD0';
+      /* на эталоне «Основа» нарисована готовой — без плана ставим ей значок плана */
+      if (s0.done) c.innerHTML = CHECK; else if (i === 0) c.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + DOC_IC.developer_plan + '</svg>';
+      c.nextElementSibling.style.color = s0.done ? '#A24E32' : '#4A4541';
+    });
+    var lvl = R.level(), up = [].filter.call(page.querySelectorAll('a'), function (a) { return /Загрузить план$/.test(txt(a)); })[0];
+    if (up && lvl !== 'none') up.lastChild.textContent = '✓ ' + R.LEVEL[lvl] + ' · сменить';
+  }
   function render(root) {
     var v = variant();
     root.className = 'myv';
     root.innerHTML = picker(v) + '<div class="myv-page">' + ET[v] + '</div>';
     root.querySelectorAll('[data-myv]').forEach(function (b) { b.addEventListener('click', function () { setVariant(b.getAttribute('data-myv')); render(root); window.scrollTo(0, 0); }); });
     wire(root);
-    uploadBar(root.querySelector('.myv-page'));
-    baseBlock(root.querySelector('.myv-page'));
+    if (v === 'D') liveHead(root.querySelector('.myv-page')); else uploadBar(root.querySelector('.myv-page'));   /* в D кнопка «Загрузить план» — в карточке плана */
+    baseBlock(root.querySelector('.myv-page'), v === 'D');
   }
   window.SOVE_MY_HOME = function (root) { render(root); window.addEventListener('sove:repair', function () { if (document.body.contains(root)) render(root); }); };
 })();

@@ -4,22 +4,21 @@
 (function () {
   var S = window.SOVE, F = S.fmt, esc = F.esc, CFG = window.SOVE_AI_CONFIG;
   var IMG = 'assets/img/sove-ai/';
-  /* Планировка всегда открывается с первой продающей страницы (ТЗ-planirovka 18.0) */
-  function planHref() { return 'plan-demo.html'; }
+  function planHref() { var f = window.SOVE_FLOW ? window.SOVE_FLOW.load() : {}; return f.step >= 2 ? 'arrange.html?v=panel&flow=1' : 'plan-demo.html'; }
+  /* блоки Материалы и Визуализации объединены в Интерьер (design/interior/TZ-interior.md; Алина 25.10): капсула = ДНК + материалы + комнаты.
+     «Замена предмета» живёт внутри Комнат — тап по материалу на рендере, отдельной генерации нет */
   var GROUPS = [
     { t: 'ПЛАНИРОВКА', items: [{ g: 'g1', t: 'План → 3D', img: 'g-domik.jpg', href: planHref }] },
-    { t: 'МАТЕРИАЛЫ', items: [
-      { g: 'g2', t: 'Мудборд по рендеру', img: 'k1-living.jpg', href: function () { return 'moodboard.html'; } }] },   /* «Материал по фото» убран (Алина 22.10) — это поиск товара по фото в Маркете */
-    { t: 'ВИЗУАЛИЗАЦИИ', items: [
-      { g: 'g4', t: 'Примерка капсулы', img: 'k2-kitchen.jpg', href: function () { return 'result.html?gen=g4'; } },
-      { g: 'g5', t: 'Своя капсула', img: 'k5.jpg', href: function () { return 'result.html?gen=g5'; } },
-      { g: 'g6', t: 'Замена предмета', img: 'g-hall.jpg', href: function () { return 'result.html?gen=g6'; } }] }
+    { t: 'ИНТЕРЬЕР', items: [
+      { g: 'g4', t: 'Капсула SOVE', img: 'k2-kitchen.jpg', href: function () { return 'interior.html'; } },
+      { g: 'g2', t: 'Своя картинка → капсула', img: 'k1-living.jpg', href: function () { return 'interior.html'; } },
+      { g: 'g5', t: 'Комнаты · рендеры', img: 'k5.jpg', href: function () { return 'interior.html?tab=rooms'; } }] }
   ];
   function price(g) {
     var p = CFG.GEN_PRICES[g];
     if (p === 0) return 'бесплатно';
     if (p === null || p === undefined) return '[N] токенов';
-    return F.tokens(p) + (CFG.perFrame[g] ? ' за кадр' : '');
+    return (CFG.fromPrice && CFG.fromPrice[g] ? 'от ' : '') + F.tokens(p) + (CFG.perFrame[g] ? (g === 'g5' ? ' за комнату' : ' за кадр') : '');
   }
   function tokens() { return S.auth.isIn() ? F.tokens(S.tokens.balance()) : F.tokens(CFG.giftTokens) + ' 🎁'; }
 

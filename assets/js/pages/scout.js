@@ -103,12 +103,21 @@
   /* пришли из Планировки (ТЗ Планировки, 17.2 «гибрид»): весь бюджет уже куплен там — подставляем план, состояние,
      интерьер и тип из квартиры (SOVE.scout.fromRepair) и ничего не переспрашиваем; ?step=result — сразу последняя страница */
   var qFromPlan = S.ui.qs('from') === 'plan' && S.repair ? (S.ui.qs('flat') || (S.repair.flats.active() || {}).id || '') : null;
+  /* пришли из Бюджета по «Досчитать весь бюджет» (Алина 26.10): интерьер уже собран — подставляем капсулу, план и тип из квартиры
+     и начинаем с «Состояния» — единственного, чего мы не знаем. Расчёт — по обычным правилам доступа (не бесплатный пересчёт) */
+  var qFromInt = S.ui.qs('from') === 'interior' && S.repair ? ((S.repair.flats.active() || {}).id || '') : null;
+  if (qFromInt !== null) {
+    var fi = S.scout.fromRepair(qFromInt), capI = okCapsule(fi.capsuleId) ? fi.capsuleId : (D.capsules.filter(function (x) { return okCapsule(x.id) && !x.designer; })[0] || {}).id;
+    st = Object.assign(blank(), { capsuleId: capI, stateId: byId(SC.states, fi.stateId) ? fi.stateId : 'concrete', level: fi.level === 'premium' ? 'premium' : 'base', formatId: 'self',
+      plan: fi.rooms && fi.rooms.length ? { mode: 'manual', fileName: null, meta: null, rooms: fi.rooms.map(function (r) { return { id: 'n' + (++roomSeq), name: r.name, area: Number(r.m2 || r.area) || null }; }) } : st.plan,
+      fromInterior: qFromInt, step: 2 });
+  }
   if (qFromPlan !== null) {
     var fp = S.scout.fromRepair(qFromPlan), cap0 = okCapsule(fp.capsuleId) ? fp.capsuleId : (D.capsules.filter(function (x) { return okCapsule(x.id) && !x.designer; })[0] || {}).id;
     st = Object.assign(blank(), { capsuleId: cap0, stateId: byId(SC.states, fp.stateId) ? fp.stateId : 'concrete', level: fp.level === 'premium' ? 'premium' : 'base', formatId: 'self',
       plan: { mode: 'manual', fileName: null, meta: null, rooms: (fp.rooms && fp.rooms.length ? fp.rooms : [{ name: 'Вся квартира', m2: fp.area }]).map(function (r) { return { id: 'n' + (++roomSeq), name: r.name, area: Number(r.m2 || r.area) || null }; }) },
       fromPlan: qFromPlan, step: 4 });
-  } else delete st.fromPlan;                       /* обычный вход в Скаут — без бесплатного пересчёта из Планировки */
+  } else { delete st.fromPlan; if (qFromInt === null) delete st.fromInterior; }                       /* обычный вход в Скаут — без бесплатного пересчёта из Планировки */
 
   /* «Вся квартира» — общая площадь, она не меняется; помещения ниже — разбивка внутри неё и к общей не прибавляются (Вика 21.10) */
   function isWhole(r) { return /^(вся\s+квартира|вся\s+площадь|общая(\s+площадь)?|квартира\s+целиком)$/i.test(String(r.name || '').trim()); }
@@ -216,6 +225,15 @@
     var req = existing || S.scout.register(accessParams(), resultData(calc()), basis);
     st.issued = { requestId: req.id, sig: sig() }; st.gate = false; st.payId = null; st.pendingPay = 0; st.step = 5;
     var rr = calc(); S.my.set({ capsuleId: isVis() ? null : st.capsuleId, level: st.level, area: rr.area, stateId: st.stateId, total: rr.total, works: rr.works, kitMetod: rr.kitMetod, kitRetail: rr.kitRetail });
+    /* из Интерьера: расчёт и есть весь бюджет квартиры — параметры Скаута в паспорт, бюджет «посчитан» (Бюджет строит 9 + 5 по ним) */
+    if (st.fromInterior && S.repair) {
+      var R1 = S.repair, rp1 = R1.get(st.fromInterior);
+      if (rp1) {
+        rp1.scoutParams = { stateId: st.stateId, area: rr.area, capsuleId: st.capsuleId, level: st.level, rooms: st.plan ? st.plan.rooms.map(function (r) { return { name: r.name, m2: r.area }; }) : [] };
+        rp1.budgetPlan = Object.assign({}, rp1.budgetPlan || {}, { full: true, type: st.level, ts: Date.now(), source: 'scout' });
+        R1.flats.update(st.fromInterior, {});
+      }
+    }
     /* из Планировки: правки Скаута сразу меняют бюджет квартиры — Планировка, Мой ремонт и полоса «Бюджет» (17.2) */
     if (st.fromPlan !== undefined && st.fromPlan !== null && S.repair) {
       var R = S.repair, fid = st.fromPlan || (R.flats.active() || {}).id, rp = fid ? R.get(fid) : null;
@@ -445,7 +463,7 @@
   /* результат по картинкам: шапка и строки подборки */
   function resCapHtml(r) {
     var c = r.capsule;
-    if (c) return '<div class="scout-res__cap"><img src="' + c.cover + '" alt="Капсула ' + esc(c.code) + '" width="72" height="90"><div class="stack stack--2"><span class="eyebrow">Капсула ' + esc(c.code) + '</span><span class="scout-res__capname">' + esc(c.name) + '</span></div></div>';
+    if (c) return '<div class="scout-res__cap"><img src="' + c.cover + '" alt="Капсула «' + esc(c.name) + '»" width="72" height="90"><div class="stack stack--2"><span class="eyebrow">Капсула</span><span class="scout-res__capname">' + esc(c.name) + '</span></div></div>';
     var first = r.visuals[0] && r.visuals[0].p, n = r.visuals.length;
     return '<div class="scout-res__cap">' + (first ? '<img src="' + first.img + '" alt="" width="72" height="90">' : '') + '<div class="stack stack--2"><span class="eyebrow">По вашим картинкам</span><span class="scout-res__capname">Подборка из каталога · ' + n + ' ' + pl(n, ['товар', 'товара', 'товаров']) + '</span></div></div>';
   }
@@ -461,7 +479,7 @@
     var caps = D.capsules.map(function (c) {
       var on = !isVis() && c.id === st.capsuleId, off = !!c.soon || !c.pricePerM2;
       return '<button type="button" class="scout-cap' + (on ? ' is-active' : '') + '" data-capsule="' + c.id + '" aria-pressed="' + on + '"' + (off ? ' disabled' : '') + '>' +
-        '<span class="scout-cap__pic"><img src="' + c.cover + '" alt="Капсула ' + esc(c.code) + ': ' + esc(c.style.toLowerCase()) + '" loading="lazy" width="560" height="700"><span class="scout-cap__code">' + esc(c.code) + '</span><span class="scout-cap__check">' + ICON.check + '</span></span>' +
+        '<span class="scout-cap__pic"><img src="' + c.cover + '" alt="Капсула «' + esc(c.name) + '»: ' + esc(c.style.toLowerCase()) + '" loading="lazy" width="560" height="700"><span class="scout-cap__check">' + ICON.check + '</span></span>' +
         '<span class="scout-cap__name">' + esc(c.name) + '</span>' +
         (off ? '<span class="badge badge--line scout-cap__soon">скоро</span>' : '<span class="scout-cap__price num">' + F.rub(c.pricePerM2) + '/м²</span>') + '</button>';
     }).join('');
@@ -605,7 +623,7 @@
     var payable = isPayable(a), recalc = a.kind === 'recalc-paid', soveCap = (c.type || 'sove') === 'sove';
     var def = (D.scoutAccess.defaults[c.type || 'sove'] || {});
     var metodHref = 'metod.html?returnTo=' + encodeURIComponent(here());
-    var title = !payable ? 'Цена для этой капсулы не задана' : recalc ? 'Пересчёт по капсуле ' + esc(c.code) + ' — по счёту' : 'Откройте расчёт по капсуле ' + esc(c.code);
+    var title = !payable ? 'Цена для этой капсулы не задана' : recalc ? 'Пересчёт по капсуле «' + esc(c.name) + '» — по счёту' : 'Откройте расчёт по капсуле «' + esc(c.name) + '»';
     var text = !payable ? 'Открыть расчёт по капсуле «' + esc(c.name) + '»' + ' за оплату пока нельзя: цена уточняется. Параметры мы сохранили.'
       : (soveCap ? 'Первый бесплатный расчёт уже использован. ' : 'Расчёты по дизайнерским капсулам открываются по счёту. ') +
         'Пара «капсула + тип ремонта» открывается один раз' + (def.recalc ? '.' : ' — дальше пересчёты по ней бесплатны.') + ' Параметры вводить заново не нужно: расчёт покажем сразу после оплаты.';
@@ -619,7 +637,7 @@
       '<div class="split">' +
         '<div class="col-7 card card--pad stack stack--6 scout-invoice">' +
           '<div class="row row--between scout-invoice__top"><span class="eyebrow">' + (payable ? 'Счёт · ' + (recalc ? 'пересчёт' : 'открытие расчёта') : 'Расчёт по счёту недоступен') + '</span><span class="badge badge--line">шаг «Результат» закрыт</span></div>' +
-          '<div class="scout-invoice__cap"><img src="' + c.cover + '" alt="Капсула ' + esc(c.code) + '" width="72" height="90"><div class="stack stack--2"><span class="eyebrow">Что открывается</span><span class="h4">Капсула ' + esc(c.code) + ' · ' + esc(lv.name) + '</span><span class="small muted">' + esc(c.name) + '</span></div></div>' +
+          '<div class="scout-invoice__cap"><img src="' + c.cover + '" alt="Капсула «' + esc(c.name) + '»" width="72" height="90"><div class="stack stack--2"><span class="eyebrow">Что открывается</span><span class="h4">' + esc(c.name) + '</span><span class="small muted">' + esc(lv.name) + '</span></div></div>' +
           '<div class="rows rows--tight"><div><span>Тип ремонта</span><span>' + esc(lv.name) + '</span></div><div><span>Площадь</span><span class="num">' + F.area(totalArea()) + '</span></div><div><span>Состояние</span><span>' + esc(s.name) + '</span></div></div>' +
           (payable
             ? '<div class="scout-invoice__sum"><span class="small muted">К оплате</span><span class="row scout-invoice__price"><span class="mid-num num">' + F.rub(a.price) + '</span>' + (exampleMark() ? '<span class="badge badge--line">пример цены</span>' : '') + '</span></div>' +
@@ -647,6 +665,8 @@
     return S.repair.saveButton('budget', { type: st.level === 'premium' ? 'premium' : 'base', capsuleId: st.capsuleId, area: r.area, works: r.works, kitMetod: r.kitMetod, kitRetail: r.kitRetail, total: r.total }, 'Сохранить в Мой ремонт', 'btn btn--primary scout-save');
   }
   function saveButton() {
+    /* пришли из Бюджета — расчёт уже в бюджете квартиры, возвращаем туда */
+    if (st.fromInterior && st.step === 5 && valid(5)) return '<a class="btn btn--primary scout-save" href="my.html?v=budget">Открыть бюджет</a>';
     if (S.repair && st.step === 5 && valid(5)) return repairButton();
     if (st.savedProjectId && S.projects.get(st.savedProjectId)) return '<a class="btn btn--primary scout-save" href="project.html?id=' + encodeURIComponent(st.savedProjectId) + '">Открыть проект</a>';
     return '<button type="button" class="btn btn--primary scout-save" data-act="save">Сохранить в проект</button>';
@@ -815,6 +835,8 @@
       return;
     }
     var act = t.getAttribute('data-act'); if (!act) return;
+    /* из Интерьера план и капсула уже есть — после «Состояния» сразу расчёт (если площади в порядке), без «Параметров» и «Формата» */
+    if (act === 'next' && st.fromInterior && st.step === 2 && validInputs()) { proceed(); return; }
     if (act === 'next') { if (st.step === 4) proceed(); else go(st.step + 1); }
     else if (act === 'pay') payOpen();
     else if (act === 'ungate') go(2);
