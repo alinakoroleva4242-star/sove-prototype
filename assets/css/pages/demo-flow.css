@@ -357,3 +357,7 @@ a.ps-save { display: flex; align-items: center; justify-content: center; text-de
 .pz-ipick .pz-bud__h { align-items: center; }
 .pz-ipick .pz-istrip__l { padding: 4px 0 2px; }
 .pz-q__h [data-act="fit-open"] { font-size: 12px; font-weight: 700; flex: none; }
+/* «Что сейчас в квартире?» свёрнуто: выбранное одной строкой и «изменить ›» (Алина 27.10) */
+.pz-state__one { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; text-align: left; }
+.pz-state__one > span { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.pz-state__one > em { font-style: normal; font-size: 12px; font-weight: 700; color: #A24E32; white-space: nowrap; }

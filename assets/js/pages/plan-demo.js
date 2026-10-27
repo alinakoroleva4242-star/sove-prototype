@@ -181,9 +181,13 @@
   ];
   /* В1 (TZ-anketa): данные из документов застройщика есть только у примера ЖК PRIDE — «без отделки» */
   function docsState() { return !st.live && !st.typical ? { k: 'concrete_walls', t: 'без отделки' } : null; }
+  /* свёрнуто (Алина 27.10): состояние выбрано — одна строка «Бетон, стены стоят · изменить ›», список по тапу */
+  var stateOpen = false;
   function stateBlock() {
-    var docs = docsState();
-    return '<section class="pz-card pz-state"><div class="pz-q__h"><b>Что сейчас в квартире?</b>' + (docs ? '<em class="pz-why">в документах: ' + esc(docs.t) + '</em>' : '') + '</div>' +
+    var docs = docsState(), cur = STATES.filter(function (x) { return x.k === st.state; })[0];
+    var head = '<section class="pz-card pz-state"><div class="pz-q__h"><b>Что сейчас в квартире?</b>' + (docs ? '<em class="pz-why">в документах: ' + esc(docs.t) + '</em>' : '') + '</div>';
+    if (cur && !stateOpen) return head + '<button type="button" class="pz-state__i is-on pz-state__one" data-state-open aria-expanded="false"><span><b>' + esc(cur.t) + '</b><small>' + esc(cur.d) + '</small></span><em>изменить ›</em></button></section>';
+    return head +
       STATES.map(function (x) {
         return '<button type="button" class="pz-state__i' + (st.state === x.k ? ' is-on' : '') + '" data-state="' + x.k + '" aria-pressed="' + (st.state === x.k) + '"><b>' + esc(x.t) + '</b><small>' + esc(x.d) + '</small></button>';
       }).join('') + '</section>';
@@ -465,6 +469,7 @@
     var tail = (walls ? '&walls=1' : '') + '&anim=1';
     if (st.live && st.live.res) { goLive(brief, tail); return; }
     FLOW.save({ live: null });
+    try { sessionStorage.setItem('pd.resume', JSON.stringify({ typical: st.typical, names: st.names, state: st.state, answers: st.answers, rp: st.rp, interior: st.interior, source: st.source })); } catch (e) {}
     st.view = 'placing'; render();
     setTimeout(function () { location.href = 'arrange.html?v=panel&plan=' + lay.plan + '&flow=1' + tail; }, 700);
   }
@@ -522,9 +527,10 @@
     root.querySelectorAll('[data-mode]').forEach(function (b) {
       b.addEventListener('click', function () { st.mode = b.dataset.mode; render(); });
     });
+    root.querySelectorAll('[data-state-open]').forEach(function (b) { b.addEventListener('click', function () { stateOpen = true; render(); }); });
     root.querySelectorAll('[data-state]').forEach(function (b) {
       b.addEventListener('click', function () {
-        var was = st.state; st.state = b.dataset.state;
+        var was = st.state; st.state = b.dataset.state; stateOpen = false;
         /* «Бетон, стен нет» включает «Варианты стен» сам (ТЗ 4.1), можно выключить */
         if (st.state === 'concrete_free' && was !== 'concrete_free') FLOW.setReplan(true);
         FLOW.save({ state: st.state }); render();
@@ -559,5 +565,23 @@
   if (saved.replanAnswers) st.rp = saved.replanAnswers;
   /* вход «Перепланировка» (?replan=1): переключатель включён; план есть — сразу вопросы (ТЗ, п. 2) */
   if (new URLSearchParams(location.search).get('replan') === '1') { FLOW.setReplan(true); if (saved.rooms && saved.rooms.length) st.view = 'brief'; }
+  /* «← Назад» идёт по шагам Планировки, а не сразу со страницы (Алина 27.10) */
+  var PREV = { brief: function () { return st.typical ? 'noplan' : 'rooms'; }, rooms: 'idle', noplan: 'idle', error: 'idle' };
+  window.addEventListener('click', function (e) {
+    var b = e.target.closest && e.target.closest('[data-pz-back]'); if (!b) return;
+    var p = PREV[st.view]; if (!p) return;
+    e.stopPropagation(); e.preventDefault();
+    st.view = typeof p === 'function' ? p() : p;
+    render(); window.scrollTo(0, 0);
+  }, true);
+  /* вернулись «Назад» из расстановки — снова вопросы, ответы на месте */
+  try {
+    var rs = JSON.parse(sessionStorage.getItem('pd.resume') || 'null');
+    var nav = (performance.getEntriesByType && performance.getEntriesByType('navigation')[0]) || {};
+    if (rs && (nav.type === 'back_forward' || /back=1/.test(location.search)) && st.view === 'idle') {
+      Object.assign(st, { typical: rs.typical, names: rs.names, state: rs.state, answers: rs.answers || {}, rp: rs.rp || st.rp, interior: rs.interior, source: rs.source || st.source, view: 'brief' });
+    }
+  } catch (e) {}
+  window.addEventListener('pageshow', function (e) { if (e.persisted && st.view === 'placing') { st.view = 'brief'; render(); } });
   render();
 })();
