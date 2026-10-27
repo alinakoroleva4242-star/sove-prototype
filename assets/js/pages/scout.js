@@ -504,6 +504,7 @@
   }
 
   /* ---------- шаг 2: состояние ---------- */
+  var stateOpen = false;   /* список состояний раскрыт */
   function viewState() {
     var opts = SC.states.map(function (s) {
       var on = s.id === st.stateId;
@@ -515,7 +516,11 @@
     /* один заголовок шага (Вика 22.10: верхний дубль «Что сейчас в квартире» убран); пояснение — под ним */
     return '<section class="stack stack--4 scout-sub"><div class="stack stack--2"><h2 class="h3" id="scout-h" tabindex="-1">Что сейчас в квартире</h2>' +
       '<p class="text">Ставка работ бригады зависит от состояния стен — независимо от капсулы и уровня.</p></div>' +
-      '<div class="scout-states">' + opts + '</div>' +
+      /* свёрнуто (Алина 27.10): состояние выбрано — одна строка «Бетон · 60 000 ₽/м² · изменить», список — по тапу */
+      (st.stateId && !stateOpen ? (function () { var c = byId(SC.states, st.stateId); return '<button type="button" class="option scout-state is-active scout-state--one" data-state-open aria-expanded="false">' +
+        '<span class="scout-state__main"><span class="option__title">' + esc(c.name) + '</span><span class="option__note">' + esc(c.note) + '</span></span>' +
+        '<span class="scout-state__rate"><span class="mid-num num">' + F.rub(c.rate) + '/м²</span><span class="scout-state__ch">изменить ›</span></span></button>'; })()
+        : '<div class="scout-states">' + opts + '</div>') +
       (hasEst ? '<p class="small muted scout-foot">«Предварительный» — ставку работ команда SOVEAPP ещё уточняет.</p>' : '') + '</section>';
   }
 
@@ -825,7 +830,8 @@
     var v;
     if ((v = t.getAttribute('data-capsule'))) { if (okCapsule(v)) { st.capsuleId = v; st.source = 'capsule'; touch(); syncUrl(); focusAfter = '[data-capsule="' + v + '"]'; render(); } return; }
     if ((v = t.getAttribute('data-level'))) { st.level = v; touch(); focusAfter = '[data-level="' + v + '"]'; render(); return; }
-    if ((v = t.getAttribute('data-state'))) { st.stateId = v; touch(); focusAfter = '[data-state="' + v + '"]'; render(); return; }
+    if (t.hasAttribute('data-state-open')) { stateOpen = true; render(); return; }
+    if ((v = t.getAttribute('data-state'))) { st.stateId = v; stateOpen = false; touch(); focusAfter = '[data-state-open]'; render(); return; }
     if ((v = t.getAttribute('data-format'))) { st.formatId = v; touch(); focusAfter = '[data-format="' + v + '"]'; render(); return; }
     if (t.getAttribute('data-classifier')) { openClassifier(st.level); return; }
     if ((v = t.getAttribute('data-cls-open'))) { openClassifier(v); return; }

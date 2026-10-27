@@ -265,6 +265,8 @@
         : '<button type="button" class="zr__z" data-gen-one="' + z + '">✦ ' + esc(KB.zone(z).name) + ' <small>' + TOK(P.roomRender) + '</small></button>';
     }).join('') + plusPills() + '</div>';
   }
+  /* кадр комнаты из галереи капсулы (или типовой) — для примера до генерации и проявки */
+  function capsuleImg(z) { var c = KB.capsule(board.capsuleId || board.baseCapsuleId || KB.nearestCapsule(board.dna).id), rm = c && c.rooms.filter(function (x) { return x.zone === KB.zoneType(z); })[0]; return rm ? rm.img : MOCK[KB.zoneType(z)]; }
   function fan(z, n) {
     return '<span class="fan">' + KB.slotsFor([z]).slice(0, n || 3).map(function (s) { return UI.sampleTile(KB.item(board.slots[s.key].sku), 30, 30, { thickness: 2, radius: 4 }); }).join('') + '</span>';
   }
@@ -272,7 +274,12 @@
   function preGen(zs) {
     var pick = st.pick, a = st.angles, cost = pick.length * a * P.roomRender, z0 = pick[0] || zs[0];
     var promo = KB.slotsFor([z0]).slice(0, 3).map(function (s, i) { var p = [[14, 18, 44, 100, -2], [48, 30, 38, 92, 2], [20, 112, 30, 30, 0]][i]; return '<span style="left:' + p[0] + 'px;top:' + p[1] + 'px">' + UI.sampleTile(KB.item(board.slots[s.key].sku), p[2], p[3], { thickness: 3, rot: p[4] }) + '</span>'; }).join('');
-    return '<div class="vp vp--s">' + promo + '<i class="vp__star">✦</i><span class="vp__frame"><b>Здесь будет<br>' + esc(pick.length === 1 ? (YOUR[KB.zoneType(z0)] || 'твоя комната') : 'твоя квартира') + '</b><small>из этих материалов · в ' + a + ' ' + plural(a, 'ракурсе', 'ракурсах', 'ракурсах') + '</small></span></div>' +
+    /* справа — не пустая рамка, а пример визуализации комнаты из капсулы с подписью (Алина 26.10: «вставь картинку, опять непонятно») */
+    return '<div class="vp vp--s">' + promo + '<i class="vp__star">✦</i><span class="vp__ex" style="background-image:url(' + esc(capsuleImg(z0)) + ')"><small class="vp__exl">пример</small>' +
+      '<span class="vp__ext"><b>Здесь будет ' + esc(pick.length === 1 ? (YOUR[KB.zoneType(z0)] || 'твоя комната') : 'твоя квартира') + '</b><small>из этих материалов · в ' + a + ' ' + plural(a, 'ракурсе', 'ракурсах', 'ракурсах') + '</small></span></span></div>' +
+      /* что делать — одной строкой и главная кнопка сразу под примером (Алина 26.10: «и что мне делать?») */
+      '<button type="button" class="vg" data-gen' + (pick.length ? '' : ' disabled') + '><i>✦</i><span><b>Сгенерировать</b><small>' + pick.length + ' ' + UI.roomsWord(pick.length) + ' × ' + a + ' ' + plural(a, 'ракурс', 'ракурса', 'ракурсов') + '</small></span><b>' + TOK(cost) + '</b></button>' +
+      '<small class="mt-cap">отметь комнаты и число ракурсов ниже · ≈ 2 минуты · спишем только за готовые · у тебя ' + F.tokens(balance()) + '</small>' +
       (zs.length > 1 || todoZones().length ? '<div class="zr">' + zs.map(function (z) {
         var on = pick.indexOf(z) >= 0;
         return '<button type="button" class="zr__z is-in' + (on ? ' is-on' : '') + '" data-pick-room="' + z + '" aria-pressed="' + on + '">' + (on ? '✓ ' : '') + esc(roomLabel(z)) + '</button>';
@@ -280,8 +287,7 @@
       '<div class="va"><small class="ad__l">РАКУРСОВ НА КОМНАТУ</small><div class="va__seg" role="group" aria-label="Ракурсов на комнату">' + [1, 2, 3].map(function (n) {
         return '<button type="button" data-angles="' + n + '" aria-pressed="' + (a === n) + '"><b>' + n + '</b><small>' + TOK(n * P.roomRender) + '</small></button>';
       }).join('') + '</div></div>' +
-      '<button type="button" class="vg" data-gen' + (pick.length ? '' : ' disabled') + '><i>✦</i><span><b>Сгенерировать</b><small>' + pick.length + ' ' + UI.roomsWord(pick.length) + ' × ' + a + ' ' + plural(a, 'ракурс', 'ракурса', 'ракурсов') + '</small></span><b>' + TOK(cost) + '</b></button>' +
-      '<small class="mt-cap">≈ 2 минуты · спишем только за готовые · у тебя ' + F.tokens(balance()) + '</small>';
+      '';
   }
   var DL_IC = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5"/><path d="M5 20h14"/></svg>';
   var MY_IC = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V9l8-5 8 5v11M9 20v-6h6v6"/></svg>';   /* значок вкладки «Мой ремонт» */
