@@ -578,6 +578,7 @@
   try {
     var rs = JSON.parse(sessionStorage.getItem('pd.resume') || 'null');
     var nav = (performance.getEntriesByType && performance.getEntriesByType('navigation')[0]) || {};
+    if (!rs && /back=1/.test(location.search)) rs = { state: saved.state || 'concrete_walls' };
     if (rs && (nav.type === 'back_forward' || /back=1/.test(location.search)) && st.view === 'idle') {
       Object.assign(st, { typical: rs.typical, names: rs.names, state: rs.state, answers: rs.answers || {}, rp: rs.rp || st.rp, interior: rs.interior, source: rs.source || st.source, view: 'brief' });
     }

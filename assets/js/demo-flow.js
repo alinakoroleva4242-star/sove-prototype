@@ -43,6 +43,8 @@
 
   document.addEventListener('click', function (e) {
     var b = e.target.closest && e.target.closest('[data-pz-back]'); if (!b) return;
+    /* из расстановки — всегда на шаг «Вопросы» Планировки, не по истории браузера (Алина 27.10) */
+    if (/arrange\.html/.test(location.pathname) && /flow=1/.test(location.search)) { location.href = 'plan-demo.html?back=1'; return; }
     if (history.length > 1 && document.referrer.indexOf(location.host) >= 0) history.back(); else location.href = 'sove-ai.html';
   });
 
