@@ -183,7 +183,7 @@
     list: function () { return state.leads.slice().sort(function (a, b) { return b.ts - a.ts; }); }
   };
 
-  /* ---------- доступ к просчёту Скаута (правила платформы, как в боте) ----------
+  /* ---------- доступ к просчёту расчёта (правила платформы, как в боте) ----------
      Порядок проверки: 1) точный повтор параметров → отдаём прежний расчёт без счёта и без новой заявки;
      2) пара «капсула + тип ремонта» уже открыта → пересчёт (бесплатно, если платформа не назначила цену);
      3) первое открытие: капсула SOVEAPP и первый бесплатный ещё не использован → бесплатно (один раз на клиента);
@@ -211,7 +211,7 @@
       var pr = scout.price(p.capsuleId, p.level);
       return pr === null ? { kind: 'unavailable', price: null } : { kind: 'paid', price: pr };
     },
-    /* записать заявку Скаут после выдачи расчёта. basis: 'first-free' | 'metod' | 'paid' | 'opened' | 'manual' */
+    /* записать заявку Расчёт бюджета после выдачи расчёта. basis: 'first-free' | 'metod' | 'paid' | 'opened' | 'manual' */
     register: function (p, result, basis) {
       var st = scoutState();
       var req = { id: uid('sc'), number: 260 + st.requests.length + 1, ts: Date.now(), key: scoutKey(p), params: p, result: result, basis: basis, fullAccess: metod.active() };
@@ -220,21 +220,31 @@
     open: function (capsuleId, level) { scoutState().opened[scout.pairKey(capsuleId, level)] = true; save(); },
     requests: function () { return scoutState().requests.slice().sort(function (a, b) { return b.ts - a.ts; }); },
     basisLabel: function (b) { return { 'first-free': 'первый бесплатный', metod: 'по подписке METOD', paid: 'оплачен', opened: 'пересчёт открытой капсулы', manual: 'выдано вручную', plan: 'из Планировки' }[b] || b; },
-    /* движок расчёта Скаута без экрана: работы = ставка состояния × м², комплектация = цена капсулы за м² × м².
+    /* движок расчёта бюджета без экрана: работы = ставка состояния × м², комплектация = цена капсулы за м² × м².
        Его же вызывает бюджет «ремонт под ключ» в Планировке и Моём ремонте (ТЗ Планировки, 17.2 «гибрид»).
        p: {stateId, area, capsuleId, level} → {works, kitMetod, kitRetail, total, stages[[название, ₽]], kit[[категория, ₽]]} */
     estimate: function (p) {
       var SC = D.scout, s = SC.states.filter(function (x) { return x.id === p.stateId; })[0] || SC.states[1], c = D.capsule(p.capsuleId) || {};
       var area = Number(p.area) || 0, perM2 = (p.level === 'premium' && c.pricePerM2Premium) || c.pricePerM2 || 0;
       if (!perM2) { var ps = D.capsules.filter(function (x) { return x.pricePerM2 && !x.soon; }).map(function (x) { return x.pricePerM2; }).sort(function (a, b) { return a - b; }); perM2 = ps[Math.floor(ps.length / 2)] || 0; }
-      var works = s.rate * area, kitMetod = perM2 * area;
+      /* есть план (Планировка) и площадь та же — работы по позициям Scout × объёмы плана (plan-volumes.js), иначе ставка × м² */
+      var VW = scout.planWorks(p.volumes, s.id, p.level, area);
+      var works = VW ? VW.total : s.rate * area, kitMetod = perM2 * area;
       return { state: s, area: area, works: works, kitMetod: kitMetod, kitRetail: kitMetod * SC.retailMarkup, total: works + kitMetod,
-        stages: SC.stages.map(function (x) { return [x[0], works * x[1] / 100]; }), kit: SC.kitShares.map(function (x) { return [x[0], kitMetod * x[1] / 100]; }) };
+        stages: VW ? VW.stages : SC.stages.map(function (x) { return [x[0], works * x[1] / 100]; }), kit: SC.kitShares.map(function (x) { return [x[0], kitMetod * x[1] / 100]; }),
+        lines: VW ? VW.lines : null, basis: VW ? 'plan' : 'area' };
     },
-    /* параметры Скаута из квартиры Моего ремонта и ответов Планировки — Скаут ничего не переспрашивает */
+    /* работы по объёмам плана — только если объёмы посчитаны для той же площади (правки площади в расчёте их отменяют) */
+    planWorks: function (vol, stateId, level, area) {
+      if (!vol || !window.SOVE_VOLUMES || !window.SOVE_WORKS) return null;
+      if (area && Math.abs((vol.area || 0) - area) > Math.max(1, area * 0.03)) return null;
+      return window.SOVE_VOLUMES.works(vol, stateId, level);
+    },
+    /* параметры расчёта из квартиры Моего ремонта и ответов Планировки — Расчёт бюджета ничего не переспрашивает */
     fromRepair: function (flatId) {
       var R = window.SOVE.repair, r = R ? R.get(flatId) : {}, f = R ? (flatId ? R.flats.get(flatId) : R.flats.active()) : null, flow = {};
       try { flow = JSON.parse(localStorage.getItem('sove.demo.flow.v1') || '{}') || {}; } catch (e) {}
+      /* Алина: объёмы плана расчёту не отдаём, работы = ставка × м² (объёмов в Планировке нет с 28.10; старые из демо 27.10 не берём) */
       if (r && r.scoutParams) return Object.assign({}, r.scoutParams);
       var STATE = { concrete_free: 'concrete', concrete_walls: 'concrete', whitebox: 'pre', finished: 'secondary' };
       var rooms = (r && r.plan && r.plan.rooms) || flow.rooms || [], area = rooms.reduce(function (a, x) { return a + (x.m2 || 0); }, 0) || (f && f.m2) || 0;
@@ -302,7 +312,7 @@
   var NAV = [
     { key: 'catalog', label: 'Каталог', href: 'market.html', note: 'мебель, свет, отделка' },
     { key: 'interiors', label: 'Интерьеры', href: 'capsules.html', note: 'готовые капсулы' },
-    { key: 'calc', label: 'Расчёт', href: 'scout.html', note: 'бюджет ремонта · Скаут' },
+    { key: 'calc', label: 'Расчёт', href: 'scout.html', note: 'бюджет ремонта' },
     { key: 'services', label: 'Услуги', href: 'services.html', note: 'дизайн и ремонт под ключ' }
   ];
   var NAVMAP = { capsules: 'interiors', capsule: 'interiors', scout: 'calc', market: 'catalog', product: 'catalog', ai: 'catalog', adept: 'services', track: 'services', services: 'services' };
@@ -320,10 +330,11 @@
   function icon(name, size) { return '<svg viewBox="0 0 24 24" width="' + (size || 22) + '" height="' + (size || 22) + '" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true">' + IC[name] + '</svg>'; }
   /* нижнее меню — строго 5 вкладок по документу Вики (SOVE_Supplier_Handoff_Package, п. 1; Вика 21.10: «у нас пять»): Главная · Капсулы · Мой ремонт · Маркет · Профиль; подвал одинаковый на всех экранах, включая кабинеты; заказы и корзина — экраны «Мой ремонт» и строки профиля */
   /* подвал: пять вкладок, как перечислила Вика 21.10 (Валерия подтвердила 22.10): старый формат, «Заказы» вместо «Капсул»; корзина — плиткой в «Моём ремонте» и строкой в профиле */
-  var TABS = [ { key: 'home', label: 'Главная', href: 'home-feed.html', ic: 'home' }, { key: 'market', label: 'Маркет', href: 'market.html', ic: 'cart' }, { key: 'my', label: 'Мой ремонт', href: 'my.html', ic: 'my' }, { key: 'orders', label: 'Заказы', href: 'my.html?v=orders', ic: 'box' }, { key: 'profile', label: 'Профиль', href: 'account.html', ic: 'user' } ];
-  var TABMAP = { 'partner-cabinet': 'profile', home: 'home', capsules: 'home', capsule: 'home', market: 'market', product: 'market', ai: 'market', services: 'home', metod: 'home', adept: 'home', track: 'my', gen: 'home', scout: 'home', my: 'my', account: 'profile', project: 'my', generations: 'profile', generation: 'profile', tokens: 'profile', 'sove-ai': 'home', moodboard: 'home', about: 'home', partner: 'home', pay: 'profile', auth: 'profile' };
+  var TABS = [ { key: 'home', label: 'Главная', href: 'index.html', ic: 'home' }, { key: 'orders', label: 'Заказы', href: 'my.html?v=orders', ic: 'box' }, { key: 'my', label: 'Мой ремонт', href: 'my.html', ic: 'my' }, { key: 'market', label: 'Маркет', href: 'market.html', ic: 'cart' }, { key: 'profile', label: 'Профиль', href: 'account.html', ic: 'user' } ];
+  /* Планировка (первый экран, шаги, сохранение) подсвечивает «Мой ремонт» — как в макете Вики 28.10 */
+  var TABMAP = { 'partner-cabinet': 'profile', home: 'home', capsules: 'home', capsule: 'home', market: 'market', product: 'market', ai: 'market', services: 'home', metod: 'home', adept: 'home', track: 'my', gen: 'home', scout: 'home', my: 'my', account: 'profile', project: 'my', generations: 'profile', generation: 'profile', tokens: 'profile', 'sove-ai': 'home', 'plan-demo': 'my', arrange: 'my', 'plan-save': 'my', 'gen-new': 'home', interior: 'home', materialy: 'home', moodboard: 'home', about: 'home', partner: 'home', pay: 'profile', auth: 'profile' };
 
-  var SVC = [ { href: 'metod.html', label: 'METOD', small: 'подписка: скидки и партнёры' }, { href: 'adept.html', label: 'Адепт', small: 'дизайн-проект' }, { href: 'sove-ai.html', label: 'Генерации', small: 'поиск по фото и рендер' }, { href: 'track.html', label: 'Трек', small: 'ремонт под ключ' } ];
+  var SVC = [ { href: 'metod.html', label: 'METOD', small: 'подписка: скидки и партнёры' }, { href: 'adept.html', label: 'Дизайн-проект', small: 'по вашей капсуле' }, { href: 'sove-ai.html', label: 'Генерации', small: 'поиск по фото и рендер' }, { href: 'track.html', label: 'Управление ремонтом', small: 'ремонт под ключ' } ];
   /* число позиций в корзине для бейджа в меню: orders.js на части страниц не подключён, читаем его хранилище напрямую */
   /* баланс токенов в шапке на любом экране (решения 21.10, шаг 1); экраны со своей шапкой берут его через SOVE.ui.tokenChip() */
   function tokenChip() { return '<a class="tok-chip" data-tok href="tokens.html?returnTo=' + encodeURIComponent(location.pathname.split('/').pop() + location.search) + '" aria-label="Баланс: ' + fmt.tokens(tokens.balance()) + '. Пополнить">' + fmt.tokens(tokens.balance()) + '</a>'; }
@@ -345,6 +356,7 @@
       (isHome ? '<a class="logo" href="index.html" aria-label="SOVEAPP"><img class="logo__img" src="assets/img/logo-sapp-trim.png" alt="SOVEAPP" width="611" height="713"></a>' : '<button type="button" class="appbar__back" data-back aria-label="Назад">' + icon('back', 22) + '</button><span class="appbar__title">' + fmt.esc(title) + '</span>') +
       (inn ? tokenChip() : '') +
       '<a class="appbar__user' + (inn ? ' is-in' : '') + '" href="' + profileHref + '" aria-label="' + (inn ? 'Профиль' : 'Войти') + '">' + icon('user', 22) + '</a>' +
+      (isHome ? '<span class="appbar__slogan">Твой ремонт — Твои правила</span>' : '') +   /* слоган на главной — тонко, над линией шапки (Вика 26.10) */
       '</header>' +
       '<aside class="side" aria-label="Меню приложения">' +
       '<a class="logo side__logo" href="index.html" aria-label="SOVEAPP"><img class="logo__img" src="assets/img/logo-sapp-trim.png" alt="SOVEAPP" width="611" height="713"></a>' +
@@ -414,7 +426,7 @@
     /* окно «войдите»: после кода вернём на returnTo */
     needAuth: function (why, returnTo) {
       var rt = encodeURIComponent(returnTo || (location.pathname.split('/').pop() + location.search));
-      return ui.modal({ eyebrow: 'Нужен вход', title: why || 'Войдите, чтобы продолжить', text: 'Вход по коду из SMS. Новым пользователям дарим ' + fmt.tokens(D.gift.tokens) + ' на SOVEAPP AI. Всё, что вы уже сделали, сохранится.',
+      return ui.modal({ eyebrow: 'Нужен вход', title: why || 'Войдите, чтобы продолжить', text: 'Вход по коду из SMS. Новым пользователям дарим ' + fmt.tokens(D.gift.tokens) + ' на генерации. Всё, что вы уже сделали, сохранится.',
         actions: [ { label: 'Войти или зарегистрироваться', kind: 'primary', href: 'auth.html?returnTo=' + rt }, { label: 'Не сейчас', kind: 'ghost' } ] });
     },
     /* выбор проекта: вернёт id через onPick; даёт создать новый */

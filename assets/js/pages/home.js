@@ -40,9 +40,9 @@
   var lamp = D.products.filter(function (p) { return p.white && p.subcat === 'Люстры'; })[0];
   var SVC = [
     { href: 'metod.html', name: 'METOD', text: 'Подписка: цены партнёров ниже розницы и их контакты', price: 'от ' + F.rub(D.metodPlans[0].price) + ' в месяц', img: lamp ? lamp.img : 'assets/img/capsules/k1-living.jpg', white: !!lamp },
-    { href: 'adept.html', name: 'Адепт', text: 'Дизайн-проект по выбранному интерьеру', price: 'от ' + F.rub(adeptFrom) + '/м²', img: 'assets/img/capsules/k1-living.jpg' },
+    { href: 'adept.html', name: 'Дизайн-проект', text: 'Дизайн-проект по выбранному интерьеру', price: 'от ' + F.rub(adeptFrom) + '/м²', img: 'assets/img/capsules/k1-living.jpg' },
     { href: 'sove-ai.html', name: 'Генерации', text: 'Поиск по фото и рендер вашей квартиры', price: 'первые попытки бесплатно', img: 'assets/img/capsules/k4-main-1.jpg' },
-    { href: 'track.html', name: 'Трек', text: 'Ремонт под ключ с контролем этапов', price: 'от ' + F.rub(Math.min.apply(null, D.scout.states.map(function (s) { return s.rate; }))) + '/м²', img: 'assets/img/capsules/k2-main-1.jpg' }
+    { href: 'track.html', name: 'Управление ремонтом', text: 'Ремонт под ключ с контролем этапов', price: 'от ' + F.rub(Math.min.apply(null, D.scout.states.map(function (s) { return s.rate; }))) + '/м²', img: 'assets/img/capsules/k2-main-1.jpg' }
   ];
   document.getElementById('home-svc').innerHTML = SVC.map(function (x) {
     return '<a class="svc-tile' + (x.white ? ' svc-tile--white' : '') + '" href="' + x.href + '"><img src="' + x.img + '" alt="" loading="lazy"><span class="svc-tile__body"><b>' + esc(x.name) + '</b><span>' + esc(x.text) + '</span><small>' + esc(x.price) + '</small></span></a>';

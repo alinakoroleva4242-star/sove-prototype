@@ -357,6 +357,98 @@ a.ps-save { display: flex; align-items: center; justify-content: center; text-de
 .pz-ipick .pz-bud__h { align-items: center; }
 .pz-ipick .pz-istrip__l { padding: 4px 0 2px; }
 .pz-q__h [data-act="fit-open"] { font-size: 12px; font-weight: 700; flex: none; }
+
+/* ── первый экран Планировки — макет Вики 28.10 (прежде итог 18.0, эталон etalon-StFinal.html) и «Найди свой план у застройщика» (18.2) ── */
+/* шапка без белой полосы, токены — плашкой; на шагах блока шапка прежняя */
+.pz-head--start { background: none; border-bottom: 0; gap: 2px; padding-top: 8px; padding-bottom: 0; margin-bottom: -4px; }
+.pz-head--start .pz-back { font: 500 13px/1.2 var(--font); color: #6B655F; }
+.pz-head--start .pz-tok { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 999px; background: #FCF0E9; border: 1px solid #F0DACD; color: #A24E32; font-size: 11px; font-weight: 600; line-height: 1.25; }
+.pz-head--start .pz-head__t { font-size: 31px; font-weight: 500; line-height: 1; }
+/* «Что вы получите»: подложка чуть шире колонки, внутри три белые карточки со стрелками */
+.pz-gets { display: grid; gap: 3px; margin: 0 -8px -4px; padding: 8px 8px 7px; border-radius: 18px; background: rgba(255,255,255,.5); border: 1px solid #EEE4DB; min-width: 0; }
+.pz-gets__k { display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 9px; font-weight: 600; letter-spacing: .24em; text-transform: uppercase; color: #A24E32; white-space: nowrap; }
+.pz-gets__k::before, .pz-gets__k::after { content: ''; flex: 0 1 92px; height: 1px; background: #E2CBBE; }
+.pz-gets__s { margin: 0 0 3px; text-align: center; font-size: 11.5px; line-height: 1.2; color: #6B655F; }
+.pz-gets__row { display: grid; grid-template-columns: minmax(0, 1fr) 9px minmax(0, 1fr) 9px minmax(0, 1fr); gap: 1px; }
+.pz-gets__i { display: flex; align-items: center; gap: 5px; padding: 5px 4px 5px 5px; border-radius: 12px; background: #fff; box-shadow: 0 2px 10px rgba(46,31,24,.07); min-width: 0; }
+.pz-gets__i > i { flex: none; width: 34px; height: 34px; border-radius: 50%; background: #FBE6DF; display: grid; place-items: center; }
+.pz-gets__i svg { width: 20px; height: 20px; fill: none; stroke: #A24E32; stroke-width: 1.45; stroke-linecap: round; stroke-linejoin: round; }
+.pz-gets__i svg .f { fill: #FBE6DF; }
+.pz-gets__i span { display: grid; gap: 2px; min-width: 0; }
+.pz-gets__i b { font: 600 12.5px/1.05 var(--font-display); color: #1E1C1A; white-space: nowrap; }
+.pz-gets__i small { font-size: 9px; line-height: 1.15; color: #6B655F; }
+.pz-gets__ar { display: grid; place-items: center; }
+.pz-gets__ar svg { width: 11px; height: 9px; fill: none; stroke: #CC8D74; stroke-width: 1.3; stroke-linecap: round; stroke-linejoin: round; }
+/* узкие телефоны: кружок меньше, на самых узких — значок над текстом, чтобы «3D интерьер» не вылезал из карточки */
+@media (max-width: 384px) { .pz-gets__i { gap: 4px; } .pz-gets__i > i { width: 28px; height: 28px; } .pz-gets__i svg { width: 17px; height: 17px; } .pz-gets__i b { font-size: 12px; } }
+@media (max-width: 345px) { .pz-gets__i { flex-direction: column; align-items: flex-start; padding: 6px; } }
+/* пример: квартира в 3D, ценники с линиями-выносками, внизу карточки — бюджет «Ремонт под ключ» */
+.pz-hero { position: relative; aspect-ratio: 16 / 15; max-height: 460px; border-radius: 18px; overflow: hidden; background: #E9E2DA; box-shadow: 0 10px 28px rgba(46,31,24,.14); }
+.pz-hero > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.pz-hero__lines { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 2; pointer-events: none; filter: drop-shadow(0 0 1px rgba(0,0,0,.55)); }
+.pz-hero__lines path { fill: none; stroke: #fff; stroke-width: 1.1; stroke-linecap: round; }
+.pz-hero__lines circle { fill: rgba(255,255,255,.3); stroke: #fff; stroke-width: 1.3; }
+.pz-hero__k { position: absolute; left: 10px; top: 9px; z-index: 3; font-size: 9px; font-weight: 700; letter-spacing: .18em; padding: 5px 10px; border-radius: 999px; background: rgba(255,255,255,.94); color: #8E4A35; }
+.pz-price { position: absolute; z-index: 3; display: grid; justify-items: end; gap: 1px; border: 0; border-radius: 10px; background: rgba(255,255,255,.95); padding: 4px 7px 4px 6px; box-shadow: 0 3px 10px rgba(0,0,0,.22); font: inherit; cursor: pointer; white-space: nowrap; text-align: left; }
+.pz-price small { justify-self: start; display: flex; align-items: center; gap: 4px; font-size: 8px; line-height: 1.15; color: #3B3632; }
+.pz-price i { width: 6px; height: 6px; border-radius: 50%; background: #A24E32; flex: none; }
+.pz-price b { font-size: 9.5px; line-height: 1.15; font-weight: 700; color: #1E1C1A; }
+.pz-hero__bud { position: absolute; left: 0; right: 0; bottom: 0; z-index: 4; display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 16px; background: rgba(254,248,242,.97); box-shadow: 0 -6px 18px rgba(46,31,24,.16); }
+.pz-hero__bud span { flex: 1; display: grid; gap: 2px; min-width: 0; }
+.pz-hero__bud span b { font: 500 19px/1.05 var(--font-display); color: #1E1C1A; }
+.pz-hero__bud em { font-style: normal; font-size: 9.5px; color: #6B655F; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pz-hero__bud strong { flex: none; padding-left: 10px; border-left: 1px solid #E6D8CC; font: 600 25px/1.1 var(--font-display); font-variant-numeric: lining-nums; color: #A24E32; white-space: nowrap; }
+/* узкие телефоны: разбивка бюджета в две строки, а не обрезается многоточием */
+@media (max-width: 384px) { .pz-hero__bud em { white-space: normal; } .pz-hero__bud strong { font-size: 22px; } }
+.pz-btn--up { height: 48px; gap: 10px; font-size: 15px; font-weight: 600; margin-top: -4px; }
+.pz-btn--up svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.pz-or { font-size: 9.5px; font-weight: 600; letter-spacing: .2em; color: #524D4A; margin-bottom: -6px; }
+#pd-zkres:empty { margin-top: -12px; }   /* пустой список ЖК не добавляет второй отступ; display:none не берём — блок aria-live должен оставаться на странице */
+.pz-tagsheet { display: flex; gap: 12px; align-items: center; }
+.pz-tagsheet img { width: 96px; height: 96px; object-fit: contain; border-radius: 12px; background: #F4F2EE; flex: none; }
+.pz-tagsheet span { display: grid; gap: 2px; } .pz-tagsheet b { font-size: 18px; } .pz-tagsheet s { font-size: 12px; color: #6B655F; } .pz-tagsheet small { font-size: 11px; color: #6B655F; }
+/* поиск ЖК (Вика 28.10): светлая рамка и лупа; 16px — чтобы iPhone не увеличивал экран при вводе */
+.pz-zks { display: flex; align-items: center; gap: 10px; height: 44px; border-radius: 12px; background: #fff; border: 1px solid #C9C0B7; padding: 0 14px; box-sizing: border-box; }
+.pz-zks:focus-within { border-color: #A24E32; box-shadow: 0 0 0 1px #A24E32; }
+.pz-zks svg { flex: none; width: 18px; height: 18px; fill: none; stroke: #6B655F; stroke-width: 1.7; stroke-linecap: round; }
+.pz-zks input { flex: 1; min-width: 0; border: 0; outline: 0; font: 400 16px var(--font); color: #1E1C1A; background: none; }
+.pz-zks input::placeholder { color: #A39B93; }
+.pz-zklist { display: grid; gap: 6px; }
+.pz-zkrow { display: flex; align-items: center; gap: 10px; text-align: left; border: 1px solid #E6E1DA; background: #fff; border-radius: 14px; padding: 10px 12px; font: inherit; cursor: pointer; }
+.pz-zkrow span { flex: 1; display: grid; gap: 2px; min-width: 0; } .pz-zkrow b { font-size: 14px; } .pz-zkrow small { font-size: 11px; color: #6B655F; }
+.pz-zkrow em { font-style: normal; font-size: 11px; font-weight: 800; color: #2E6B4E; white-space: nowrap; }
+.pz-zkno { gap: 6px; }
+/* миниатюры планов — чёрно-белые (уточнение 24.10); главный пример — цветной */
+.pz-zklay__img { background: #fff center / contain no-repeat; border: 1px solid #E6E1DA; filter: grayscale(1) contrast(1.1); }
+.pz-zklays { display: grid; gap: 8px; }
+.pz-zklay { display: flex; align-items: center; gap: 12px; text-align: left; border: 1px solid #E6E1DA; background: #fff; border-radius: 16px; padding: 8px; font: inherit; cursor: pointer; }
+.pz-zklay:first-child:not(.is-off) { border: 2px solid #A24E32; }
+.pz-zklay.is-off { opacity: .6; cursor: default; }
+.pz-zklay__img { flex: none; width: 72px; height: 60px; border-radius: 10px; box-sizing: border-box; }
+.pz-zklay__t { flex: 1; display: grid; gap: 2px; min-width: 0; } .pz-zklay__t b { font-size: 14px; } .pz-zklay__t small { font-size: 11px; color: #6B655F; }
+.pz-zklay__t em { font-style: normal; font-size: 11px; font-weight: 700; color: #2E6B4E; } .pz-zklay__t em.is-off { color: #6B655F; }
+.pz-zklay i { font-style: normal; font-size: 18px; color: #6B655F; padding-right: 6px; }
+.pz-zkadd { cursor: pointer; }
+.pz-tune { display: flex; align-items: center; gap: 10px; background: #fff; border: 1px solid #E6E1DA; border-radius: 14px; padding: 12px 14px; text-decoration: none; color: #1E1C1A; }
+.pz-tune span { flex: 1; display: grid; gap: 2px; } .pz-tune b { font-size: 14px; } .pz-tune small { font-size: 11px; color: #6B655F; }
+.pz-tune em { font-style: normal; font-size: 18px; color: #A24E32; }
+/* две цены: с подпиской METOD (жирно) и без (мелко, зачёркнуто или подписью); на плашках примера — одна (Вика 28.10) */
+.pz-tagsheet em { font-style: normal; font-size: 14px; color: #6B655F; }
+.pz-tagsheet b small, .pz-tagsheet em small { font-size: 11px; font-weight: 500; color: #6B655F; }
+.pz-2p { display: grid; justify-items: end; line-height: 1.15; } .pz-2p small { font-size: 9px; color: #6B655F; font-weight: 500; }
+.pz-2p small { white-space: nowrap; }
+/* блок «Перепланировка и стены» в анкете: тёплая подложка с заголовком, внутри — переключатель */
+.pz-wallsbox { display: grid; gap: 10px; background: #FBF4F0; border: 1px solid #EAD3C6; border-radius: 16px; padding: 14px 12px 12px; }
+.pz-wallsbox .pz-group { margin: 0; }
+.pz-toggle--walls { background: #fff; border: 1px solid #EAD3C6; padding: 12px; }
+.pz-toggle--walls b { font-size: 14px; } .pz-toggle--walls small { font-size: 11px; }
+.pz-toggle--walls.is-on { background: #fff; border: 1.5px solid #A24E32; padding: 12px; }
+/* кнопка «дальше» без обязательных ответов: выглядит выключенной, но нажимается — подсказка и подсветка вопроса (Алина 26.10) */
+.pz-btn.is-wait { opacity: .45; }
+.pz-need { animation: pz-need 2.6s ease-out; }
+@keyframes pz-need { 0%, 60% { box-shadow: 0 0 0 2px #A24E32, 0 0 0 6px rgba(162,78,50,.18); } 100% { box-shadow: 0 0 0 0 transparent; } }
+@media (prefers-reduced-motion: reduce) { .pz-need { animation: none; box-shadow: 0 0 0 2px #A24E32; } }
+
 /* «Что сейчас в квартире?» свёрнуто: выбранное одной строкой и «изменить ›» (Алина 27.10) */
 .pz-state__one { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; text-align: left; }
 .pz-state__one > span { display: flex; flex-direction: column; gap: 2px; min-width: 0; }

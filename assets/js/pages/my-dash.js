@@ -7,8 +7,8 @@
   var CFG = window.SOVE_MY_CONFIG = Object.assign({
     variant: 'D',                       /* ⚠️ вариант дашборда выбирает Алина; по умолчанию D — проявка во весь экран */
     links: {                            /* куда ведут кнопки эталона, пока нет своих экранов */
-      generate: 'result.html?gen=g4',   /* «✦ Сгенерировать · 10», метки комнат ✦ */
-      moodboard: 'sove-ai.html',        /* ⚠️ «✦ Сгенерировать мудборд» — отдельного экрана мудборда пока нет, ведём в SOVE AI */
+      generate: 'interior.html?tab=rooms',   /* «✦ Сгенерировать · 10», метки комнат ✦ */
+      moodboard: 'sove-ai.html',        /* ⚠️ «✦ Сгенерировать мудборд» — отдельного экрана мудборда пока нет, ведём в Генерациях */
       capsules: 'capsules.html', scout: 'scout.html', object: 'my.html?v=object', upload: 'my.html?v=object'
     }
   }, window.SOVE_MY_CONFIG || {});
@@ -41,7 +41,7 @@
       else if (/Сгенерировать/.test(t)) h = L.generate;
       else if (/^Все капсулы/.test(t)) h = L.capsules;
       else if (/^История генераций/.test(t)) { histLink(el); return; }
-      else if (/Посчитать|Уточнить в Скауте|Бюджет/.test(t) && el.tagName === 'A') h = L.scout;
+      else if (/Посчитать|Уточнить расчёт|Бюджет/.test(t) && el.tagName === 'A') h = L.scout;
       else if (/Загрузить/.test(t)) h = L.upload;
       if (h) { if (el.tagName === 'A') el.setAttribute('href', h); el.addEventListener('click', go(h)); }
     });
@@ -62,7 +62,7 @@
     });
     var sc = S.scout.requests().filter(function (r) { return r.result && r.result.total; }).map(function (r) {
       var p = r.params || {}, c = S.data.capsule(p.capsuleId);
-      return { id: r.id, block: 'Бюджет', t: 'Расчёт Скаута' + (c ? ' · ' + c.name : ''), ts: r.ts, src: c && c.cover, sum: r.result.total, kind: 'budget',
+      return { id: r.id, block: 'Бюджет', t: 'Расчёт бюджета' + (c ? ' · ' + c.name : ''), ts: r.ts, src: c && c.cover, sum: r.result.total, kind: 'budget',
         data: { type: p.level === 'premium' ? 'premium' : 'base', area: r.result.area || p.area, works: r.result.works, kitMetod: r.result.kitMetod, kitRetail: r.result.kitRetail, total: r.result.total } };
     });
     return g.concat(sc).sort(function (a, b) { return b.ts - a.ts; });
@@ -83,7 +83,7 @@
             (saved[x.id] ? '<span class="myh__ok">✓ в ремонте</span>' : '<button type="button" class="myh__save" data-h="' + x.id + '">Сохранить</button>') + '</div>';
         }).join('') + '</div>';
       }).join('') + '</div>'
-      : '<p class="small muted">Пока пусто. Всё, что сгенерируешь — здесь или в SOVE AI, — появится в этом списке по блокам: Основа, Интерьер, Комнаты, Бюджет.</p>';
+      : '<p class="small muted">Пока пусто. Всё, что сгенерируешь — здесь или в Генерациях, — появится в этом списке по блокам: Основа, Интерьер, Комнаты, Бюджет.</p>';
     var m = ui.modal({ title: 'История генераций', html: html, actions: [{ label: 'Закрыть', kind: 'link' }] });
     m.el.querySelectorAll('[data-h]').forEach(function (b) { b.addEventListener('click', function () {
       var x = list.filter(function (i) { return i.id === b.getAttribute('data-h'); })[0]; if (!x || !R) return;

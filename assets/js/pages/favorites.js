@@ -50,7 +50,7 @@
   function paint() {
     var fs = folders(), list = items();
     root.innerHTML =
-      '<div class="stack stack--3"><span class="eyebrow">Маркетплейс</span><h1 class="h1">Избранное</h1>' +
+      '<div class="stack stack--3"><span class="eyebrow">Каталог товаров</span><h1 class="h1">Избранное</h1>' +
       '<p class="text">Интерьеры, подборки товаров к интерьеру и отдельные товары.</p></div>' +
       interiors() + sets() + '<h2 class="h3">Товары</h2>' +
 
@@ -131,7 +131,7 @@
     });
   }
   function refresh() { resolveAll().then(paint); }
-  if (S.favs.list().length) root.innerHTML = '<div class="stack stack--3"><span class="eyebrow">Маркетплейс</span><h1 class="h1">Избранное</h1><p class="text">Загружаем сохранённые товары…</p></div>';
+  if (S.favs.list().length) root.innerHTML = '<div class="stack stack--3"><span class="eyebrow">Каталог товаров</span><h1 class="h1">Избранное</h1><p class="text">Загружаем сохранённые товары…</p></div>';
   refresh();
   window.addEventListener('sove:my', refresh);
   window.addEventListener('sove:repair', paint);

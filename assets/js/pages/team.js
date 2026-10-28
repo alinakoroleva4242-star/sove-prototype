@@ -1,4 +1,4 @@
-/* ЛК команды — перенос раздела /team/*: вход, платформа, аккаунты, проекты Адепт и Трек, поддержка.
+/* ЛК команды — перенос раздела /team/*: вход, платформа, аккаунты, дизайн-проекты и ремонты под ключ, поддержка.
    На сайте это шесть отдельных экранов; в прототипе они собраны в один с вкладками,
    состав блоков и тексты — с сайта. Цифры платформы приходят с сервера, поэтому в прототипе
    показываем только то, что есть локально, и честно это подписываем. */
@@ -12,8 +12,8 @@
 
   var TABS = [
     { id: 'home', t: 'Платформа' },
-    { id: 'adept', t: 'Проекты Адепт' },
-    { id: 'track', t: 'Проекты Трек' },
+    { id: 'adept', t: 'Дизайн-проекты' },
+    { id: 'track', t: 'Ремонты под ключ' },
     { id: 'support', t: 'Поддержка' },
     { id: 'members', t: 'Аккаунты' }
   ];
@@ -55,7 +55,7 @@
     var list = (S.projects.list() || []);
     var leads = (S.leads.list() || []).filter(function (l) { return new RegExp(kind, 'i').test(l.product || ''); });
     if (!list.length && !leads.length) {
-      return '<p class="fav-empty">Пока нет проектов с активным ' + (kind === 'adept' ? 'Адептом' : 'Треком') + '.</p>';
+      return '<p class="fav-empty">Пока нет проектов с активным ' + (kind === 'adept' ? 'дизайн-проектом' : 'ремонтом под ключ') + '.</p>';
     }
     return '<div class="pb-list">' +
       list.map(function (p) {
@@ -92,8 +92,8 @@
   }
 
   function view() {
-    if (tab === 'adept') return '<section class="pb"><span class="pb__k">Адепт</span><b class="pb__t">Мои проекты Адепт</b>' + projectRows('adept') + '</section>';
-    if (tab === 'track') return '<section class="pb"><span class="pb__k">Трек</span><b class="pb__t">Мои проекты Трек</b>' + projectRows('track') + '</section>';
+    if (tab === 'adept') return '<section class="pb"><span class="pb__k">Дизайн-проект</span><b class="pb__t">Мои дизайн-проекты</b>' + projectRows('adept') + '</section>';
+    if (tab === 'track') return '<section class="pb"><span class="pb__k">Ремонт под ключ</span><b class="pb__t">Мои ремонты под ключ</b>' + projectRows('track') + '</section>';
     if (tab === 'support') return support();
     if (tab === 'members') return members();
     return nums() +
@@ -108,7 +108,7 @@
     if (!inside) { root.innerHTML = login(); bindLogin(); return; }
     root.innerHTML =
       '<div class="stack stack--3"><span class="eyebrow">ЛК команды</span><h1 class="h1">Рабочий кабинет</h1>' +
-      '<p class="text">Платформа, проекты Адепт и Трек, поддержка и аккаунты сотрудников.</p></div>' +
+      '<p class="text">Платформа, дизайн-проекты и ремонты под ключ, поддержка и аккаунты сотрудников.</p></div>' +
       '<div class="lane co-chips">' + TABS.map(function (t) {
         return '<button type="button" class="chip' + (t.id === tab ? ' is-on' : '') + '" data-tab="' + t.id + '">' + esc(t.t) + '</button>';
       }).join('') + '</div>' +

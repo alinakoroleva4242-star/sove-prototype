@@ -10,13 +10,15 @@ body[data-page="my"] main:has(.myv) { background: #F4F2EE; }
 .myv-pick__grid button.is-on { background: #1E1C1A; border-color: #1E1C1A; color: #FFFFFF; }
 
 /* полоса «Корзина · Избранное · Бюджет» над нижним меню — вид из эталона: белая, во всю ширину, три колонки с разделителями */
-body[data-page="my"] .rp-strip { left: 0; right: 0; height: 58px; gap: 0; padding: 0; border: 0; border-top: 1px solid #E6E1DA; border-radius: 0; box-shadow: none; background: #FFFFFF; align-items: center; bottom: calc(var(--tabbar-h, 64px) + env(safe-area-inset-bottom)); font-family: Montserrat, Arial, sans-serif; }
-body[data-page="my"] .rp-strip a { justify-content: center; text-align: center; padding: 0; border-radius: 0; height: 100%; color: #1E1C1A; text-decoration: none; }
+body[data-page="my"] .rp-strip { left: 0; right: 0; height: 58px; gap: 0; padding: 0; border: 0; border-top: 1px solid #E6E1DA; border-radius: 0; box-shadow: none; background: #FFFFFF; -webkit-backdrop-filter: none; backdrop-filter: none; align-items: center; bottom: calc(var(--tabbar-h, 64px) + env(safe-area-inset-bottom)); font-family: Montserrat, Arial, sans-serif; }
+/* общая полоса на других экранах — карточки со стрелкой (макет Планировки); здесь свой вид из эталона: без рамок, фона и стрелок */
+body[data-page="my"] .rp-strip a { justify-content: center; text-align: center; padding: 0; border: 0; border-radius: 0; box-shadow: none; height: 100%; color: #1E1C1A; text-decoration: none; }
+body[data-page="my"] .rp-strip a::after { display: none; }
 body[data-page="my"] .rp-strip a + a { border-left: 1px solid #E6E1DA; }
 body[data-page="my"] .rp-strip svg { display: none; }
 body[data-page="my"] .rp-strip span { display: flex; flex-direction: column; gap: 1px; align-items: center; }
 body[data-page="my"] .rp-strip b { font-size: 12px; font-weight: 700; }
-body[data-page="my"] .rp-strip small { font-size: 10px; color: #6B655F; }
+body[data-page="my"] .rp-strip small { display: block; font-size: 10px; color: #6B655F; white-space: nowrap; text-overflow: ellipsis; -webkit-line-clamp: unset; line-clamp: none; }
 body[data-page="my"] .rp-strip [data-strip="fav"] b::before { content: "♡ "; }
 body[data-page="my"] .myv-page > div { padding-bottom: 72px; }
 

@@ -121,7 +121,7 @@
 .ar-stage.is-sticky { position: static; }
 .ar-dock {
   /* нижнее меню приложения фиксировано и 64 px высотой — плашка садится над ним */
-  position: sticky; bottom: calc(64px + 8px); z-index: 3; margin-top: 12px;
+  position: static; margin-top: 4px;
   background: var(--white); border: 1px solid var(--line-2); border-radius: var(--r-sm);
   box-shadow: 0 -8px 24px -18px rgba(31,31,31,.5);
 }
@@ -211,3 +211,8 @@ body[data-page="arrange"] #main { padding-bottom: 96px; }
 /* выбор варианта расстановки */
 .ar-plans { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin: 0 0 8px; }
 .ar-plans > span { font-size: 11px; color: var(--stone); }
+
+/* «Замечания» — белой карточкой: без неё ошибка выглядит тише соседних блоков */
+.ar-bad { background: var(--white); border: 1px solid #e7cdc7; border-radius: 14px; padding: 14px 12px; min-width: 0; }
+.ar-bad .pb__k { font-size: 10px; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase; color: #a8341c; margin-bottom: 0; }
+.ar-bad .ar-list { margin: 10px 0 0; }

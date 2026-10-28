@@ -15,7 +15,7 @@
   };
   UI.qtyTxt = function (it) { return it.unit === 'компл.' ? 'комплект' : String(it.qty).replace('.', ',') + ' ' + it.unit; };
   UI.slotLabel = function (s, dna) { var c = window.SOVE_KB.dnaColor(dna, s.dna); return (s.name + ' · ' + (c ? c.name : '')).toUpperCase(); };
-  var SRC = { capsule: ['от дизайнера', 'is-cap'], photo: ['с фото', 'is-photo'], sove: ['подобрал SOVE', ''], user: ['выбрал сам', ''] };
+  var SRC = { capsule: ['от дизайнера', 'is-cap'], photo: ['с фото', 'is-photo'], sove: ['подобрал SOVEAPP', ''], user: ['выбрал сам', ''] };
   /* свёрнутый список (ТЗ Интерьера, 4): четыре строки без групп и меток + «Ещё 8 ›» */
   var FEATURED = ['floor', 'walls', 'apron', 'plumbing'];
 

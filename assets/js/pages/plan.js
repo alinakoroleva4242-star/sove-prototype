@@ -1,4 +1,4 @@
-/* «Планировка в интерьере» — перенос сценария /ai/plan (SOVEAPP AI · Plan Render).
+/* «Планировка в интерьере» — перенос сценария /ai/plan (Генерации · план в 3D).
    Разбор контура и контрольное превью бесплатны, платный — только рендер интерьера.
    Это макет сценария для веб-приложения: настоящий Plan Render живёт в своём контуре. */
 (function () {
@@ -19,7 +19,7 @@
   function totalArea() { return Math.round(st.rooms.reduce(function (a, r) { return a + (Number(r.area) || 0); }, 0) * 10) / 10; }
 
   function head() {
-    return '<div class="stack stack--3"><span class="eyebrow">SOVEAPP AI · Plan Render</span>' +
+    return '<div class="stack stack--3"><span class="eyebrow">Генерации · план в 3D</span>' +
       '<h1 class="h1">Планировка в интерьере</h1>' +
       '<p class="text">Загрузите план квартиры — разберём контур, покажем комнаты с площадями и наложим выбранную капсулу. Разбор и контрольное превью бесплатны.</p></div>';
   }
@@ -78,8 +78,8 @@
         return '<div class="pb-item"><b>' + esc(r.name) + '</b><span>' + F.area(r.area) + ' · ' + F.rub(Math.round(c.pricePerM2 * r.area)) + '</span></div>';
       }).join('') + '</div>' +
       '<div class="stack stack--3">' +
-        '<a class="btn btn--primary btn--block" href="scout.html?area=' + totalArea() + '&capsule=' + st.capsuleId + '">Собрать смету в Скауте</a>' +
-        '<a class="btn btn--ghost btn--block" href="adept.html?capsule=' + st.capsuleId + '">Адаптировать проект в Адепте</a>' +
+        '<a class="btn btn--primary btn--block" href="scout.html?area=' + totalArea() + '&capsule=' + st.capsuleId + '">Собрать смету</a>' +
+        '<a class="btn btn--ghost btn--block" href="adept.html?capsule=' + st.capsuleId + '">Адаптировать проект в дизайн-проекте</a>' +
         '<button type="button" class="btn btn--link" data-act="again">Другая планировка</button>' +
       '</div>' + meter();
   }

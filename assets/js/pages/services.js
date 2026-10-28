@@ -5,9 +5,9 @@
   var trackFrom = Math.min.apply(null, D.scout.states.map(function (s) { return s.rate; }));
   var LIST = [
     { href: 'metod.html', name: 'METOD', lead: 'Подписка на цены партнёров', text: 'Скидки 10–30 % на мебель, свет и отделку, контакты поставщиков и промокоды.', price: 'от ' + F.rub(D.metodPlans[0].price) + ' в месяц', cta: 'Оформить подписку', img: 'assets/img/capsules/k1-living.jpg' },
-    { href: 'adept.html', name: 'Адепт', lead: 'Дизайн-проект', text: 'Планировка, рендеры и спецификация по выбранному интерьеру. Три пакета по объёму.', price: 'от ' + F.rub(adeptFrom) + '/м²', cta: 'Оставить заявку', img: 'assets/img/capsules/k4-main-1.jpg' },
+    { href: 'adept.html', name: 'Дизайн-проект', lead: 'По вашей капсуле', text: 'Планировка, рендеры и спецификация по выбранному интерьеру. Три пакета по объёму.', price: 'от ' + F.rub(adeptFrom) + '/м²', cta: 'Оставить заявку', img: 'assets/img/capsules/k4-main-1.jpg' },
     { href: 'sove-ai.html', name: 'Генерации', lead: 'Поиск по фото и рендер', text: 'Найдём вещь с фотографии среди товаров партнёров или покажем вашу квартиру в выбранном интерьере.', price: 'первые попытки бесплатно, дальше токены', cta: 'Попробовать', img: 'assets/img/capsules/k2-main-1.jpg' },
-    { href: 'track.html', name: 'Трек', lead: 'Ремонт под ключ', text: 'Бригада, закупки и контроль этапов. Отчёты и платежи в одном месте.', price: 'работы от ' + F.rub(trackFrom) + '/м²', cta: 'Оставить заявку', img: 'assets/img/capsules/k3-main-1.jpg' },
+    { href: 'track.html', name: 'Управление ремонтом', lead: 'Ремонт под ключ', text: 'Бригада, закупки и контроль этапов. Отчёты и платежи в одном месте.', price: 'работы от ' + F.rub(trackFrom) + '/м²', cta: 'Оставить заявку', img: 'assets/img/capsules/k3-main-1.jpg' },
     { href: 'track.html#tr-stages', name: 'Финиш', lead: 'Ключи от квартиры', text: 'Сдача по акту, гарантия на работы, мебель и свет расставлены по проекту.', price: '', cta: 'Как проходит сдача', img: 'assets/img/capsules/k6-main-2.jpg', final: true }
   ];
   document.getElementById('svc-list').innerHTML = LIST.map(function (x, i) {

@@ -1,4 +1,4 @@
-/* Проект: шапка, смета Скаута, товары, генерации, следующие шаги, удаление */
+/* Проект: шапка, смета ремонта, товары, генерации, следующие шаги, удаление */
 (function () {
   var S = window.SOVE, D = S.data, F = S.fmt, esc = F.esc;
   var root = document.getElementById('pr-root');
@@ -43,8 +43,8 @@
       ? '<div class="rule-top stack stack--2"><span class="mid-num">' + c.name + '</span><span class="tiny muted">' + esc(c.name) + '</span><div class="row"><a class="arrow-link" href="capsule.html?id=' + c.id + '">О капсуле</a>' + (pr.scout ? '' : '<button class="btn btn--link" type="button" data-capsule>Сменить</button>') + '</div></div>'
       : '<div class="rule-top stack stack--2"><span class="mid-num">Без капсулы</span><span class="tiny muted">Капсула задаёт стиль, материалы и цену комплектации</span><button class="btn btn--link" type="button" data-capsule>Выбрать капсулу</button></div>';
     var areaFact = area
-      ? '<div class="rule-top stack stack--2"><span class="mid-num">' + F.area(area) + '</span><span class="tiny muted">' + (pr.scout ? 'площадь из расчёта Скаута' : 'площадь квартиры') + '</span></div>'
-      : '<div class="rule-top stack stack--2"><span class="mid-num">Площадь не указана</span><span class="tiny muted">Появится после расчёта в Скауте</span></div>';
+      ? '<div class="rule-top stack stack--2"><span class="mid-num">' + F.area(area) + '</span><span class="tiny muted">' + (pr.scout ? 'площадь из расчёта бюджета' : 'площадь квартиры') + '</span></div>'
+      : '<div class="rule-top stack stack--2"><span class="mid-num">Площадь не указана</span><span class="tiny muted">Появится после расчёта бюджета</span></div>';
     var cap = [c ? c.name : null, area ? F.area(area) : null].filter(Boolean).join(' · ');
     return '<div class="wrap pr-crumbs"><nav class="crumbs" aria-label="Путь"><a href="account.html">Кабинет</a><span aria-hidden="true">/</span><a href="account.html#projects">Проекты</a><span aria-hidden="true">/</span><span>' + esc(pr.name) + '</span></nav></div>' +
       '<section class="wrap pr-head">' +
@@ -61,8 +61,8 @@
   function estimateHtml(pr, c, area) {
     var s = pr.scout, scoutHref = 'scout.html?project=' + encodeURIComponent(pr.id) + (pr.capsuleId ? '&capsule=' + encodeURIComponent(pr.capsuleId) : '');
     if (!s) {
-      return '<section class="wrap cab-section" id="estimate" aria-labelledby="est-title">' + head('est-title', 'Смета Скаута') +
-        '<div class="est-cta"><div class="stack stack--3"><span class="h3">Сметы пока нет</span><p class="text small">Загрузите планировку — Скаут посчитает работы по этапам и комплектацию' + (c ? ' капсулы ' + c.name : '') + ' в ценах METOD и в рознице. Расчёт сохранится в этом проекте.</p></div>' +
+      return '<section class="wrap cab-section" id="estimate" aria-labelledby="est-title">' + head('est-title', 'Смета ремонта') +
+        '<div class="est-cta"><div class="stack stack--3"><span class="h3">Сметы пока нет</span><p class="text small">Загрузите планировку — посчитаем работы по этапам и комплектацию' + (c ? ' капсулы ' + c.name : '') + ' в ценах METOD и в рознице. Расчёт сохранится в этом проекте.</p></div>' +
         '<a class="btn btn--primary" href="' + scoutHref + '">Посчитать ремонт</a></div></section>';
     }
     var st = D.scout.states.filter(function (x) { return x.id === s.stateId; })[0];
@@ -72,7 +72,7 @@
     var stages = s.works ? '<div class="est__stages"><span class="eyebrow">Работы по этапам</span><ul>' + D.scout.stages.map(function (x) {
       return '<li><span>' + esc(x[0]) + ' <span class="muted num">· ' + x[1] + ' %</span></span><span class="num">' + F.rub(s.works * x[1] / 100) + '</span><span class="bar" aria-hidden="true"><i style="width:' + Math.round(x[1] / max * 100) + '%"></i></span></li>';
     }).join('') + '</ul></div>' : '';
-    return '<section class="wrap cab-section" id="estimate" aria-labelledby="est-title">' + head('est-title', 'Смета Скаута', meta ? '<span class="small muted">' + esc(meta.charAt(0).toUpperCase() + meta.slice(1)) + '</span>' : '') +
+    return '<section class="wrap cab-section" id="estimate" aria-labelledby="est-title">' + head('est-title', 'Смета ремонта', meta ? '<span class="small muted">' + esc(meta.charAt(0).toUpperCase() + meta.slice(1)) + '</span>' : '') +
       '<div class="est"><div class="est__main">' +
       '<div class="est__total"><span class="eyebrow">Бюджет ремонта</span><span class="big-num">' + F.rub(s.total || 0) + '</span>' + (area && s.total ? '<span class="small muted num">' + F.rub(s.total / area) + ' за м² · работы и комплектация</span>' : '') + '</div>' +
       '<ul class="rows">' +
@@ -92,7 +92,7 @@
     var list = (pr.productIds || []).map(function (pid) { return D.product(pid); }).filter(Boolean);
     var body;
     if (!list.length) {
-      body = empty('Товаров пока нет', 'Добавляйте товары из каталога и из результатов поиска SOVEAPP AI — здесь соберётся список с ценами METOD и итогом.',
+      body = empty('Товаров пока нет', 'Добавляйте товары из каталога и из результатов поиска по фото — здесь соберётся список с ценами METOD и итогом.',
         '<a class="btn btn--ghost" href="' + marketHref + '">' + (pr.capsuleId ? 'Товары капсулы в каталоге' : 'Перейти в каталог') + '</a>');
     } else {
       var m = 0, r = 0; list.forEach(function (p) { m += p.metod; r += p.retail; });
@@ -103,7 +103,7 @@
         '<div class="pr-sum__cell rule-top"><span class="mid-num green">' + F.rub(m) + '</span><span class="tiny muted">по ценам METOD · ' + count(list.length, ['товар', 'товара', 'товаров']) + '</span></div>' +
         '<div class="pr-sum__cell rule-top"><span class="mid-num strike muted">' + F.rub(r) + '</span><span class="tiny muted">в рознице</span></div>' +
         '<div class="pr-sum__cell rule-top"><span class="mid-num">' + F.rub(r - m) + '</span><span class="tiny muted">экономия с METOD</span></div>' +
-        '</div><p class="tiny muted" style="margin-top:var(--s4)">Итог — за одну единицу каждого товара. Количество и метраж считает смета Скаута.</p>';
+        '</div><p class="tiny muted" style="margin-top:var(--s4)">Итог — за одну единицу каждого товара. Количество и метраж считает смета ремонта.</p>';
     }
     return '<section class="wrap cab-section" id="products" aria-labelledby="prod-title">' + head('prod-title', 'Товары в проекте', list.length ? '<a class="btn btn--link" href="' + marketHref + '">Добавить товары</a>' : '') + body + '</section>';
   }
@@ -135,9 +135,9 @@
     var pk = D.adept.packages.slice().sort(function (a, b) { return a.rate - b.rate; })[0];
     return '<section class="wrap cab-section" id="next" aria-labelledby="next-title">' + head('next-title', 'Дальше', '<span class="small muted">' + (pr.scout ? 'Расчёт передадим вместе с заявкой — заново вводить не придётся' : 'Сначала посчитайте ремонт — расчёт уйдёт вместе с заявкой') + '</span>') +
       '<div class="grid grid--2 grid--gap-lg">' +
-      '<div class="next-card"><span class="next-card__n">3</span><h3 class="h3">Адепт · дизайн-проект</h3><p class="small muted">Дизайнер адаптирует капсулу под вашу квартиру: планировка, визуализации, чертежи.' + (pk ? ' От <span class="num">' + F.rub(pk.rate) + '/м²</span>, срок ' + esc(pk.term) + '.' : '') + '</p>' + sent('adept') +
+      '<div class="next-card"><span class="next-card__n">3</span><h3 class="h3">Дизайн-проект</h3><p class="small muted">Дизайнер адаптирует капсулу под вашу квартиру: планировка, визуализации, чертежи.' + (pk ? ' От <span class="num">' + F.rub(pk.rate) + '/м²</span>, срок ' + esc(pk.term) + '.' : '') + '</p>' + sent('adept') +
       '<a class="btn ' + (pr.scout ? 'btn--primary' : 'btn--ghost') + '" href="adept.html' + q + '">Заказать дизайн-проект</a></div>' +
-      '<div class="next-card"><span class="next-card__n">4</span><h3 class="h3">Трек · ремонт под ключ</h3><p class="small muted">Команда делает ремонт. Этапы, акты и оплаты видны в кабинете.</p>' + sent('track') +
+      '<div class="next-card"><span class="next-card__n">4</span><h3 class="h3">Ремонт под ключ</h3><p class="small muted">Команда делает ремонт. Этапы, акты и оплаты видны в кабинете.</p>' + sent('track') +
       '<a class="btn btn--ghost" href="track.html' + q + '">Ремонт под ключ</a></div>' +
       '</div></section>';
   }

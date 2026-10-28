@@ -1,6 +1,6 @@
 /* Мой ремонт — главный вид my.html по ТЗ 22.10.2026 (design/moy-remont/TZ-moy-remont.md): чистовик квартиры.
    Шапка с переключателем квартир и прогрессом Основа → Интерьер → Бюджет → Покупки, разделы
-   План · Интерьер · Комнаты · Бюджет · Избранное · Корзина, внизу история генераций, мост к АДЕПТ и следующий уровень.
+   План · Интерьер · Комнаты · Бюджет · Избранное · Корзина, внизу история генераций, мост к Дизайн-проект и следующий уровень.
    Три варианта вёрстки на одних данных (?d=): a — лента одной страницей, b — плитки разделов, c — вкладки. Данные — SOVE.repair. */
 (function () {
   var S = window.SOVE, D = S.data, F = S.fmt, esc = F.esc, ui = S.ui, R = S.repair;
@@ -56,11 +56,11 @@
     return { sub: R.LEVEL[p.level], pic: p.img, n: p.rooms.length,
       html: '<figure class="rs-plan"><img src="' + p.img + '" alt="План квартиры с расстановкой"><figcaption><span class="rtag">' + esc(R.LEVEL[p.level]) + '</span>' + (p.variant ? '<span class="rtag rtag--mute">' + esc(p.variant) + '</span>' : '') + '</figcaption></figure>' +
         '<ul class="rs-rooms">' + p.rooms.map(function (x) { return '<li><span>' + esc(x.name) + '</span><b>' + F.area(x.m2) + '</b></li>'; }).join('') + '<li class="is-sum"><span>Всего</span><b>' + F.area(m2) + '</b></li></ul>' +
-        '<div class="rs-row">' + more(R.LINK.plan, 'Изменить в SOVE AI') + '<button type="button" class="btn btn--ghost btn--sm" data-act="upload">Загрузить проект</button></div>' };
+        '<div class="rs-row">' + more(R.LINK.plan, 'Изменить в Генерациях') + '<button type="button" class="btn btn--ghost btn--sm" data-act="upload">Загрузить проект</button></div>' };
   }
   function secInterior() {
     var it = R.get().interior;
-    if (!it) return { sub: 'пусто', html: empty('interior', 'Выберите интерьер — мудборд материалов с ценами', 'Выбрать в SOVE AI', R.LINK.materials) };
+    if (!it) return { sub: 'пусто', html: empty('interior', 'Выберите интерьер — мудборд материалов с ценами', 'Выбрать в Генерациях', R.LINK.materials) };
     var ids = it.productIds || [], prods = ids.map(function (id) { return D.product(id); }).filter(Boolean), shown = ui$.open === 'mat' ? prods : prods.slice(0, 3);
     /* ДНК: у капсулы — картинки, у своей доски отделки (блок Материалы) — цвета {hex, name} */
     var own = it.type === 'own', imgs = own ? (it.img ? [it.img] : []) : (it.dna || []).slice(0, 4);
@@ -68,14 +68,14 @@
     return { sub: it.name || 'Своя капсула', pic: own ? it.img : (it.dna && it.dna[0]) || it.img, n: prods.length,
       html: '<div class="rs-mb">' + imgs.map(function (s) { return '<img src="' + s + '" alt="" loading="lazy">'; }).join('') + '</div>' +
         '<div class="rs-mb__t"><b>' + esc(it.name || 'Своя капсула') + '</b><span class="rs-dna" aria-label="ДНК интерьера">' + (it.dna || []).map(function (s) { return '<i style="' + sw(s) + '"></i>'; }).join('') + '</span></div>' +
-        '<div class="rs-sub"><b>Материалы · ' + prods.length + ' · ' + F.rub(sum(ids)) + '</b>' + more(R.LINK.materials, 'Изменить в SOVE AI') + '</div>' +
+        '<div class="rs-sub"><b>Материалы · ' + prods.length + ' · ' + F.rub(sum(ids)) + '</b>' + more(R.LINK.materials, 'Изменить в Генерациях') + '</div>' +
         '<div class="rp-list">' + shown.map(function (p) { return R.card(p, { source: 'moodboard' }); }).join('') + '</div>' +
         (prods.length > 3 ? '<button type="button" class="btn btn--link btn--sm" data-open="mat">' + (ui$.open === 'mat' ? 'Свернуть' : 'Показать все · ' + prods.length) + '</button>' : '') +
         '<button type="button" class="btn btn--dark btn--block" data-all="moodboard">' + ic('cart', 16) + ' Всё в корзину · ' + prods.length + '</button>' };
   }
   function secRooms() {
     var r = R.get(), rooms = R.rooms(), it = r.interior, total = R.rendersCount();
-    if (!total) return { sub: 'пусто', html: '<div class="rs-ghosts">' + rooms.map(function (x) { return '<a class="rs-ghost" href="' + R.LINK.visual + '"><b>' + esc(x.name) + '</b><span>' + ic('spark', 14) + ' Нарисовать · ' + F.tokens(COST) + '</span></a>'; }).join('') + '</div><p class="rs-note">Рендеры комнат делаются в SOVE AI, блок Визуализации, и сохраняются сюда без ограничений.</p>' };
+    if (!total) return { sub: 'пусто', html: '<div class="rs-ghosts">' + rooms.map(function (x) { return '<a class="rs-ghost" href="' + R.LINK.visual + '"><b>' + esc(x.name) + '</b><span>' + ic('spark', 14) + ' Нарисовать · ' + F.tokens(COST) + '</span></a>'; }).join('') + '</div><p class="rs-note">Рендеры комнат делаются в Генерациях, блок Визуализации, и сохраняются сюда без ограничений.</p>' };
     if (!ui$.room || !rooms.some(function (x) { return x.key === ui$.room; })) ui$.room = (rooms.filter(function (x) { return (r.rooms[x.key] || []).length; })[0] || rooms[0]).key;
     var key = ui$.room, list = r.rooms[key] || [], mainId = r.rooms[key + ':main'], main = list.filter(function (x) { return x.id === mainId; })[0] || list[0], room = rooms.filter(function (x) { return x.key === key; })[0];
     var stale = function (x) { return it && x.interiorTs && x.interiorTs !== it.ts; };
@@ -89,21 +89,21 @@
   }
   function secBudget() {
     var r = R.get(), b = r.budget, draft = S.draft.get('scout'), on = S.metod.active();
-    var unfinished = !b && draft && draft.capsuleId && draft.step && draft.step < 5 ? '<a class="rcall rcall--soft" href="' + R.LINK.scout + '">' + ic('calc', 20) + '<span class="grow"><b>Расчёт в Скауте не закончен</b><small>шаг ' + draft.step + ' из 5</small></span>Продолжить ' + ic('chev', 14) + '</a>' : '';
-    if (!b) return { sub: 'посчитать', html: unfinished + empty('budget', 'Посчитайте бюджет ремонта — 2 минуты', 'Посчитать в Скауте', R.LINK.scout) };
+    var unfinished = !b && draft && draft.capsuleId && draft.step && draft.step < 5 ? '<a class="rcall rcall--soft" href="' + R.LINK.scout + '">' + ic('calc', 20) + '<span class="grow"><b>Расчёт бюджета не закончен</b><small>шаг ' + draft.step + ' из 5</small></span>Продолжить ' + ic('chev', 14) + '</a>' : '';
+    if (!b) return { sub: 'посчитать', html: unfinished + empty('budget', 'Посчитайте бюджет ремонта — 2 минуты', 'Посчитать бюджет', R.LINK.scout) };
     var shares = D.scout.kitShares || [], gain = b.kitRetail - b.kitMetod;
     var kit = function (v, retail) { return on ? '<b>' + F.rub(v) + '</b>' + (retail ? '<s>' + F.rub(retail) + '</s>' : '') : '<b class="is-lock">' + ic('lock', 12) + F.rub(v) + '</b>'; };
     var capId = b.capsuleId || (r.interior && r.interior.capsuleId), ids = capId ? R.capsuleProducts(capId).map(function (p) { return p.id; }) : [];
     return { sub: F.rub(b.total), n: null,
-      html: (R.budgetStale() ? '<a class="rcall rcall--warn" href="' + R.LINK.scout + '"><span class="grow"><b>План или интерьер изменились</b><small>бюджет посчитан по прежним</small></span>Пересчитать в Скауте ' + ic('chev', 14) + '</a>' : '') +
+      html: (R.budgetStale() ? '<a class="rcall rcall--warn" href="' + R.LINK.scout + '"><span class="grow"><b>План или интерьер изменились</b><small>бюджет посчитан по прежним</small></span>Пересчитать бюджет ' + ic('chev', 14) + '</a>' : '') +
         '<div class="rs-bud"><span class="rtag">' + (b.type === 'premium' ? 'Премиум' : 'База') + '</span><b class="rs-bud__t">' + F.rub(b.total) + '</b><small>' + (b.area ? F.area(b.area) + ' · ' : '') + 'работы и комплектация</small></div>' +
         '<ul class="rs-lines"><li><span>Работы</span><b>' + F.rub(b.works) + '</b></li>' + shares.map(function (s) { return '<li><span>' + esc(s[0]) + '</span>' + kit(b.kitMetod * s[1] / 100, on ? b.kitRetail * s[1] / 100 : 0) + '</li>'; }).join('') + '</ul>' +
-        (on ? '<p class="rs-gain">' + ic('check', 14) + ' Выгода с METOD · <b>' + F.rub(gain) + '</b></p>' : '<a class="rcall rcall--metod" href="' + R.LINK.metod + '">' + ic('lock', 18) + '<span class="grow"><b>Закрытые цены SOVE App — с METOD</b><small>выгода на комплектации ' + F.rub(gain) + '</small></span>' + ic('chev', 14) + '</a>') +
-        '<div class="rs-row rs-row--2">' + (ids.length ? '<button type="button" class="btn btn--dark btn--sm" data-all="budget">Всё в корзину по бюджету</button>' : '') + '<a class="btn btn--ghost btn--sm" href="' + R.LINK.scout + '">Пересчитать в Скауте</a></div>' };
+        (on ? '<p class="rs-gain">' + ic('check', 14) + ' Выгода с METOD · <b>' + F.rub(gain) + '</b></p>' : '<a class="rcall rcall--metod" href="' + R.LINK.metod + '">' + ic('lock', 18) + '<span class="grow"><b>Закрытые цены SOVEAPP — с METOD</b><small>выгода на комплектации ' + F.rub(gain) + '</small></span>' + ic('chev', 14) + '</a>') +
+        '<div class="rs-row rs-row--2">' + (ids.length ? '<button type="button" class="btn btn--dark btn--sm" data-all="budget">Всё в корзину по бюджету</button>' : '') + '<a class="btn btn--ghost btn--sm" href="' + R.LINK.scout + '">Пересчитать бюджет</a></div>' };
   }
   function secFav() {
     var ids = R.fav.list(), prods = ids.map(function (id) { return D.product(id); }).filter(Boolean), many = R.flats.list().length > 1;
-    if (!prods.length) return { sub: 'пусто', n: 0, html: empty('fav', 'Нажмите ♡ на товаре в Маркете или в результатах SOVE AI — он появится здесь', 'В Маркет', R.LINK.market) };
+    if (!prods.length) return { sub: 'пусто', n: 0, html: empty('fav', 'Нажмите ♡ на товаре в Маркете или в результатах генераций — он появится здесь', 'В Маркет', R.LINK.market) };
     var cats = []; prods.forEach(function (p) { if (cats.indexOf(p.category) < 0) cats.push(p.category); });
     if (ui$.favCat !== 'all' && cats.indexOf(ui$.favCat) < 0) ui$.favCat = 'all';
     var shown = prods.filter(function (p) { return ui$.favCat === 'all' || p.category === ui$.favCat; });
@@ -122,17 +122,17 @@
             '<div class="rs-ci__q"><span class="qty"><button type="button" data-q="' + p.id + '" data-d="-1" aria-label="Меньше">−</button><b>' + x.qty + '</b><button type="button" data-q="' + p.id + '" data-d="1" aria-label="Больше">+</button></span><button type="button" class="rp-ic" data-rm="' + p.id + '" aria-label="Убрать из корзины">' + ic('trash', 16) + '</button></div></div></div>'; }).join('') + '</div>'; }).join('') +
         '<div class="rs-total"><span>Итого · ' + cnt(t.qty, ['товар', 'товара', 'товаров']) + '</span><b>' + F.rub(t.metod) + '</b></div>' +
         (t.retail > t.metod ? '<p class="rs-gain">' + ic('check', 14) + ' Выгода с METOD · <b>' + F.rub(t.retail - t.metod) + '</b>' + (on ? '' : ' · <a href="' + R.LINK.metod + '">подключить</a>') + '</p>' : '') +
-        '<button type="button" class="btn btn--primary btn--block btn--lg" data-act="checkout">Оформить · ' + F.rub(t.metod) + '</button><p class="rs-note">Оплата через SOVE App, заказы уйдут поставщикам.</p>' };
+        '<button type="button" class="btn btn--primary btn--block btn--lg" data-act="checkout">Оформить · ' + F.rub(t.metod) + '</button><p class="rs-note">Оплата через SOVEAPP, заказы уйдут поставщикам.</p>' };
   }
   var BUILD = { plan: secPlan, interior: secInterior, rooms: secRooms, budget: secBudget, fav: secFav, cart: secCart };
   var LINKS = { plan: R.LINK.plan, interior: R.LINK.materials, rooms: R.LINK.visual, budget: R.LINK.scout };
 
-  /* ---------- низ страницы: история генераций, мост к АДЕПТ, следующий уровень ---------- */
+  /* ---------- низ страницы: история генераций, мост к Дизайн-проект, следующий уровень ---------- */
   function bottom() {
     var r = R.get(), n = S.gens.list().length, ready = !!(r.plan && r.interior && r.budget), bridge = (r.interior && !r.interior.capsuleId) || n >= 5;
-    return '<a class="rs-hist" href="' + R.LINK.ai + '">' + ic('spark', 18) + '<span class="grow">История генераций · ' + n + '</span>SOVE AI ' + ic('chev', 14) + '</a>' +
+    return '<a class="rs-hist" href="' + R.LINK.ai + '">' + ic('spark', 18) + '<span class="grow">История генераций · ' + n + '</span>Генерации ' + ic('chev', 14) + '</a>' +
       (bridge ? '<a class="rcall rcall--soft" href="' + R.LINK.adept + '"><span class="grow"><b>Дизайнер доведёт до проекта</b><small>промокод 5 000 ₽ для METOD</small></span>' + ic('chev', 14) + '</a>' : '') +
-      '<div class="rs-next">' + [['Подключить дизайнера', 'АДЕПТ', R.LINK.adept], ['Перейти к стройке', 'ТРЕК', R.LINK.track]].map(function (x) { return ready ? '<a href="' + x[2] + '"><b>' + x[0] + '</b><small>' + x[1] + '</small></a>' : '<span class="is-off"><b>' + ic('lock', 12) + ' ' + x[0] + '</b><small>' + x[1] + ' · откроется после основы, интерьера и бюджета</small></span>'; }).join('') + '</div>';
+      '<div class="rs-next">' + [['Подключить дизайнера', 'дизайн-проект', R.LINK.adept], ['Перейти к стройке', 'ремонт под ключ', R.LINK.track]].map(function (x) { return ready ? '<a href="' + x[2] + '"><b>' + x[0] + '</b><small>' + x[1] + '</small></a>' : '<span class="is-off"><b>' + ic('lock', 12) + ' ' + x[0] + '</b><small>' + x[1] + ' · откроется после основы, интерьера и бюджета</small></span>'; }).join('') + '</div>';
   }
   function proto() {
     return '<section class="rs-proto" aria-label="Прототип"><span>Прототип · вариант</span><div>' + Object.keys(VARIANTS).map(function (k) { return '<a class="' + (k === variant ? 'is-on' : '') + '" href="' + PAGE + '?d=' + k + '">' + k.toUpperCase() + ' · ' + VARIANTS[k] + '</a>'; }).join('') + '</div>' +

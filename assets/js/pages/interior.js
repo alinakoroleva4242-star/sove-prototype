@@ -138,7 +138,7 @@
 
   /* ── шапка ── */
   function head() {
-    var back = FROM_BUDGET ? '<a class="pz-back" href="my.html?v=budget">← Бюджет</a>' : FROM_MY ? '<a class="pz-back" href="my.html?v=center">← Мой ремонт</a>' : '<a class="pz-back" href="sove-ai.html">← SOVE AI</a>';
+    var back = FROM_BUDGET ? '<a class="pz-back" href="my.html?v=budget">← Бюджет</a>' : FROM_MY ? '<a class="pz-back" href="my.html?v=center">← Мой ремонт</a>' : '<a class="pz-back" href="sove-ai.html">← Генерации</a>';
     return '<header class="pz-head int-head"><div class="pz-head__top">' + back +
       '<a class="pz-tok" href="tokens.html?returnTo=' + encodeURIComponent('interior.html' + location.search) + '">' + esc(F.tokens(balance())) + '</a></div>' +
       '<h1 class="pz-head__t">Интерьер</h1></header>';
@@ -159,7 +159,7 @@
         '<div class="ah__b"><div class="hc__b-h"><small>МУДБОРД · 12 МАТЕРИАЛОВ · ДНК</small><span class="hc__dots">' + KB.DNA.map(function (x) { return '<i style="background:' + x.hex + '"></i>'; }).join('') + '</span></div>' +
           '<div class="ah__row">' + HERO_TILES.map(function (t) { return '<span style="left:' + t[1] + 'px;top:' + t[2] + 'px">' + UI.sampleTile({ photo: SW + t[0] + '.jpg' }, t[3], t[4], { thickness: 3, rot: t[5], radius: 3 }) + '</span>'; }).join('') + '</div>' +
           '<small class="ah__cap">реальные образцы с ценами · База / Премиум · любой можно заменить, и рендер обновится</small></div></div>' +
-      '<div class="mt-row"><small class="mt-cap-l">КАПСУЛЫ SOVE · ' + (S.metod.active() ? 'БЕСПЛАТНО С METOD' : TOK(P.capsulePaid).toUpperCase() + ' · С METOD БЕСПЛАТНО') + '</small><a class="mt-a" href="capsules.html">все ' + KB.CAPSULES.length + ' ›</a></div>' +
+      '<div class="mt-row"><small class="mt-cap-l">КАПСУЛЫ SOVEAPP · ' + (S.metod.active() ? 'БЕСПЛАТНО С METOD' : TOK(P.capsulePaid).toUpperCase() + ' · С METOD БЕСПЛАТНО') + '</small><a class="mt-a" href="capsules.html">все ' + KB.CAPSULES.length + ' ›</a></div>' +
       UI.capsuleStrip(KB.CAPSULES) +
       '<label class="up up--line"><input type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic" hidden data-up><span class="up__ic">⇪</span>' +
         '<span class="up__t"><b>Или свой рендер, фото, Pinterest</b><small>разберём ДНК и соберём материалы · от ' + F.tokens(P.ownRoom) + '</small></span><span class="up__a">›</span></label>' +
@@ -170,7 +170,7 @@
   /* ════════ B · Готово (TZ-interior-final: две плитки «Материалы / Визуализации», комнаты добавляются «＋») ════════ */
   function capHead() {
     var b = board, zs = boardZones(), pl = planInfo();
-    var sub = (b.type === 'capsule' ? 'капсула SOVE' : 'своя капсула') + ' · ' + String(pl.area).replace('.', ',') + ' м²';   /* коротко, в одну строку (чистка 26.10) */
+    var sub = (b.type === 'capsule' ? 'капсула SOVEAPP' : 'своя капсула') + ' · ' + String(pl.area).replace('.', ',') + ' м²';   /* коротко, в одну строку (чистка 26.10) */
     var nR = zs.filter(function (z) { return rendersOf(z).length; }).length, nS = KB.slotsFor(zs).length, cover = (zs.map(function (z) { return rendersOf(z)[0]; }).filter(Boolean)[0] || {}).img || MOCK[zs[0]] || IMG + 'k2-kitchen.jpg';
     /* картинка плитки «Материалы» — живая доска (образцы выбранных материалов), «Визуализации» до генерации — обещание ✦ */
     var tile = function (m, img, t, small) {
@@ -349,7 +349,7 @@
         g.fillStyle = '#1E1C1A'; g.font = '600 24px Montserrat, Arial, sans-serif'; g.fillText(fit(x.it.name), cx, cy + ch + 66);
         g.fillStyle = '#6B655F'; g.font = '500 22px Montserrat, Arial, sans-serif'; g.fillText(UI.unitPrice(x.it), cx, cy + ch + 96);
       });
-      g.fillStyle = '#8A7F74'; g.font = '500 20px Montserrat, Arial, sans-serif'; g.fillText('SOVE App · мудборд интерьера', pad, H - 48);
+      g.fillStyle = '#8A7F74'; g.font = '500 20px Montserrat, Arial, sans-serif'; g.fillText('SOVEAPP · мудборд интерьера', pad, H - 48);
       var a = document.createElement('a'); a.download = 'Мудборд — ' + KB.zone(z).name + '.png'; a.href = cv.toDataURL('image/png'); document.body.appendChild(a); a.click(); a.remove();
       track('int_board_download', { zone: z, n: list.length });
     });
@@ -428,7 +428,7 @@
         var rm = c && c.rooms.filter(function (x) { return x.zone === KB.zoneType(z); })[0], srcs = rm ? rm.angles : [MOCK[KB.zoneType(z)]], snap = snapshot();
         board.renders = board.renders.filter(function (r) { return r.zone !== z; });
         for (var k = 0; k < angles; k++) board.renders.push({ zone: z, room: KB.zone(z).name, angle: k, img: srcs[k % srcs.length] || MOCK[KB.zoneType(z)], skus: snap });
-        delete st.gen[z]; persist(); R.save('render', { room: KB.zone(z).name, src: srcs[0] || MOCK[KB.zoneType(z)], mine: true }, { silent: true });
+        delete st.gen[z]; persist(); R.save('render', { room: KB.zone(z).name, src: srcs[0] || MOCK[KB.zoneType(z)], mine: true, from: 'interior' }, { silent: true });
         render(); next();
       }, 1200);
     })();
@@ -684,7 +684,7 @@
       else if (kind === 're') rs.forEach(function (r) { r.skus = snap; delete r.objStale; r.example = false; r.photo = false; });
       else { board.renders = board.renders.filter(function (r) { return r.zone !== zone; }); board.renders.push({ zone: zone, room: KB.zone(zone).name, angle: 0, img: srcs[0] || MOCK[KB.zoneType(zone)], skus: snap }); }
       board.tokensSpent = (board.tokensSpent || 0) + price; persist();
-      R.save('render', { room: KB.zone(zone).name, src: (srcs[0] || MOCK[KB.zoneType(zone)]), mine: true }, { silent: true });
+      R.save('render', { room: KB.zone(zone).name, src: (srcs[0] || MOCK[KB.zoneType(zone)]), mine: true, from: 'interior' }, { silent: true });
       track('int_render', { zone: zone, kind: kind, tokens: price }); st.busy = null; if (kind === 'angle') st.angleOf[zone] = rs.length; render();
     }, 1500);
     return true;
@@ -694,13 +694,13 @@
     var b = board, abs = function (u) { return /^(data:|https?:)/.test(u) ? u : location.href.replace(/[^/]*$/, '') + u; }, rs = [];
     boardZones().forEach(function (z) { var r = rendersOf(z)[0]; if (r) rs.push(r); });
     var w = window.open('', '_blank'); if (!w) { ui.toast('Разреши всплывающие окна — откроем PDF'); return; }
-    w.document.write('<!doctype html><html lang="ru"><head><meta charset="utf-8"><title>' + esc(b.name) + ' — капсула SOVE</title><style>body{font:12px/1.4 Montserrat,Arial,sans-serif;color:#1E1C1A;margin:28px}h1{font:600 28px "Cormorant Garamond",Georgia,serif;margin:0 0 4px}.s{color:#6B655F;margin:0 0 14px}.dna{display:flex;gap:4px;margin:0 0 16px}.dna i{flex:1;height:28px;border-radius:6px}table{width:100%;border-collapse:collapse;margin:0 0 18px}td{padding:6px 0;border-top:1px solid #E6E1DA;vertical-align:top}td:last-child{text-align:right;white-space:nowrap}.r{display:grid;grid-template-columns:1fr 1fr;gap:8px}.r img{width:100%;height:150px;object-fit:cover;border-radius:8px}.f{margin-top:18px;font-size:10px;color:#6B655F}</style></head><body>' +
-      '<h1>' + esc(b.name) + '</h1><p class="s">капсула SOVE App</p>' +
+    w.document.write('<!doctype html><html lang="ru"><head><meta charset="utf-8"><title>' + esc(b.name) + ' — капсула SOVEAPP</title><style>body{font:12px/1.4 Montserrat,Arial,sans-serif;color:#1E1C1A;margin:28px}h1{font:600 28px "Cormorant Garamond",Georgia,serif;margin:0 0 4px}.s{color:#6B655F;margin:0 0 14px}.dna{display:flex;gap:4px;margin:0 0 16px}.dna i{flex:1;height:28px;border-radius:6px}table{width:100%;border-collapse:collapse;margin:0 0 18px}td{padding:6px 0;border-top:1px solid #E6E1DA;vertical-align:top}td:last-child{text-align:right;white-space:nowrap}.r{display:grid;grid-template-columns:1fr 1fr;gap:8px}.r img{width:100%;height:150px;object-fit:cover;border-radius:8px}.f{margin-top:18px;font-size:10px;color:#6B655F}</style></head><body>' +
+      '<h1>' + esc(b.name) + '</h1><p class="s">капсула SOVEAPP</p>' +
       '<div class="dna">' + b.dna.map(function (c) { return '<i style="background:' + c.hex + '"></i>'; }).join('') + '</div>' +
       '<table>' + KB.slotsFor(boardZones()).map(function (s) { var e = b.slots[s.key], it = KB.item(e.sku); return '<tr><td>' + esc(s.name) + '<br><small>' + esc(KB.whereText(s, boardZones())) + '</small></td><td>' + esc(it.name) + '</td><td>' + F.rub(zoneSum(s.key, 'flat')) + '</td></tr>'; }).join('') +
       '<tr><td colspan="2"><b>Материалы</b></td><td><b>≈ ' + F.rub(zoneTotal('flat')) + '</b></td></tr></table>' +
       '<div class="r">' + rs.map(function (r) { return '<figure style="margin:0"><img src="' + esc(abs(r.img)) + '" alt=""><figcaption>' + esc(r.room) + '</figcaption></figure>'; }).join('') + '</div>' +
-      '<p class="f">SOVE App · платформа выгодного ремонта · ' + new Date().toLocaleDateString('ru-RU') + '</p></body></html>');
+      '<p class="f">SOVEAPP · платформа выгодного ремонта · ' + new Date().toLocaleDateString('ru-RU') + '</p></body></html>');
     w.document.close(); setTimeout(function () { w.print(); }, 600); track('int_pdf', {});
   }
 
@@ -726,7 +726,7 @@
     if (b.hasAttribute('data-vcur')) { st.vcur = b.getAttribute('data-vcur'); st.vz = st.vcur; track('int_room', { room: st.vcur }); return render(); }
     if (b.hasAttribute('data-dl-board')) return downloadBoard(b.getAttribute('data-dl-board'));
     if (b.hasAttribute('data-to-budget')) { board.budgetTs = Date.now(); persist(); track('int_to_budget', { zones: boardZones().length }); R.toast('Материалы в Бюджете', { label: 'Открыть', href: 'my.html?v=budget' }); return render(); }
-    if (b.hasAttribute('data-save-viz')) { var sz = b.getAttribute('data-save-viz'), sr = rendersOf(sz)[st.angleOf[sz] || 0]; if (sr) { R.save('render', { room: KB.zone(sz).name, src: sr.img, mine: true }); sr.saved = Date.now(); persist(); track('int_save_viz', { zone: sz }); render(); } return; }
+    if (b.hasAttribute('data-save-viz')) { var sz = b.getAttribute('data-save-viz'), sr = rendersOf(sz)[st.angleOf[sz] || 0]; if (sr) { R.save('render', { room: KB.zone(sz).name, src: sr.img, mine: true, from: 'interior' }); sr.saved = Date.now(); persist(); track('int_save_viz', { zone: sz }); render(); } return; }
     if (b.hasAttribute('data-cart-all')) { var ids = KB.slotsFor([st.zf]).map(function (s2) { return UI.product(KB.item(board.slots[s2.key].sku)).id; }); R.cart.addMany(ids, 'materials'); track('int_cart_all', { zone: st.zf, n: ids.length }); return render(); }
     if (b.hasAttribute('data-pins')) { var pz2 = b.getAttribute('data-pins'); st.pins[pz2] = !st.pins[pz2]; track('int_pins', { zone: pz2, on: st.pins[pz2] }); return render(); }
     if (b.hasAttribute('data-zf')) { st.zf = b.getAttribute('data-zf'); st.sel = null; track('int_zone', { zone: st.zf }); return render(); }

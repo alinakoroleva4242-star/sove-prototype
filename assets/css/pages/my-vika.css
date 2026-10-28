@@ -1,0 +1,143 @@
+/* Мой ремонт по макету Вики 25.10 — «Ремонт оживает». Токены SOVEAPP: Manrope + Cormorant, терракота, скругления 12/16. */
+.mv { display: flex; flex-direction: column; gap: 16px; padding: 0 16px 24px; width: 100%; box-sizing: border-box; max-width: 760px; margin: 0 auto; min-width: 0; overflow-x: clip; color: var(--ink); font-variant-numeric: lining-nums; }
+.mv a { text-decoration: none; color: inherit; }
+.mv h1, .mv h2 { font-family: var(--font-display); font-weight: 500; margin: 0; letter-spacing: 0; }
+
+/* шапка: фото интерьера справа растворяется в фоне */
+.mv-head { position: relative; margin: 0 -16px; padding: 14px 16px 6px; overflow: hidden; }
+.mv-head__bg { position: absolute; right: 0; top: 0; width: 66%; height: 100%; background: center / cover no-repeat; opacity: .92; pointer-events: none;
+  -webkit-mask-image: linear-gradient(to left, #000 40%, transparent 100%); mask-image: linear-gradient(to left, #000 40%, transparent 100%); }
+.mv-head::after { content: ''; position: absolute; inset: auto 0 0 0; height: 40%; background: linear-gradient(to top, var(--paper), transparent); pointer-events: none; }
+.mv-head__top, .mv-prog { position: relative; z-index: 1; }
+.mv-head__top { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; }
+.mv-head__t { min-width: 0; }
+.mv-head__t h1 { font-size: clamp(30px, 9.4vw, 38px); line-height: 1; }
+.mv-head__t p { margin: 6px 0 0; font-size: 12.5px; color: var(--graphite); }
+.mv-head__t p a { color: var(--accent) !important; font-weight: 600; }
+.mv-head__r { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; flex-shrink: 0; }
+.mv-create { display: inline-flex; align-items: center; gap: 6px; min-height: 38px; padding: 0 14px; border-radius: var(--pill); background: var(--dark); color: #fff !important; font-size: 13.5px; font-weight: 600; }
+.mv-tok { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: var(--pill); background: rgba(255,255,255,.88); color: var(--accent) !important; font-size: 12px; font-weight: 600; }
+.mv-icons { display: flex; gap: 6px; }
+.mv-ic { position: relative; width: 38px; height: 38px; border-radius: 50%; background: rgba(255,255,255,.92); color: var(--ink) !important; display: inline-flex; align-items: center; justify-content: center; box-shadow: var(--shadow); }
+.mv-ic i { position: absolute; top: -3px; right: -3px; min-width: 17px; height: 17px; padding: 0 4px; border-radius: 9px; background: var(--accent-2); color: #fff; font: 700 10px/17px var(--font); font-style: normal; text-align: center; }
+.mv-prog { display: flex; align-items: center; gap: 14px; margin-top: 14px; max-width: 78%; }
+.mv-prog__ring { position: relative; width: 84px; height: 84px; flex-shrink: 0; }
+.mv-ring { width: 100%; height: 100%; transform: rotate(-90deg); }
+.mv-ring circle { fill: rgba(255,255,255,.6); stroke: var(--accent-soft); stroke-width: 6; }
+.mv-ring .mv-ring__on { fill: none; stroke: var(--accent-2); stroke-linecap: round; }
+.mv-prog__ring span { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.mv-prog__ring b { font-family: var(--font-display); font-size: 24px; font-weight: 500; line-height: 1; }
+.mv-prog__ring small { font-size: 10.5px; color: var(--graphite); }
+.mv-prog__t h2 { font-size: 30px; line-height: 1; }
+.mv-prog__t p { margin: 6px 0 0; font-size: 12.5px; line-height: 1.35; color: var(--graphite); }
+
+/* шаги */
+.mv-steps { position: relative; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); padding: 12px 6px; border-radius: var(--r); background: rgba(255,255,255,.92); box-shadow: var(--shadow); }
+.mv-steps::before { content: ''; position: absolute; left: 14%; right: 14%; top: 30px; border-top: 1.5px dashed var(--line-2); }
+.mv-step { position: relative; display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; font-size: 11.5px; line-height: 1.2; color: var(--graphite) !important; }
+.mv-step__ic { width: 36px; height: 36px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); display: inline-flex; align-items: center; justify-content: center; }
+.mv-step.is-done .mv-step__ic { background: var(--accent-2); color: #fff; }
+.mv-step.is-done { color: var(--accent) !important; font-weight: 700; }
+.mv-step.is-cur .mv-step__ic { box-shadow: 0 0 0 3px var(--paper), 0 0 0 4.5px var(--accent-2); }
+
+/* карточки и секции */
+.mv-card { background: var(--white); border-radius: var(--r); padding: 14px; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 12px; }
+.mv-card__h, .mv-sec__h { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+.mv-card__h h2, .mv-sec__h h2 { font-size: 27px; line-height: 1; white-space: nowrap; }
+.mv-card__h p, .mv-sec__h p { margin: 4px 0 0; font-size: 12px; color: var(--graphite); }
+.mv-sec__h > a { display: inline-flex; align-items: center; gap: 3px; font-size: 12.5px; font-weight: 600; color: var(--graphite) !important; white-space: nowrap; padding: 10px 0 10px 8px; margin: -6px 0 -10px -8px; }
+.mv-sec { display: flex; flex-direction: column; gap: 10px; }
+.mv-btn-line { display: inline-flex; align-items: center; gap: 5px; min-height: 34px; padding: 0 10px; flex-shrink: 0; border-radius: var(--pill); border: 1px solid var(--line-2); color: var(--accent) !important; font-size: 12.5px; font-weight: 600; white-space: nowrap; background: var(--white); }
+
+/* план: базовый слой размыт и обесцвечен, готовые комнаты — поверх в цвете */
+.mv-plan__stage { position: relative; aspect-ratio: 1100 / 919; border-radius: var(--r-sm); overflow: hidden; background: var(--surface-2); }
+.mv-plan__stage img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.mv-plan__base { filter: grayscale(1) blur(3px) brightness(1.08); opacity: .55; transform: scale(1.02); }
+.mv-plan__stage.is-whole .mv-plan__base { filter: none; opacity: 1; transform: none; }
+.mv-plan__on { filter: none; }
+.mv-pin { position: absolute; z-index: 2; transform: translate(-50%, -50%); display: inline-flex; align-items: center; gap: 5px; padding: 6px 11px; border-radius: var(--pill); background: rgba(255,255,255,.95); color: var(--ink) !important; font-size: 12px; font-weight: 600; white-space: nowrap; box-shadow: 0 4px 12px -6px rgba(0,0,0,.4); }
+.mv-pin svg { color: var(--accent-2); }
+
+/* комнаты: четыре в ряд, как на макете; страница вбок не едет */
+.mv-rooms { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.mv-room { display: flex; flex-direction: column; gap: 5px; padding: 0 0 7px; border-radius: var(--r-sm); background: var(--white); box-shadow: var(--shadow); overflow: hidden; min-width: 0; }
+.mv-room > b, .mv-room > .mv-room__ok { margin: 0 6px; }
+.mv-room > .mv-room__gen { margin: 0 2px; }
+.mv-room__pic { display: block; aspect-ratio: 1.25; overflow: hidden; }
+.mv-room__pic img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.mv-room:not(.is-done) .mv-room__pic img { filter: grayscale(1) blur(4px); opacity: .7; transform: scale(1.08); }
+.mv-room b { font-size: 11.5px; font-weight: 700; line-height: 1.15; min-height: 2.3em; display: flex; align-items: flex-end; }
+.mv-room__ok { display: inline-flex; align-items: center; gap: 3px; min-height: 30px; font-size: 11px; font-weight: 700; color: var(--green); }
+.mv-room__gen { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; min-height: 36px; padding: 4px 0; border-radius: 8px; background: var(--dark); color: #fff !important; font-size: 10.5px; font-weight: 600; line-height: 1.1; letter-spacing: -.03em; text-align: center; }
+.mv-room__gen span { display: inline-flex; align-items: center; gap: 2px; white-space: nowrap; }
+@media (max-width: 420px) { .mv-room__gen { font-size: 10px; } .mv-rooms { gap: 5px; } }
+
+/* интерьер: фильтры и плитки — сеткой, без прокрутки вбок */
+.mv-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.mv-chip { min-height: 34px; padding: 0 11px; border: 0; border-radius: var(--pill); background: transparent; color: var(--ink); font: 500 12.5px var(--font); cursor: pointer; }
+.mv-chip:hover { background: var(--surface-2); }
+.mv-chip.is-on { background: var(--dark); color: #fff; }
+.mv-inter { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }   /* один ряд, как на макете, без прокрутки вбок */
+.mv-up { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; padding: 8px 4px; border: 1.5px dashed #d9a58f; border-radius: var(--r-sm); background: #fbf3ee; color: var(--accent) !important; text-align: center; }
+.mv-up b { font-size: 10.5px; font-weight: 700; line-height: 1.15; }
+.mv-up small { font-size: 9.5px; color: var(--graphite); }
+.mv-int { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.mv-int__pic { position: relative; display: block; aspect-ratio: 1; border-radius: var(--r-sm); overflow: hidden; background: var(--surface-2); }
+.mv-int__pic img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.mv-int__fav { position: absolute; right: 4px; top: 4px; width: 20px; height: 20px; border-radius: 50%; background: var(--accent-2); color: #fff; display: inline-flex; align-items: center; justify-content: center; }
+.mv-int__fav svg { fill: currentColor; }
+.mv-int__mine { position: absolute; left: 4px; top: 4px; padding: 1px 6px; border-radius: 6px; background: #dff0e6; color: var(--green); font: 700 10px var(--font); font-style: normal; }
+.mv-int b { font-size: 10.5px; font-weight: 700; line-height: 1.15; hyphens: auto; -webkit-hyphens: auto; overflow-wrap: anywhere; }
+.mv-int small { font-size: 9.5px; line-height: 1.2; color: var(--graphite); hyphens: auto; -webkit-hyphens: auto; overflow-wrap: anywhere; }
+.mv-inter__empty { grid-column: 2 / -1; align-self: center; margin: 0; font-size: 12px; color: var(--graphite); }
+
+/* следующие шаги: четыре карточки в ряд */
+.mv-next { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.mv-nx { display: flex; flex-direction: column; justify-content: space-between; gap: 8px; padding: 8px; border-radius: var(--r-sm); background: var(--white); box-shadow: var(--shadow); min-width: 0; min-height: 112px; }
+.mv-nx__h { display: flex; flex-direction: column; gap: 5px; }
+.mv-nx__ic { width: 28px; height: 28px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); display: inline-flex; align-items: center; justify-content: center; }
+.mv-nx b { font-size: 11px; font-weight: 700; line-height: 1.15; hyphens: auto; -webkit-hyphens: auto; overflow-wrap: anywhere; }
+.mv-nx__f { display: flex; align-items: center; justify-content: space-between; gap: 4px; }
+.mv-nx__go { width: 24px; height: 24px; border-radius: 50%; background: var(--accent-2); color: #fff; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.mv-thumbs { position: relative; display: flex; }
+.mv-thumbs img { width: 18px; height: 22px; object-fit: cover; border-radius: 4px; border: 1.5px solid #fff; margin-right: -6px; }
+.mv-thumbs b { position: absolute; right: -14px; top: -6px; min-width: 16px; height: 16px; padding: 0 3px; border-radius: 8px; background: var(--white); box-shadow: var(--shadow); font: 700 9.5px/16px var(--font); text-align: center; color: var(--ink); }
+.mv-next__chip { font-size: 10px; line-height: 1.2; color: var(--graphite); }
+.mv-who { display: flex; }
+.mv-who i { width: 22px; height: 22px; border-radius: 50%; background: #e9cdbd; color: #fff; display: inline-flex; align-items: center; justify-content: center; border: 1.5px solid #fff; margin-right: -6px; }
+.mv-who i.mv-who__plus { background: var(--white); color: var(--accent); box-shadow: var(--shadow); }
+
+/* основа */
+.mv-bases { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.mv-base { position: relative; display: flex; flex-direction: column; gap: 8px; padding: 10px; border-radius: var(--r); background: var(--white); box-shadow: var(--shadow); border: 1.5px solid transparent; }
+.mv-base.is-on { border-color: var(--accent-2); }
+.mv-base__row { display: flex; gap: 6px; align-items: flex-start; min-height: 40px; }
+.mv-base__h { display: block; min-width: 0; }
+.mv-base__ic { width: 28px; height: 28px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.mv-base b { display: block; font-size: 11.5px; line-height: 1.15; font-weight: 700; }
+.mv-base small { display: block; font-size: 10.5px; color: var(--graphite); margin-top: 2px; }
+.mv-base__pic { display: block; aspect-ratio: 1.5; border-radius: 10px; overflow: hidden; background: var(--surface-2); }
+.mv-base__pic img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.mv-base__go { position: absolute; right: 8px; bottom: 8px; width: 30px; height: 30px; border-radius: 50%; background: var(--accent-2); color: #fff; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 0 0 3px #fff; }
+
+/* сохранённое */
+.mv-saved { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.mv-save { display: flex; flex-direction: column; gap: 6px; padding: 8px; border-radius: var(--r); background: var(--white); box-shadow: var(--shadow); position: relative; }
+.mv-save__pic { display: block; width: 100%; aspect-ratio: 1.7; border-radius: 10px; overflow: hidden; }
+.mv-save__pic img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.mv-save b { display: block; font-size: 12px; font-weight: 700; }
+.mv-save small { display: block; font-size: 10.5px; color: var(--graphite); }
+.mv-save__go { display: none; }
+.mv-demo { margin: 0; text-align: center; font-size: 12px; color: var(--graphite); }
+
+@media (max-width: 340px) { .mv-saved, .mv-bases { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 380px) { .mv-rooms { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 360px) { .mv-next { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (min-width: 900px) {
+  .mv { padding-top: 12px; }
+  .mv-head { margin: 0; border-radius: var(--r); }
+  .mv-rooms { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .mv-head__t h1 { font-size: 46px; }
+  .mv-plan__stage { width: 100%; max-width: 520px; margin: 0 auto; }
+}
+@media (max-width: 370px) { .mv-base b { font-size: 10.5px; hyphens: auto; -webkit-hyphens: auto; } }

@@ -1,4 +1,4 @@
-/* Трек: капсула → что сделаем → площадь → оценка «от» → этапы → заявка. Онлайн-оплаты нет */
+/* Управление ремонтом: капсула → что сделаем → площадь → оценка «от» → этапы → заявка. Онлайн-оплаты нет */
 (function () {
   var S = window.SOVE, D = S.data, F = S.fmt, esc = F.esc;
   function $(id) { return document.getElementById(id); }
@@ -41,7 +41,7 @@
     var mine = S.leads.list().filter(function (l) { return l.product === 'track' && (!project || l.projectId === project.id); })[0];
     var top = $('tr-top');
     if (!mine || done) { top.hidden = true; top.innerHTML = ''; return; }
-    top.innerHTML = '<div class="notice"><span class="small">Вы уже оставляли заявку на Трек ' + F.dateLong(mine.ts) + (project ? ' по' + NB + 'проекту «' + esc(project.name) + '»' : '') + '. Статус: ' + esc((mine.status || 'Заявка принята').toLowerCase()) + '. Можно отправить новую, если условия изменились.</span><a class="btn btn--ghost btn--sm" href="account.html#leads">Посмотреть в кабинете</a></div>';
+    top.innerHTML = '<div class="notice"><span class="small">Вы уже оставляли заявку на ремонт под ключ ' + F.dateLong(mine.ts) + (project ? ' по' + NB + 'проекту «' + esc(project.name) + '»' : '') + '. Статус: ' + esc((mine.status || 'Заявка принята').toLowerCase()) + '. Можно отправить новую, если условия изменились.</span><a class="btn btn--ghost btn--sm" href="account.html#leads">Посмотреть в кабинете</a></div>';
     top.hidden = false;
   }
 
@@ -79,12 +79,12 @@
       return '<li><span class="tr-stage__n num">' + (i + 1) + '</span><span class="tr-stage__name">' + esc(s[0]) + '</span><span class="bar" aria-hidden="true"><i style="width:' + s[1] + '%"></i></span><span class="tr-stage__pct num">' + s[1] + NB + '%</span><span class="tr-stage__sum num">от' + NB + F.rub(works() * s[1] / 100) + '</span></li>';
     }).join('');
     $('tr-lead-rows').innerHTML = rowsHtml([['Капсула', c.name], ['Площадь', nb(F.area(st.area))], ['Оценка', 'от' + NB + nb(F.rub(total()))]]
-      .concat(project ? [['Проект', project.name]] : []).concat(scout ? [['Расчёт Скаута', nb(F.rub(scout.total))]] : []));
+      .concat(project ? [['Проект', project.name]] : []).concat(scout ? [['Расчёт бюджета', nb(F.rub(scout.total))]] : []));
     if (scout) {
       var sc = D.capsule(scout.capsuleId), same = scout.capsuleId === st.capsuleId && clampArea(scout.area) === st.area;
-      $('tr-scout').innerHTML = '<div class="notice tr-notice"><span class="stack stack--2"><span class="small">Расчёт из Скаута: <b class="num">' + F.rub(scout.total) + '</b> · <span class="num">' + F.area(scout.area) + '</span>' + (sc ? ' · ' + esc(sc.code) : '') + '</span>' +
+      $('tr-scout').innerHTML = '<div class="notice tr-notice"><span class="stack stack--2"><span class="small">Бюджет из расчёта: <b class="num">' + F.rub(scout.total) + '</b> · <span class="num">' + F.area(scout.area) + '</span>' + (sc ? ' · ' + esc(sc.code) : '') + '</span>' +
         '<span class="tiny muted">' + (same ? 'Проект «' + esc(project.name) + '». Передадим расчёт менеджеру вместе с заявкой.' : 'Расчёт сделан для других условий. Оценка ниже' + NB + '— для выбранной капсулы и' + NB + 'площади.') + '</span></span>' +
-        '<a class="arrow-link" href="' + scoutHref() + '">' + (same ? 'Открыть расчёт' : 'Пересчитать в Скауте') + '</a></div>';
+        '<a class="arrow-link" href="' + scoutHref() + '">' + (same ? 'Открыть расчёт' : 'Пересчитать бюджет') + '</a></div>';
     } else $('tr-scout').innerHTML = '';
   }
 
@@ -148,7 +148,7 @@
     done = true;
     $('tr-done-text').innerHTML = 'Позвоним по' + NB + 'номеру <span class="num">' + phoneFormat(phoneDigits(lead.phone)) + '</span> и' + NB + 'договоримся о' + NB + 'замере. Дальше' + NB + '— договор и' + NB + 'финальная смета; первый платёж' + NB + '— только после них. Статус заявки виден в' + NB + 'кабинете, в' + NB + 'разделе «Заявки».';
     $('tr-done-rows').innerHTML = rowsHtml([['Капсула', c.name], ['Площадь', nb(F.area(lead.area))], ['Оценка', 'от' + NB + nb(F.rub(lead.price))]]
-      .concat(project ? [['Проект', project.name]] : []).concat(scout ? [['Расчёт Скаута', nb(F.rub(scout.total))]] : []).concat([['Имя', lead.name]]));
+      .concat(project ? [['Проект', project.name]] : []).concat(scout ? [['Расчёт бюджета', nb(F.rub(scout.total))]] : []).concat([['Имя', lead.name]]));
     $('tr-body').hidden = true; $('tr-top').hidden = true; $('tr-bar').hidden = true;
     (document.querySelector('.app-hero__cta') || {}).hidden = true; /* якорь на форму больше некуда вести */
     $('tr-done').hidden = false;
@@ -198,7 +198,7 @@
     { fresh: true, week: 'Недели 5–6 · 2 дек', t: 'Черновые работы, 63 %', d: 'Выровняли стены и стяжку пола во всех комнатах. Развели черновую электрику по проекту. Начали штробить под сантехнику в санузле.', photos: '3 фото прогресса' },
     { week: 'Недели 3–4 · 18 ноя', t: 'Демонтаж завершён', d: 'Снесли ненужные перегородки по плану, вывезли мусор. Подготовили стены под черновые работы.', photos: '2 фото' },
     { week: 'Недели 1–2 · 4 ноя', t: 'Старт: замеры, подготовка', d: 'Завезли инструмент и материалы. Согласовали график работ. Оформили пропуска в ЖК.', photos: '1 фото' },
-    { week: 'Фаза проекта · 20 окт', t: 'Проект готов, стройка стартует', d: 'Переход из Адепта в стройку — первый отчёт команды.', photos: '' }
+    { week: 'Фаза проекта · 20 окт', t: 'Проект готов, стройка стартует', d: 'Переход из дизайн-проекта в стройку — первый отчёт команды.', photos: '' }
   ];
 
   if (box) box.innerHTML =
@@ -209,7 +209,7 @@
     '</div>' +
     '<section class="pb"><span class="pb__k">Плановый бюджет по договору</span><b class="pb__t">' + F.rub(BUDGET.total) + '</b>' +
       '<div class="pb-list">' +
-        '<div class="pb-item"><b>Дизайн-проект (Адепт)</b><span>' + F.rub(BUDGET.adept) + '</span></div>' +
+        '<div class="pb-item"><b>Дизайн-проект</b><span>' + F.rub(BUDGET.adept) + '</span></div>' +
         '<div class="pb-item"><b>Строительные работы</b><span>' + F.rub(BUDGET.works) + '</span></div>' +
         '<div class="pb-item"><b>Комплектация</b><span>' + F.rub(BUDGET.complect) + '</span></div>' +
       '</div>' +

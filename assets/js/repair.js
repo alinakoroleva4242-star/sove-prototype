@@ -1,14 +1,14 @@
 /* «Мой ремонт» — общий слой (ТЗ Алины 22.10.2026, design/moy-remont/TZ-moy-remont.md).
-   Чистовик квартиры: сюда падает только сохранённое из SOVE AI (план, мудборд, рендеры), Скаута (бюджет) и Маркета (♡ и 🛒).
+   Чистовик квартиры: сюда падает только сохранённое из Генерации (план, мудборд, рендеры), расчёта (бюджет) и Маркета (♡ и 🛒).
    Подключать после site.js. Даёт window.SOVE.repair: квартиры, сохранения, Избранное и Корзина по квартире,
-   общую карточку товара (та же, что под результатами SOVE AI) и полосу «Корзина · Избранное · Бюджет» над нижним меню.
+   общую карточку товара (та же, что под результатами Генерации) и полосу «Корзина · Избранное · Бюджет» над нижним меню.
    В бою всё это — сервер; здесь отдельный ключ localStorage, «Сбросить данные прототипа» чистит и его. */
 (function () {
   var S = window.SOVE; if (!S) return;
   var D = S.data, F = S.fmt, esc = F.esc, ui = S.ui;
   var KEY = 'sove.repair.v1';
   var MY = 'my.html';
-  /* куда ведут призывы: экран услуги SOVE AI и его блоки (поменять здесь, когда появится sove-ai.html / moodboard.html) */
+  /* куда ведут призывы: экран услуги Генерации и его блоки; Материалы и Визуализации — экран «Интерьер» (interior.html) */
   var LINK = { ai: 'gen.html', plan: 'plan-demo.html', materials: 'interior.html', visual: 'interior.html?tab=rooms', scout: 'scout.html', market: 'market.html', metod: 'metod.html', adept: 'adept.html', track: 'track.html' };
   var LEVEL = { none: 'Без плана', developer_plan: 'План застройщика', measured_plan: 'Обмерный план', design_project: 'Дизайн-проект' };
   var RANK = { none: 0, developer_plan: 1, measured_plan: 2, design_project: 3 };
@@ -29,7 +29,7 @@
      запоминаем их при ♡ / 🛒, чтобы Корзина и Избранное видели их на любом экране */
   var XKEY = 'sove.products.extra';
   function extras() { try { return JSON.parse(localStorage.getItem(XKEY) || '{}') || {}; } catch (e) { return {}; } }
-  /* у товара из расстановки и Интерьера нет полей каталога — дополняем, иначе Маркет падает на p.capsules.map */
+  /* у товаров живого каталога, расстановки и Интерьера нет списка капсул — дополняем, иначе Маркет и карточка падают на p.capsules.map */
   function addToData(p) { if (p && !D.product(p.id)) { if (!p.capsules) p.capsules = []; D.products.push(p); } }
   (function () { var x = extras(); Object.keys(x).forEach(function (k) { addToData(x[k]); }); })();
   function registerProduct(p) {
@@ -75,8 +75,8 @@
     var r = rp(id), f = id ? flats.get(id) : flats.active(), base = !!r.plan || !!(f && f.m2), buy = cartOf(id).length > 0;
     var steps = [ { key: 'base', name: 'Основа', done: base }, { key: 'interior', name: 'Интерьер', done: !!r.interior }, { key: 'budget', name: 'Бюджет', done: !!r.budget }, { key: 'buy', name: 'Покупки', done: buy } ];
     var next = !base ? { text: 'Загрузите план — расставим мебель и посчитаем бюджет', cta: 'Загрузить план', href: LINK.plan }
-      : !r.interior ? { text: 'Выберите интерьер — капсула SOVE или своя картинка', cta: 'В Интерьер', href: LINK.materials }
-      : !r.budget ? { text: 'Посчитайте бюджет ремонта — 2 минуты', cta: 'В Скаут', href: LINK.scout }
+      : !r.interior ? { text: 'Выберите интерьер — капсула SOVEAPP или своя картинка', cta: 'В Интерьер', href: LINK.materials }
+      : !r.budget ? { text: 'Посчитайте бюджет ремонта — 2 минуты', cta: 'Посчитать бюджет', href: LINK.scout }
       : !buy ? { text: 'Перенесите бюджет в корзину', cta: 'Всё в корзину', href: MY + '#sec-budget' }
       : { text: 'Оформить корзину', cta: 'Оформить', href: MY + '#sec-cart' };
     return { steps: steps, next: next };
@@ -106,16 +106,21 @@
   }
   function flatLine(f) { if (!f) return ''; return [f.jk ? 'ЖК ' + f.jk : '', f.city, f.m2 ? F.area(f.m2) : ''].filter(Boolean).join(' · '); }
 
-  /* ---------- сохранения из SOVE AI и Скаута (таблица п. 3 ТЗ) ----------
+  /* ---------- сохранения из Генерации и расчёта (таблица п. 3 ТЗ) ----------
      kind: 'plan' {level, img, rooms:[{name,m2}], variant} · 'interior' {capsuleId|null, name, img, dna:[src], productIds}
            'render' {room, src, mine} — без лимита · 'budget' {type:'base'|'premium', area, works, kitMetod, kitRetail, total} */
   function write(kind, data, flatId) {
     var r = rp(flatId), now = Date.now();
     if (kind === 'render') {
       var k = roomKey(data.room), list = r.rooms[k] || (r.rooms[k] = []);
-      var item = { id: uid('rnd'), src: data.src, ts: now, mine: !!data.mine, capsuleId: data.capsuleId || (r.interior && r.interior.capsuleId) || null, interiorTs: r.interior ? r.interior.ts : null };
+      /* тот же кадр второй раз (Интерьер кладёт его и при генерации, и по «В Мой ремонт») — не дублируем, освежаем время */
+      var same = list.filter(function (x) { return x.src === data.src; })[0];
+      if (same) { same.ts = now; if (data.from) same.from = data.from; return same; }
+      var item = { id: uid('rnd'), src: data.src, ts: now, mine: !!data.mine, from: data.from || null, capsuleId: data.capsuleId || (r.interior && r.interior.capsuleId) || null, interiorTs: r.interior ? r.interior.ts : null };
       list.unshift(item); if (!r.rooms[k + ':main']) r.rooms[k + ':main'] = item.id; return item;
     }
+    /* доска Интерьера (со слотами материалов) при замене не пропадает — уходит в историю квартиры, как обещает окно «Заменить?» */
+    if (kind === 'interior' && r.interior && r.interior.slots) (r.interiorHistory = r.interiorHistory || []).unshift(r.interior);
     var v = Object.assign({}, data, { ts: now }); r[kind] = v;
     if (kind === 'plan') { var f = flats.get(flatId), m2 = (data.rooms || []).reduce(function (a, x) { return a + (x.m2 || 0); }, 0); if (f && m2 && !f.m2) f.m2 = Math.round(m2 * 10) / 10; if (f && data.jk && !f.jk) f.jk = data.jk; }
     if (kind === 'budget') { var fb = flats.get(flatId); if (fb) fb.budgetType = data.type; }
@@ -134,7 +139,7 @@
       });
       if (opts.done) opts.done();
     }
-    if (cur && !opts.force) ui.confirm({ title: 'Заменить текущий ' + WHAT[kind] + '?', text: 'В «' + f.name + '» уже сохранён ' + WHAT[kind] + ' от ' + F.dateLong(cur.ts) + '. Прежний останется в истории ' + (kind === 'budget' ? 'Скаута' : 'SOVE AI') + '.', ok: 'Заменить', onOk: go });
+    if (cur && !opts.force) ui.confirm({ title: 'Заменить текущий ' + WHAT[kind] + '?', text: 'В «' + f.name + '» уже сохранён ' + WHAT[kind] + ' от ' + F.dateLong(cur.ts) + '. Прежний останется в истории ' + (kind === 'budget' ? 'расчётов' : 'генераций') + '.', ok: 'Заменить', onOk: go });
     else go();
   }
   function setMainRender(key, id) { var r = rp(); r.rooms[key + ':main'] = id; save(); }
@@ -173,7 +178,7 @@
     remove: function (pid) { var f = flats.active(); if (!f) return; st.cart[f.id] = cartOf(f.id).filter(function (r) { return r.productId !== Number(pid); }); save(); },
     toggle: function (pid, source) { if (cart.has(pid)) { cart.remove(pid); toast('Убрали из корзины'); return false; } cart.add(pid, source); return true; },
     qty: function (pid, d) { var row = cartOf().filter(function (r) { return r.productId === Number(pid); })[0]; if (!row) return; row.qty = Math.max(1, row.qty + d); save(); },
-    /* «Оформить»: корзина квартиры уходит в общую корзину оплаты (my.html?v=basket — оплата через SOVE, заказы по поставщикам) */
+    /* «Оформить»: корзина квартиры уходит в общую корзину оплаты (my.html?v=basket — оплата через SOVEAPP, заказы по поставщикам) */
     checkout: function () {
       var O = S.orders; if (!O) { location.href = MY + '?v=basket'; return; }
       cartRows().forEach(function (r) { if (!O.basket.has(r.productId)) O.basket.add(r.productId, r.source === 'budget' ? 'budget' : 'catalog', r.qty); });
@@ -200,7 +205,7 @@
   /* сердечки Маркета и карточки товара пишут в Избранное текущей квартиры */
   S.favs = { has: fav.has, list: function () { return fav.list(); }, toggle: function (id) { return fav.toggle(id); } };
 
-  /* ---------- общая карточка товара (та же, что в SOVE AI): [фото] Название · где применяется · цена METOD · ♡ · 🛒 ---------- */
+  /* ---------- общая карточка товара (та же, что в Генерациях): [фото] Название · где применяется · цена METOD · ♡ · 🛒 ---------- */
   var HEART = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.5A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg>';
   var CART = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M3 4h2l2.5 11h10l2-7H7"/><circle cx="9" cy="19" r="1.5"/><circle cx="17" cy="19" r="1.5"/></svg>';
   var LOCK = '<svg viewBox="0 0 24 24" width="12" height="12" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>';
@@ -293,15 +298,21 @@
     /* одна цифра везде (ТЗ Планировки, 12.5): бюджет «ремонт под ключ» из Планировки; нормы — заглушки, итога нет — «[сумма] ₽» */
     /* раздел 17: полный бюджет куплен — «итого ≈ …»; нет — «мебель ≈ … · весь — узнать ›» (мебель из Планировки) */
     /* мебель — по текущей расстановке Планировки; нет её — из последнего сохранения */
-    var furn = null; try { var fl = JSON.parse(localStorage.getItem('sove.demo.flow.v1') || '{}'); furn = fl.toSave && fl.toSave.furniture; } catch (x) {}
+    var furn = null, fl = {}; try { fl = JSON.parse(localStorage.getItem('sove.demo.flow.v1') || '{}') || {}; furn = fl.toSave && fl.toSave.furniture; } catch (x) {}
+    /* интерьер не выбран — ни мебели, ни бюджета не показываем (Алина 24.10): только «выбери интерьер» */
+    var noInt = !(rp().interior || fl.interior);
     if (!furn) furn = bp && bp.furniture;
     /* одна цифра «итого» с карточкой «Бюджет квартиры» (методология, П6): сумма известных слоёв */
     var BL = window.SOVE_FLOW && window.SOVE_FLOW.budgetLayers && window.SOVE_FLOW.budgetLayers();
-    /* бюджет посчитан Скаутом «из Интерьера», без Планировки — та же цифра, что на экране Бюджета */
+    /* бюджет посчитан расчётом «из Интерьера», без Планировки — та же цифра, что на экране Бюджета */
     if (!BL && window.SOVE_BUDGET && window.SOVE_BUDGET.current) { var C0 = window.SOVE_BUDGET.current(); if (C0 && C0.full && C0.totals.plan !== null) BL = { total: C0.totals.plan, known: 4 }; }
+    /* слои ещё не посчитаны (0 ₽) — показываем известное из Интерьера, а не «≈ 0 ₽ · 0 из 4», как было после «Сохранить в бюджет» */
+    if (BL && !BL.total) BL = null;
+    /* Интерьер на часть квартиры: в «итого» по правилу П6 не идёт, но известная сумма есть — как «Известно ≈ …» на экране Бюджета */
+    var omP = ownMat(), part = !BL && omP && !omP.known && omP.part > 0 ? omP.part : 0;
     /* новый план ещё не расставлен — старую сумму не показываем */
     var newPlan = document.body.getAttribute('data-page') === 'plan-demo';
-    var bTotal = newPlan ? '' : BL ? '≈ ' + F.rub(BL.total) + ' · ' + BL.known + ' из 4' : bp && bp.full ? '≈ ' + (bp.total === null || bp.total === undefined ? '[сумма] ₽' : F.rub(bp.total))
+    var bTotal = newPlan || noInt ? '' : BL ? '≈ ' + F.rub(BL.total) + ' · ' + BL.known + ' из 4' : bp && bp.full ? '≈ ' + (bp.total === null || bp.total === undefined ? '[сумма] ₽' : F.rub(bp.total))
       : ownMat() ? '≈ ' + F.rub(ownMat().value) + ' · ' + (ownMat().known ? 1 : 0) + ' из 4'
       : furn ? null : F.rub(b && b.total ? b.total : 0);
     /* полоса ведёт на свои экраны (ТЗ 22.10, п. 0.4 и 5): корзина и бюджет квартиры — виды my.html, избранное — общая страница */
@@ -309,7 +320,7 @@
     el.innerHTML =
       '<a href="' + h('cart') + '" data-strip="cart">' + CART + '<span><b>Корзина</b><small>' + (t.count ? t.qty + ' · ' + F.rub(t.metod) : 'пока пусто') + '</small></span></a>' +
       '<a href="' + h('fav') + '" data-strip="fav">' + HEART + '<span><b>Избранное</b><small>' + (fv ? fv : 'пока пусто') + '</small></span></a>' +
-      '<a href="' + h('budget') + '" data-strip="budget"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 7h8M8 11h3M13 11h3M8 15h3M13 15h3"/></svg><span><b>Бюджет</b><small>' + (newPlan ? 'после расстановки' : bTotal === null ? 'мебель ≈ ' + F.rub(furn) + ' · весь — узнать ›' : 'итого ' + bTotal) + '</small></span></a>';
+      '<a href="' + h('budget') + '" data-strip="budget"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 7h8M8 11h3M13 11h3M8 15h3M13 15h3"/></svg><span><b>Бюджет</b><small>' + (newPlan ? 'после расстановки' : noInt && !(b && b.total) ? 'выбери интерьер' : noInt ? 'итого ' + F.rub(b.total) : part ? 'известно ≈ ' + F.rub(part) : bTotal === null ? 'мебель ≈ ' + F.rub(furn) + ' · весь — узнать ›' : 'итого ' + bTotal) + '</small></span></a>';
   }
 
   /* ---------- данные прототипа: 3 состояния экрана из п. 6 ТЗ ---------- */

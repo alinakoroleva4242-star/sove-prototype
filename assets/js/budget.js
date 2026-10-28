@@ -3,7 +3,7 @@
    заменяют строки (а не прибавляют). Нормы — assets/js/budget-norms.js. Нет нормы ('[норма]') —
    значение строки null, на экране «[сумма] ₽»; итог тогда тоже неизвестен (total: null).
    window.SOVE_BUDGET.compute(input) → { lines: [{key, t, source, value, accuracy}], total, accuracy, type, kit[9], works[5], roughMat }
-   Экран бюджета (design/budget/TZ-budget.md) — как смета Скаута: 9 категорий комплектации + 5 этапов работ + черновые.
+   Экран бюджета (design/budget/TZ-budget.md) — как смета ремонта: 9 категорий комплектации + 5 этапов работ + черновые.
    11 строк не выбрасываем, а перекладываем (таблица раздела 4); view() кладёт сверху выбор в блоках (Интерьер, Планировка, Маркет),
    оплаты из Заказов и считает totals — одна цифра totals.plan для экрана, полосы, дашборда, PDF и Excel. */
 (function () {
@@ -55,21 +55,21 @@
     };
   }
 
-  /* ── гибрид (ТЗ Планировки, 17.2): полный бюджет считает движок Скаута (SOVE.scout.estimate),
-     а здесь его итог раскладывается на 11 строк. Работы — по этапам Скаута, комплектация — по долям Скаута;
+  /* ── гибрид (ТЗ Планировки, 17.2): полный бюджет считает движок расчёта (SOVE.scout.estimate),
+     а здесь его итог раскладывается на 11 строк. Работы — по этапам расчёта, комплектация — по долям расчёта;
      мебель — поштучно из расстановки (правило «значение строки = выбранные товары»). ── */
   function fromScout(o) {
     var S = window.SOVE, sp = o.scout, e = S.scout.estimate(sp), st = o.state || 'concrete_walls';
     var W = {}, K = {}; e.stages.forEach(function (x) { W[x[0]] = x[1]; }); e.kit.forEach(function (x) { K[x[0]] = x[1]; });
     var walls = W['Стены и перегородки'] || 0, demo = W['Демонтаж'] || 0, plen = o.partitions && o.partitions.length ? 1 : st === 'concrete_free' ? 1 : 0;
-    var finishKit = K['Отделка'] || 0, acc = o.accuracy || 'примерно', byInt = o.interior ? 'по интерьеру' : 'по Скауту';
+    var finishKit = K['Отделка'] || 0, acc = o.accuracy || 'примерно', byInt = o.interior ? 'по интерьеру' : 'по расчёту';
     var lines = [];
     function line(key, t, source, value, accuracy) { lines.push({ key: key, t: t, source: source, value: Math.round(value), accuracy: accuracy || acc }); }
-    if (st === 'finished') line('demolition', 'Демонтаж и вывоз', 'по Скауту', demo);
-    line('rough_works', 'Черновые работы', 'по Скауту', (st === 'finished' ? 0 : demo) + walls * (plen ? .5 : 1) + (W['Водоснабжение и канализация'] || 0) + (W['Электрика, свет, двери'] || 0));
+    if (st === 'finished') line('demolition', 'Демонтаж и вывоз', 'по расчёту', demo);
+    line('rough_works', 'Черновые работы', 'по расчёту', (st === 'finished' ? 0 : demo) + walls * (plen ? .5 : 1) + (W['Водоснабжение и канализация'] || 0) + (W['Электрика, свет, двери'] || 0));
     if (plen) line('partitions', 'Перегородки', o.partitions && o.partitions.length ? 'по варианту стен' : 'по плану', walls * .5 + (K['Двери и перегородки'] || 0));
-    line('rough_mat', 'Черновые материалы', 'по Скауту', finishKit * .4 + (plen ? 0 : (K['Двери и перегородки'] || 0)));
-    line('finish_works', 'Чистовые работы', 'по Скауту', (W['Полы'] || 0) + (W['Потолки'] || 0) + (W['Финальная сдача'] || 0));
+    line('rough_mat', 'Черновые материалы', 'по расчёту', finishKit * .4 + (plen ? 0 : (K['Двери и перегородки'] || 0)));
+    line('finish_works', 'Чистовые работы', 'по расчёту', (W['Полы'] || 0) + (W['Потолки'] || 0) + (W['Финальная сдача'] || 0));
     line('finish_mat', 'Чистовые материалы', byInt, finishKit * .6);
     line('plumbing', 'Сантехника', byInt, K['Сантехника'] || 0);
     line('electric', 'Свет и электрика', byInt, (K['Освещение'] || 0) + (K['Выключатели и розетки'] || 0));
@@ -78,8 +78,8 @@
     line('furniture', 'Мебель', 'по расстановке', furn, o.interior ? 'точнее' : 'примерно');
     line('decor', 'Декор и текстиль', '% от мебели', K['Текстиль и декор'] || 0);
     var total = lines.reduce(function (a, l) { return a + l.value; }, 0);
-    /* 9 + 5 прямо из Скаута: этапы — 7 этапов Скаута в 5 этапов договора; Отделка — 60 % чистовые (строка «Отделка»), 40 % черновые материалы, как в 11 строках.
-       Предчистовые — норма ₽/м²; пока «[норма]» — 0, этап скрыт. Сумма 9 + 5 + черновые = сумма Скаута (мебель — из расстановки, если есть) */
+    /* 9 + 5 прямо из расчёта: этапы — 7 этапов расчёта в 5 этапов договора; Отделка — 60 % чистовые (строка «Отделка»), 40 % черновые материалы, как в 11 строках.
+       Предчистовые — норма ₽/м²; пока «[норма]» — 0, этап скрыт. Сумма 9 + 5 + черновые = сумма расчёта (мебель — из расстановки, если есть) */
     var Nn = NORMS[sp.level === 'premium' ? 'premium' : 'base'] || {}, finW = (W['Полы'] || 0) + (W['Потолки'] || 0) + (W['Финальная сдача'] || 0);
     var pre = num(Nn.prefinish_m2) !== null && e.area ? Math.min(finW, Nn.prefinish_m2 * e.area) : 0;
     var sh = shape({ finish: finishKit * .6, light: K['Освещение'] || 0, sockets: K['Выключатели и розетки'] || 0, plumbing: K['Сантехника'] || 0, doors: K['Двери и перегородки'] || 0,
@@ -171,7 +171,7 @@
     var S = window.SOVE, R = S && S.repair, FL = window.SOVE_FLOW, P = FL && FL.planDoc && FL.planDoc();
     if (!R || !R.flats.active()) return null;
     var r = R.get();
-    /* без Планировки, но с расчётом Скаута «из Интерьера» — бюджет по параметрам Скаута (план и капсула из квартиры), мебель — по норме */
+    /* без Планировки, но с расчётом бюджета «из Интерьера» — бюджет по параметрам расчёта (план и капсула из квартиры), мебель — по норме */
     if ((!P || !P.budget || !P.budget.kit) && r.scoutParams && r.budgetPlan && r.budgetPlan.full && S.scout && S.scout.estimate) {
       var sp = Object.assign({}, r.scoutParams, { level: r.budgetPlan.type || r.scoutParams.level });
       var res = compute({ scout: sp, rooms: (sp.rooms || []).map(function (x) { return { name: x.name, m2: x.m2 }; }), state: { concrete: 'concrete_walls', pre: 'whitebox', secondary: 'finished' }[sp.stateId] || 'concrete_walls', type: sp.level });

@@ -1,4 +1,4 @@
-/* Главная приложения: расчёт Скаута, разделы нынешнего сайта одной лентой.
+/* Главная приложения: расчёт бюджета, разделы нынешнего сайта одной лентой.
    Прежние варианты A/B/C сведены в одну страницу; там, где подача спорная (разбор рендера),
    варианты переключаются прямо в блоке. */
 (function () {
@@ -30,18 +30,18 @@
   var adeptFrom = Math.min.apply(null, D.adept.packages.map(function (p) { return p.rate; }));
   var trackFrom = Math.min.apply(null, D.scout.states.map(function (s) { return s.rate; }));
   var T = {
-    ai: { k: 'ИИ генерации', t: 'SOVEAPP AI', d: 'Визуализации за секунды', href: 'sove-ai.html', ic: 'sparkles', img: IMG.ai },
+    ai: { k: 'ИИ генерации', t: 'Генерации', d: 'Визуализации за секунды', href: 'sove-ai.html', ic: 'sparkles', img: IMG.ai },
     fit: { k: 'Примерка', t: 'Вещь в вашей комнате', d: 'Фото комнаты — и товар встаёт в кадр', href: 'fit.html', ic: 'sparkles', img: 'assets/img/slides/k5-living-1.jpg' },
-    market: { k: 'Скидки партнёров', t: 'SOVEAPP маркет', d: 'Закрытые цены партнёров', href: 'market.html', ic: 'bag', img: IMG.market },
+    market: { k: 'Скидки партнёров', t: 'Каталог товаров', d: 'Закрытые цены партнёров', href: 'market.html', ic: 'bag', img: IMG.market },
     capsules: { k: 'Вдохновение', t: 'Капсулы', d: 'Готовые интерьеры с названиями', href: 'capsules.html', ic: 'albums', img: IMG.capsules },
-    adept: { k: 'Дизайн-проект', t: 'АДЕПТ', d: 'Капсула в дизайн-проект', href: 'adept.html', ic: 'wand', img: IMG.adept, lock: true, price: 'от ' + F.rub(adeptFrom) + '/м²' },
-    track: { k: 'Ремонт под ключ', t: 'ТРЕК', d: 'От проекта до ключей', href: 'track.html', ic: 'build', img: IMG.track, lock: true, price: 'работы от ' + F.rub(trackFrom) + '/м²' },
+    adept: { k: 'Адаптация капсулы', t: 'Дизайн-проект', d: 'Капсула в дизайн-проект', href: 'adept.html', ic: 'wand', img: IMG.adept, lock: true, price: 'от ' + F.rub(adeptFrom) + '/м²' },
+    track: { k: 'Ремонт под ключ', t: 'Управление ремонтом', d: 'От проекта до ключей', href: 'track.html', ic: 'build', img: IMG.track, lock: true, price: 'работы от ' + F.rub(trackFrom) + '/м²' },
     metod: { k: 'Подписка', t: 'METOD', d: 'Клуб и скидки партнёров', href: 'metod.html', ic: 'ribbon', lock: true, img: IMG.metod, price: 'от ' + F.rub(D.metodPlans[0].price) + ' в месяц' },
-    about: { k: 'Экосистема', t: 'О\u00a0SOVE', d: 'Как всё устроено', href: 'about.html', ic: 'info', img: 'assets/img/capsules/k5-main-1.jpg' }
+    about: { k: 'Экосистема', t: 'О\u00a0SOVEAPP', d: 'Как всё устроено', href: 'about.html', ic: 'info', img: 'assets/img/capsules/k5-main-1.jpg' }
   };
-  var PART = [ { t: 'Стать партнёром', d: 'Поставщикам и брендам', href: 'partner.html', ic: 'handshake' }, { t: 'Разместить капсулу', d: 'Дизайнерам: заявки на Адепт', href: 'partner.html?who=designer', ic: 'home' } ];
+  var PART = [ { t: 'Стать партнёром', d: 'Поставщикам и брендам', href: 'partner.html', ic: 'handshake' }, { t: 'Разместить капсулу', d: 'Дизайнерам: заявки на дизайн-проект', href: 'partner.html?who=designer', ic: 'home' } ];
 
-  /* ---------- Скаут на главной: кадр квартиры тянется за ползунком площади ---------- */
+  /* ---------- Расчёт бюджета на главной: кадр квартиры тянется за ползунком площади ---------- */
   var capsK = D.capsules.filter(function (c) { return !c.soon && !c.designer && c.pricePerM2; });
   var minKit = Math.min.apply(null, capsK.map(function (c) { return c.pricePerM2; })), maxKit = Math.max.apply(null, capsK.map(function (c) { return c.pricePerM2; }));
   var rates = D.scout.states.map(function (x) { return x.rate; }), minRate = Math.min.apply(null, rates), maxRate = Math.max.apply(null, rates);
@@ -50,127 +50,130 @@
   var sumRetail = 0, sumMetod = 0;
   D.products.forEach(function (p) { if (p.capsules && p.capsules.length) { sumRetail += p.retail; sumMetod += p.metod; } });
   var noMetodK = sumMetod ? sumRetail / sumMetod : 1.2;
-  function rangeFor(a) { return mln((minRate + minKit) * a) + '–' + mln((maxRate + maxKit) * a) + '\u00a0млн\u00a0₽'; }
-  function rangeRetail(a) { return mln((minRate + minKit * noMetodK) * a) + '–' + mln((maxRate + maxKit * noMetodK) * a) + '\u00a0млн\u00a0₽'; }
+  /* Калькулятор на главной по макету Вики 23.10: сверху листалка капсул (1 / 6) с названием, ниже — пример расчёта
+     на выбранную капсулу, ползунок площади, выгода с подпиской METOD и «Просчитай свой ремонт». Кадры — широкие
+     снимки капсул (data.js, wide). */
+  var HC_ORDER = ['k4', 'k1', 'k2', 'k3', 'k5', 'k6'];
+  var hcCaps = HC_ORDER.map(function (id) { return D.capsule(id); }).filter(function (c) { return c && !c.soon && c.pricePerM2; });
+  /* Вика 23.10: листаются фото самой капсулы — широкий кадр и вся её галерея (облегчённые копии capsules/hc), потом следующая капсула */
+  var hcShots = [];
+  hcCaps.forEach(function (c, ci) {
+    var list = [c.wide || c.cover];
+    (c.gallery || []).forEach(function (g) { var m = /capsules\/([a-z0-9-]+)\.jpg$/.exec(g.src); if (m && m[1] !== c.wideFrom) list.push('assets/img/capsules/hc/' + m[1] + '.jpg'); });
+    list.forEach(function (src, i) { hcShots.push({ c: c, ci: ci, i: i, n: list.length, src: src, room: i ? ((c.gallery || []).filter(function (g) { return g.src.indexOf(src.split('/').pop()) >= 0; })[0] || {}).room : '' }); });
+  });
+  var hcI = 0;
+  var CROWN = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true"><path d="M4 18h16M5 15l-1-8 5 4 3-6 3 6 5-4-1 8z"/></svg>';
+  var CHEV = function (d) { return '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="' + (d < 0 ? 'M15 5l-7 7 7 7' : 'M9 5l7 7-7 7') + '"/></svg>'; };
   function scoutHTML() {
-    return '<section class="sc-card sc-card--home fview" id="scout-card" aria-label="Скаут: расчёт бюджета">' +
-      '<div class="fview__stage" id="flat-stage" aria-hidden="true">' +
-        '<img class="fview__l" id="flat-a" alt=""><img class="fview__l" id="flat-b" alt="">' +
-        '<span class="fview__badge" id="flat-badge"></span><span class="fview__dots" id="flat-dots"></span>' +
+    return '<section class="hc" id="scout-card" aria-label="Пример расчёта бюджета ремонта">' +
+      '<div class="hc-hero" id="hc-hero" aria-roledescription="карусель" aria-label="Капсулы SOVEAPP">' +
+        '<img class="hc-hero__img" id="hc-img" alt="">' +
+        '<span class="hc-hero__area" id="flat-badge"></span>' +
+        '<div class="hc-hero__foot"><b class="hc-hero__name" id="hc-name" aria-live="polite"></b>' +
+          '<span class="hc-hero__nav"><span class="hc-hero__n" id="hc-n"></span>' +
+          '<button type="button" class="hc-hero__b" data-hc="-1" aria-label="Предыдущее фото">' + CHEV(-1) + '</button>' +
+          '<button type="button" class="hc-hero__b hc-hero__b--on" data-hc="1" aria-label="Следующее фото">' + CHEV(1) + '</button></span></div>' +
+        '<span class="hc-hero__dots" id="hc-dots" aria-hidden="true">' + hcCaps.map(function () { return '<i></i>'; }).join('') + '</span>' +
       '</div>' +
-      '<div class="fview__body"><span class="sc-card__k">Скаут · расчёт бюджета</span>' +
-      '<h1 class="sc-card__t">Ваш ремонт <b id="plan-sum"></b></h1>' +
-      '<span class="fview__sum"><span id="plan-area"></span></span>' +
+      '<div class="hc-card"><span class="hc-card__k">Пример расчёта бюджета</span>' +
+      '<h1 class="hc-card__t">Ваш ремонт <b id="plan-sum"></b></h1>' +
+      '<span class="hc-card__sub" id="plan-area"></span>' +
       '<label class="plan__range"><span class="plan__val" id="plan-val"></span>' +
         '<input type="range" id="plan-range" min="36" max="84" step="1" value="45" aria-label="Площадь квартиры">' +
-        '</label>' +
+      '</label>' +
+      '<a class="hc-save" href="metod.html"><span class="hc-save__ic">' + CROWN + '</span>' +
+        '<span class="hc-save__txt"><small>Ваша выгода с подпиской METOD</small><b id="hc-save"></b><em>Скидки от поставщиков, специальные цены и готовые решения</em></span>' +
+        '<span class="hc-save__i" aria-hidden="true">' + ic('info', 22) + '</span></a>' +
       '<div class="fview__sw" role="group" aria-label="Цена с подпиской или без">' +
-        '<button type="button" class="fview__sw-b is-on" data-metod="1">С подпиской METOD</button>' +
-        '<button type="button" class="fview__sw-b" data-metod="0">Без подписки</button>' +
+        '<button type="button" class="fview__sw-b is-on" data-metod="1" aria-pressed="true">С подпиской METOD</button>' +
+        '<button type="button" class="fview__sw-b" data-metod="0" aria-pressed="false">Без подписки</button>' +
       '</div>' +
       '<span class="fview__nometod" id="plan-alt"></span>' +
-      '<a class="btn btn--primary fview__go" id="plan-go" href="scout.html">Уточнить</a></div></section>';
-  }
-  /* сколько экономит подписка на той же площади: разница розницы и цен METOD */
-  function saving(a) {
-    var lo = mln((minKit * noMetodK - minKit) * a), hi = mln((maxKit * noMetodK - maxKit) * a);
-    return (lo === hi ? lo : lo + '–' + hi) + '\u00a0млн\u00a0₽';
+      '<a class="hc-go" id="plan-go" href="scout.html">Просчитай свой ремонт ' + ic('arrow', 20) + '</a></div></section>';
   }
   var withMetod = true;
+  function rub10k(n) { return F.rub(Math.round(n / 10000) * 10000); }
+  function flatName(a) { return a < 41 ? 'Студия' : a < 56 ? '1-комнатная квартира' : a < 71 ? '2-комнатная квартира' : '3-комнатная квартира'; }
 
   function bindScout() {
-    /* пять рендеров одной капсулы: картинка тянется вместе с ползунком, между кадрами — переход */
-    /* кадры берём из капсулы, а не из сухих планов квартир: человек видит интерьер, а не схему */
-    var SHOTS = [ { a: 36, src: 'assets/img/capsules/k6-hall-1.jpg', n: 'студия' }, { a: 45, src: 'assets/img/capsules/k6-bed-1.jpg', n: '1-комн.' },
-                  { a: 65, src: 'assets/img/capsules/k6-main-1.jpg', n: '2-комн.' }, { a: 76, src: 'assets/img/capsules/k6-main-3.jpg', n: '3-комн.' }, { a: 84, src: 'assets/img/capsules/k6-main-4.jpg', n: '3-комн.' } ];
-    SHOTS.forEach(function (s) { var i = new Image(); i.src = s.src; });
-    var stage = document.getElementById('flat-stage'), range = document.getElementById('plan-range');
-    var imgA = document.getElementById('flat-a'), imgB = document.getElementById('flat-b');
-    var badge = document.getElementById('flat-badge'), dots = document.getElementById('flat-dots');
-    dots.innerHTML = SHOTS.map(function () { return '<i></i>'; }).join('');
+    var range = document.getElementById('plan-range'), img = document.getElementById('hc-img'), hero = document.getElementById('hc-hero');
     var my = S.my.get(); if (my.area) range.value = Math.min(84, Math.max(36, my.area));
-    var pair = -1;
 
-    function segment(a) {
-      var i = 0; while (i < SHOTS.length - 2 && a >= SHOTS[i + 1].a) i++;
-      var from = SHOTS[i], to = SHOTS[i + 1];
-      return { i: i, from: from, to: to, t: Math.max(0, Math.min(1, (a - from.a) / (to.a - from.a))) };
+    function shot() { return hcShots[hcI]; }
+    function cap() { return shot().c; }
+    /* одна сумма по Базовому тарифу (Вика 23.10): работы — новостройка без отделки, комплектация — капсула по ценам METOD */
+    var BASE_STATE = D.scout.states.filter(function (x) { return x.id === 'concrete'; })[0] || D.scout.states[0];
+    function sum(c, a, metod) { var k = metod ? c.pricePerM2 : c.pricePerM2 * noMetodK; return mln((BASE_STATE.rate + k) * a) + '\u00a0млн\u00a0₽'; }
+    /* кадр, название и сумма меняются вместе — только когда фото уже загружено (на телефоне по LTE иначе название
+       убегает вперёд картинки); следующие кадры подгружаем заранее */
+    var loadId = 0, ready = {};
+    function preload(i) { var sh = hcShots[(i + hcShots.length) % hcShots.length]; if (ready[sh.src]) return; var p = new Image(); p.onload = function () { ready[sh.src] = true; }; p.src = sh.src; }
+    function apply(sh) {
+      var c = sh.c;
+      img.src = sh.src; img.alt = 'Капсула ' + c.code + ': ' + c.name + (sh.room ? ', ' + sh.room.toLowerCase() : '');
+      img.classList.remove('is-in'); void img.offsetWidth; img.classList.add('is-in');
+      hero.classList.remove('is-loading');
+      document.getElementById('hc-name').textContent = c.name;
+      document.getElementById('hc-n').textContent = (sh.i + 1) + '\u00a0/\u00a0' + sh.n;
+      document.querySelectorAll('#hc-dots i').forEach(function (d, i) { d.classList.toggle('is-on', i === sh.ci); });
+      update(); preload(hcI + 1); preload(hcI + 2); preload(hcI - 1);
     }
-    function setPair(seg) {
-      if (pair === seg.i) return;
-      pair = seg.i; imgA.src = seg.from.src; imgB.src = seg.to.src;
-    }
-    function paint(seg) {
-      /* переход занимает середину пути: кадр держится чётким, смена быстрая и заметная */
-      var t = seg.t, k = Math.max(0, Math.min(1, (t - 0.34) / 0.32)), e = k * k * (3 - 2 * k);
-      var blur = (2.6 * Math.sin(Math.PI * k)).toFixed(2);
-      imgA.style.opacity = String(Math.max(0, 1 - e * 1.4));
-      imgA.style.transform = 'scale(' + (1 + 0.16 * e).toFixed(3) + ') translateX(' + (-4 * e).toFixed(2) + '%)';
-      imgA.style.filter = 'blur(' + blur + 'px)';
-      imgB.style.opacity = String(Math.min(1, e * 1.4));
-      imgB.style.transform = 'scale(' + (1.16 - 0.16 * e).toFixed(3) + ') translateX(' + (4 * (1 - e)).toFixed(2) + '%)';
-      imgB.style.filter = 'blur(' + blur + 'px)';
+    function showCap() {
+      var sh = shot(), id = ++loadId;
+      if (ready[sh.src]) { apply(sh); return; }
+      hero.classList.add('is-loading');
+      var p = new Image();
+      p.onload = p.onerror = function () { ready[sh.src] = true; if (id === loadId) apply(sh); };
+      p.src = sh.src;
     }
     function update() {
-      var a = Number(range.value), seg = segment(a);
-      setPair(seg); paint(seg);
-      document.getElementById('plan-sum').textContent = withMetod ? rangeFor(a) : rangeRetail(a);
-      document.getElementById('plan-alt').textContent = withMetod
-        ? 'без подписки — ' + rangeRetail(a)
-        : 'с подпиской METOD — ' + rangeFor(a) + ', экономия ' + saving(a);
-      var near = seg.t < 0.5 ? seg.from : seg.to;
-      var capName1 = (D.capsule('k1') || {}).name || '';
-      document.getElementById('plan-area').textContent = (withMetod ? 'с подпиской METOD · ' : 'по розничным ценам · ') + near.n + ' · ' + capName1;
-      fitHead();
+      var a = Number(range.value), c = cap();
+      document.getElementById('plan-sum').textContent = sum(c, a, withMetod);
+      document.getElementById('plan-alt').textContent = withMetod ? 'Без подписки — ' + sum(c, a, false) : 'С подпиской METOD — ' + sum(c, a, true);
+      document.getElementById('plan-area').textContent = flatName(a) + ' · ' + a + ' м² · Базовый, ' + BASE_STATE.note;
+      document.getElementById('hc-save').textContent = 'до ' + rub10k((c.pricePerM2 * noMetodK - c.pricePerM2) * a);
+      document.getElementById('flat-badge').textContent = a + ' м²';
       var val = document.getElementById('plan-val');
       if (val) {
         val.textContent = a + ' м²';
         var k = (a - 36) / (84 - 36);
         val.style.left = 'calc(' + (k * 100).toFixed(1) + '% + ' + (11 - k * 22).toFixed(1) + 'px)';  /* поправка на ширину бегунка */
       }
-      document.getElementById('plan-go').href = 'scout.html?area=' + a;
-      badge.textContent = a + ' м²';
-      dots.querySelectorAll('i').forEach(function (d, i) { d.classList.toggle('is-on', SHOTS[i] === near); });
-    }
-    /* размытие живёт только во время движения: замер — показываем ближайший кадр чётко */
-    var settleT = null;
-    function settle() {
-      var seg = segment(Number(range.value)), near = seg.t < 0.5 ? imgA : imgB;
-      [imgA, imgB].forEach(function (im) {
-        im.style.filter = 'blur(0px)';
-        im.style.opacity = im === near ? '1' : '0';
-        im.style.transform = im === near ? 'scale(1)' : im.style.transform;
-      });
+      range.style.setProperty('--fill', ((a - 36) / (84 - 36) * 100).toFixed(1) + '%');
+      document.getElementById('plan-go').href = 'scout.html?area=' + a + '&capsule=' + c.id + '&state=' + BASE_STATE.id;
+      fitHead();
     }
     /* заголовок с суммой держим в одну строку: подбираем самый крупный кегль, который влезает */
     function fitHead() {
-      var head = document.querySelector('.sc-card--home .sc-card__t');
-      if (!head) return;
-      var size = 20;
-      head.style.fontSize = size + 'px';
-      while (size > 12 && head.scrollWidth > head.clientWidth + 1) { size -= 0.5; head.style.fontSize = size + 'px'; }
+      var head = document.querySelector('.hc-card__t'); if (!head) return;
+      var size = 30; head.style.fontSize = size + 'px';
+      while (size > 16 && head.scrollWidth > head.clientWidth + 1) { size -= 0.5; head.style.fontSize = size + 'px'; }
     }
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitHead);
     window.addEventListener('resize', fitHead);
+    function step(d) { hcI = (hcI + d + hcShots.length) % hcShots.length; showCap(); }
+    /* фото перещёлкиваются сами каждые 4,5 с; после нажатия — пауза 12 с; при «меньше движения» и наведении — стоят */
+    var calm = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches, hold = 0, hover = false;
+    function touch() { hold = Date.now() + 12000; }
+    setInterval(function () { if (calm || hover || document.hidden || Date.now() < hold || hero.classList.contains('is-loading')) return; step(1); }, 4500);
+    hero.addEventListener('mouseenter', function () { hover = true; }); hero.addEventListener('mouseleave', function () { hover = false; });
+    hero.addEventListener('click', function (e) { var b = e.target.closest('[data-hc]'); if (b) { touch(); step(Number(b.getAttribute('data-hc'))); } });
+    /* свайп по кадру — листаем капсулы, страница вбок не едет */
+    var x0 = null;
+    hero.addEventListener('touchstart', function (e) { x0 = e.touches[0].clientX; }, { passive: true });
+    hero.addEventListener('touchend', function (e) { if (x0 === null) return; var dx = e.changedTouches[0].clientX - x0; x0 = null; touch(); if (Math.abs(dx) > 40) step(dx < 0 ? 1 : -1); });
 
-    var sw = document.querySelector('.fview__sw');
-    if (sw) sw.addEventListener('click', function (e) {
+    var sw = document.querySelector('.hc .fview__sw');
+    sw.addEventListener('click', function (e) {
       var btn = e.target.closest('[data-metod]'); if (!btn) return;
       withMetod = btn.getAttribute('data-metod') === '1';
-      sw.querySelectorAll('.fview__sw-b').forEach(function (b) {
-        b.classList.toggle('is-on', b === btn);
-      });
+      sw.querySelectorAll('.fview__sw-b').forEach(function (b) { b.classList.toggle('is-on', b === btn); b.setAttribute('aria-pressed', b === btn); });
       update();
     });
-
-    range.addEventListener('input', function () {
-      update();
-      clearTimeout(settleT);
-      settleT = setTimeout(settle, 200);
-    });
-    setTimeout(settle, 60);
+    range.addEventListener('input', update);
     document.getElementById('plan-go').addEventListener('click', function () { S.my.set({ area: Number(range.value) }); });
-    update();
+    showCap();
   }
 
   /* ---------- общие кусочки ---------- */
@@ -185,7 +188,7 @@
       '<label class="vh" for="home-q">Поиск товара</label><input id="home-q" name="q" type="search" placeholder="Найти товар" autocomplete="off" enterkeyhint="search">' +
       '<a class="hsearch__cam" href="ai.html?mode=photo" aria-label="Найти товар по фото" title="Найти товар по фото"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></a></form>';
   }
-  /* карусель капсул — выбор интерьера для баннера Адепта, стоит под ним */
+  /* карусель капсул — выбор интерьера для баннера дизайн-проекта, стоит под ним */
   function capsLane() {
     var caps = D.capsules.filter(function (c) { return !c.soon; }).slice(0, 6);
     return '<section class="feed feed--caps"><div class="feed__head"><h2 class="h2">Выберите интерьер</h2><a class="btn btn--link" href="capsules.html">Все интерьеры</a></div><div class="lane" id="caps-lane">' +
@@ -196,7 +199,7 @@
       }).join('') +
       '</div></section>';
   }
-  /* вход в воронку Адепта: баннер монтируется после отрисовки */
+  /* вход в воронку дизайн-проекта: баннер монтируется после отрисовки */
   function adeptSlot() { return '<section class="feed feed--adept"><div id="home-adept"></div></section>'; }
   /* маркет внизу главной: товары сеткой, а не каруселью — это главный раздел */
   /* подпись с ценой у краёв кадра обрезается — прижимаем её внутрь рамки */
@@ -244,7 +247,7 @@
     var p = D.product(o.items[0].id);
     var cap = p && p.capsules && p.capsules.length ? D.capsule(p.capsules[0]) : null;
     return '<section class="feed feed--render"><div class="rnd rnd--one">' +
-      '<div class="rnd__head"><span class="rnd__k">SOVEAPP AI · разбор рендера</span>' +
+      '<div class="rnd__head"><span class="rnd__k">Генерации · разбор рендера</span>' +
       '<b class="rnd__t">Один предмет узнаём бесплатно</b>' +
       '<span class="rnd__d">Загрузите рендер — покажем вещь и цену у партнёров. Полный разбор кадра — по токенам.</span></div>' +
       '<div class="rnd__stage"><img src="' + R.src + '" alt="Рендер интерьера, один предмет отмечен">' +
@@ -264,7 +267,7 @@
   function renderXray() {
     var R = D.ai.renderSample, OBJ = R.objects;
     return '<section class="feed feed--render"><div class="rnd rnd--xray">' +
-      '<div class="rnd__head"><span class="rnd__k">SOVEAPP AI · разбор рендера</span>' +
+      '<div class="rnd__head"><span class="rnd__k">Генерации · разбор рендера</span>' +
       '<b class="rnd__t">Потяните полосу — увидите цены</b>' +
       '<span class="rnd__d">Так же разберём ваш рендер: найдём вещи у партнёров и соберём смету</span></div>' +
       '<div class="rnd__stage" id="xr-stage"><img class="xr__gray" src="' + R.src + '" alt="Рендер интерьера">' +
@@ -330,11 +333,11 @@
                  '<a class="btn btn--link" href="market.html">Дособрать в маркете</a>') +
       '</div></div></section>';
   }
-  /* Трек ещё не запущен: баннер со словом «Скоро» ведёт на ознакомительную страницу */
+  /* Управление ремонтом ещё не запущен: баннер со словом «Скоро» ведёт на ознакомительную страницу */
   function trackSoon() {
     return '<section class="feed feed--track"><a class="soon" href="track.html">' +
       '<span class="soon__pic"><img src="' + IMG.track + '" alt="" loading="lazy"><span class="soon__flag">Скоро</span></span>' +
-      '<span class="soon__body"><span class="soon__k">ТРЕК · ремонт под ключ</span><b>Ремонт по вашему проекту — под присмотром</b>' +
+      '<span class="soon__body"><span class="soon__k">Ремонт под ключ</span><b>Ремонт по вашему проекту — под присмотром</b>' +
       '<span class="soon__d">Сметы, график работ, приёмка этапов и один ответственный. Готовим запуск — посмотрите, как будет устроено.</span>' +
       '<span class="btn btn--ghost btn--sm">Как это будет</span></span></a></section>';
   }
@@ -387,12 +390,12 @@
   /* ---------- разделы: названия и подписи дословно с родной главной сайта
        (apps/web/src/app/index.tsx, массив SECTIONS) ---------- */
   var NAV = [
-    { id: 'ai', k: 'ИИ генерации', t: 'SOVEAPP AI', d: 'ИИ визуализации за секунды', href: 'sove-ai.html', ic: 'sparkles', img: 'assets/img/capsules/k3-main-3.jpg', group: 'Попробуй сразу', free: true },
-    { id: 'market', k: 'Товары со скидками', t: 'SOVEAPP маркет', d: 'Закрытые акции и цены от партнёров', href: 'market.html', ic: 'bag', img: 'assets/img/capsules/k7-main-2.jpg', group: 'Попробуй сразу', free: true },
+    { id: 'ai', k: 'ИИ генерации', t: 'Генерации', d: 'ИИ визуализации за секунды', href: 'sove-ai.html', ic: 'sparkles', img: 'assets/img/capsules/k3-main-3.jpg', group: 'Попробуй сразу', free: true },
+    { id: 'market', k: 'Товары со скидками', t: 'Каталог товаров', d: 'Закрытые акции и цены от партнёров', href: 'market.html', ic: 'bag', img: 'assets/img/capsules/k7-main-2.jpg', group: 'Попробуй сразу', free: true },
     { id: 'capsules', k: 'Вдохновение', t: 'Капсулы', d: 'Готовые решения, из которых собираешь своё', href: 'capsules.html', ic: 'albums', img: 'assets/img/capsules/k3-main-2.jpg', group: 'Вдохновись и прикинь' },
-    { id: 'scout', k: 'Расчёт бюджета', t: 'Скаут', d: 'Бюджет и спецификация под твою капсулу', href: 'scout.html', ic: 'calc', img: 'assets/img/capsules/k6-main-1.jpg', group: 'Вдохновись и прикинь' },
-    { id: 'adept', k: 'Дизайн-проект', t: 'АДЕПТ', d: 'Адаптация капсулы в дизайн-проект', href: 'adept.html', ic: 'wand', img: IMG.adept, lock: true, group: 'Сделай по-настоящему' },
-    { id: 'track', k: 'Ремонт под ключ', t: 'ТРЕК', d: 'Бюджет — проект — реализация', href: 'track.html', ic: 'build', img: 'assets/img/capsules/k3-hall-1.jpg', lock: true, group: 'Сделай по-настоящему' },
+    { id: 'scout', k: 'Расчёт бюджета', t: 'Бюджетный просчёт', d: 'Бюджет и спецификация под твою капсулу', href: 'scout.html', ic: 'calc', img: 'assets/img/capsules/k6-main-1.jpg', group: 'Вдохновись и прикинь' },
+    { id: 'adept', k: 'Адаптация капсулы', t: 'Дизайн-проект', d: 'Адаптация капсулы в дизайн-проект', href: 'adept.html', ic: 'wand', img: IMG.adept, lock: true, group: 'Сделай по-настоящему' },
+    { id: 'track', k: 'Ремонт под ключ', t: 'Управление ремонтом', d: 'Бюджет — проект — реализация', href: 'track.html', ic: 'build', img: 'assets/img/capsules/k3-hall-1.jpg', lock: true, group: 'Сделай по-настоящему' },
     { id: 'metod', k: 'Подписка', t: 'METOD', d: 'Закрытый клуб с огромными возможностями', href: 'metod.html', ic: 'ribbon', img: 'assets/img/capsules/k3-bed-2.jpg', lock: true, group: 'Клуб и доверие' },
     { id: 'about', k: 'Экосистема', t: 'Об экосистеме', d: 'Как устроена экосистема выгодного ремонта', href: 'about.html', ic: 'info', img: 'assets/img/capsules/k3-hall-2.jpg', group: 'Клуб и доверие' }
   ];
@@ -428,7 +431,7 @@
       if (!moved) break;
     }
     var save = white.reduce(function (s2, p) { return Math.max(s2, p.retail - p.metod); }, 0);
-    return '<section class="feed feed--market"><div class="feed__head"><h2 class="h2">SOVEAPP маркет</h2><a class="btn btn--link" href="market.html">Весь каталог</a></div>' +
+    return '<section class="feed feed--market"><div class="feed__head"><h2 class="h2">Каталог товаров</h2><a class="btn btn--link" href="market.html">Весь каталог</a></div>' +
       '<p class="feed__note">Цена поставщика и ваша цена с подпиской METOD' + (save ? ': выгода до ' + F.rub(save) + ' на одной вещи' : '') + '</p>' +
       '<div class="mk-grid">' + white.map(function (p) { return S.ui.productCard(p); }).join('') + '</div>' +
       '<a class="btn btn--ghost btn--block mk-more" href="market.html">Показать весь каталог</a></section>';
@@ -526,7 +529,7 @@
   var PARTNERS = [
     { id: 'sup', t: 'Поставщикам', d: 'Товары и цены в каталог METOD', href: 'partner.html', ic: 'handshake', img: 'assets/img/partners/sup.jpg' },
     { id: 'des', t: 'Дизайнерам', d: 'Капсула в общий каталог интерьеров', href: 'partner.html?who=designer', ic: 'home', img: 'assets/img/partners/des.jpg' },
-    { id: 'bld', t: 'Строителям', d: 'Объекты и бригады в Треке', href: 'partner.html?who=builder', ic: 'build', img: 'assets/img/partners/bld.jpg' }
+    { id: 'bld', t: 'Строителям', d: 'Объекты и бригады в управлении ремонтом', href: 'partner.html?who=builder', ic: 'build', img: 'assets/img/partners/bld.jpg' }
   ];
 
   var PKEY = 'sove.proto.prtView';
@@ -649,7 +652,7 @@
 
 
   /* Свой набор для квадратов: линейные знаки, по одному на раздел.
-     В общем наборе у Трека и Строителей был один и тот же карандаш — здесь развели. */
+     В общем наборе у управления ремонтом и Строителей был один и тот же карандаш — здесь развели. */
   /* Набор значков по образцу Вики (скриншоты 12.10): предметные, не метафоры —
      вихрь генерации, тележка, кресло с торшером, калькулятор, план квартиры,
      инструменты, звезда за ограждением, звенья цепи. */
@@ -686,9 +689,7 @@
     return '<a class="sq__b" href="' + x.href + '">' +
       '<span class="sq__box">' + sqIc(x.id, 42) +
         (x.lock ? '<i class="sq__lock">' + ic('lock', 10) + '</i>' : '') + '</span>' +
-      '<b class="sq__cap">' + esc(label) + '</b>' +
-      '<span class="sq__tip" role="note"><b>' + esc(x.t) + '</b>' +
-        (x.d ? '<i>' + esc(x.d) + '</i>' : '') + '</span></a>';
+      '<b class="sq__cap">' + esc(label) + '</b></a>';   /* подсказки при наведении убраны (Вика 23.10) */
   }
   /* Вика 21.10: в ряду «Сделай по-настоящему» «Строительные компании» (бывшая «Экосистема»)
      идут перед «Закрытым клубом»; подсказка при наведении — по новой подписи квадрата */
@@ -722,7 +723,7 @@
   }
 
   /* вариант «карусель» — один ряд, листается вбок, снизу точки */
-  /* вариант «два главных» — SOVEAPP AI и маркет крупно, остальные мелкой сеткой */
+  /* вариант «два главных» — Генерации и маркет крупно, остальные мелкой сеткой */
   var HERO_IDS = ['ai', 'market'];
   function secHero() {
     var big = SECS.filter(function (x) { return HERO_IDS.indexOf(x.id) >= 0; });
@@ -751,7 +752,7 @@
     var pv = SECS.slice(0, 5), rest = SECS.length - pv.length;
     return '<button type="button" class="smenu" data-sheet>' +
       '<span class="smenu__top">' +
-        '<span class="smenu__b"><b>Все разделы</b><i>SOVEAPP AI, капсулы, Адепт, Трек, METOD</i></span>' +
+        '<span class="smenu__b"><b>Все разделы</b><i>Генерации, капсулы, дизайн-проект, ремонт, METOD</i></span>' +
       '</span>' +
       '<span class="smenu__lane">' + pv.map(function (x) {
         return '<span class="smenu__pv"><img src="' + x.img + '" alt="" loading="lazy"></span>';
@@ -880,13 +881,13 @@
       '<a class="btn btn--ghost btn--block caps2__more" href="capsules.html">Показать все капсулы</a></section>';
   }
 
-  /* ---------- SOVEAPP маркет: баннер акции месяца и четыре товара со звёздочкой ---------- */
+  /* ---------- Каталог товаров: баннер акции месяца и четыре товара со звёздочкой ---------- */
   function promoBanner() {
     var list = (D.promoList ? D.promoList() : []).filter(function (p) { return p && p.white; }).slice(0, 4);
     if (!list.length) list = D.products.filter(function (p) { return p.white && p.discount >= 20; }).slice(0, 4);
     var lead = list[0] || {};
     var save = list.reduce(function (max, x) { return Math.max(max, x.retail - x.metod); }, 0);
-    return '<section class="feed feed--mk"><div class="feed__head"><h2 class="h2">SOVEAPP маркет</h2>' +
+    return '<section class="feed feed--mk"><div class="feed__head"><h2 class="h2">Каталог товаров</h2>' +
       '<a class="btn btn--link" href="market.html">Весь каталог</a></div>' +
 
       /* баннер на фоне интерьерного кадра: логотип партнёра и акция поверх — согласованный

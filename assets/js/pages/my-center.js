@@ -11,7 +11,7 @@
   function layers() {
     FL = window.SOVE_FLOW || FL;   /* demo-flow.js подключается после этого файла — берём при отрисовке, иначе дашборд не видит Планировку и бюджет расходится с полосой */
     var BL = FL && FL.budgetLayers && FL.budgetLayers(); if (BL) return BL;
-    /* бюджет посчитан Скаутом «из Интерьера» без Планировки — 4 слоя из 9 + 5 экрана Бюджета */
+    /* бюджет посчитан расчётом «из Интерьера» без Планировки — 4 слоя из 9 + 5 экрана Бюджета */
     var C = window.SOVE_BUDGET && window.SOVE_BUDGET.current && window.SOVE_BUDGET.current();
     if (C && C.full && C.totals.plan !== null) {
       var kv = {}; C.kit.forEach(function (k) { kv[k.key] = k.plan || 0; });
@@ -39,10 +39,16 @@
       '<div class="mc-card__f"><span><small>' + esc(o.label) + '</small><b>' + o.value + '</b></span>' + o.btn + '</div></section>';
   }
   /* бюджет — одна карточка-вход в my.html?v=budget (design/budget/TZ-budget.md): та же цифра, что в полосе «Бюджет»; строки и замены — там и в блоках */
+  /* та же цифра, что в полосе «Бюджет» (repair.js, renderStrip): интерьера нет — «выбери интерьер» (Алина 24.10) или итог сохранённого
+     расчёта; Интерьер на часть квартиры — известная сумма материалов, а не «≈ 0 ₽» */
   function budgetCard(B) {
-    var C = B && B.C, paid = C ? C.totals.paid : 0;
-    return '<a class="mc-bcard" href="my.html?v=budget"><span><b>Бюджет</b><small>' + (C ? '9 категорий · 5 этапов работ' : 'известно ' + B.known + ' из 4 · весь — в Бюджете') + (paid ? ' · оплачено ' + F.rub(paid) : '') + '</small></span>' +
-      '<em>≈ ' + F.rub(B.total) + '</em><i>›</i></a>';
+    var C = B && B.C, paid = C ? C.totals.paid : 0, rb = R.get().budget, rbt = rb && rb.total || 0;
+    var noInt = !C && !!FL && !!FL.interiorChosen && !FL.interiorChosen();
+    var om = !C && !B.total && R.ownMat ? R.ownMat() : null, part = om && !om.known && om.part > 0 ? om.part : 0;
+    var sub = noInt ? (rbt ? 'по расчёту ремонта · весь — в Бюджете' : 'выбери интерьер — покажем бюджет') : C ? '9 категорий · 5 этапов работ'
+      : part ? 'известно — материалы из Интерьера · весь — в Бюджете' : 'известно ' + B.known + ' из 4 · весь — в Бюджете';
+    var val = noInt ? (rbt ? '≈ ' + F.rub(rbt) : '—') : '≈ ' + F.rub(part || B.total);
+    return '<a class="mc-bcard" href="my.html?v=budget"><span><b>Бюджет</b><small>' + sub + (paid ? ' · оплачено ' + F.rub(paid) : '') + '</small></span><em>' + val + '</em><i>›</i></a>';
   }
   /* Избранное — пока карусель-вход (Алина 25.10): сохранённые интерьеры квартир, подборки товаров к интерьеру, «＋ свой интерьер», товары с ♡; «Все ›» — экран Избранного */
   function favCarousel() {
@@ -76,7 +82,7 @@
       '<div class="mc-ring"><span class="mc-ring__c" style="--p:' + pct + '%"><b>' + pct + '%</b></span><span><b>Ремонт готов на ' + done + ' из 3</b><small>' + next + '</small></span></div>' +
       card({ t: 'Планировка', done: plan, img: P ? P.T.img : (r.plan ? r.plan.img : null), icon: '⌂', sub: P ? P.T.count + ' ' + plural(P.T.count, 'предмет', 'предмета', 'предметов') + ' мебели · расставлено' : plan ? 'план загружен · мебель не расставлена' : 'план и расстановка мебели',
         label: 'МЕБЕЛЬ', value: furn.known ? F.rub(furn.value) : '—', btn: plan ? '<a class="mc-btn" href="' + LINK.plan + '">Изменить</a>' : '<a class="mc-btn mc-btn--acc" href="' + LINK.plan + '">Загрузить план</a>', dashed: !plan }) +
-      card({ t: it ? 'Интерьер · ' + (it.name || it.style) : 'Интерьер', done: !!it, img: it ? it.imageUrl : null, icon: '◐', sub: it ? '12 материалов · ' + nRooms + ' ' + plural(nRooms, 'комната', 'комнаты', 'комнат') : 'капсула SOVE или своя картинка',
+      card({ t: it ? 'Интерьер · ' + (it.name || it.style) : 'Интерьер', done: !!it, img: it ? it.imageUrl : null, icon: '◐', sub: it ? '12 материалов · ' + nRooms + ' ' + plural(nRooms, 'комната', 'комнаты', 'комнат') : 'капсула SOVEAPP или своя картинка',
         label: 'МАТЕРИАЛЫ И ДЕКОР', value: it && mat.known ? '≈ ' + F.rub(matDecor) : it ? 'часть квартиры' : '—', btn: it ? '<a class="mc-btn" href="' + INT + '">Изменить</a>' : '<a class="mc-btn mc-btn--acc" href="interior.html?v=a">Выбрать</a>', dashed: !it }) +
       card({ t: 'Работы', done: works, img: null, icon: '⚒', sub: 'черновые и чистовые по твоим материалам', label: 'РАБОТЫ', value: works ? F.rub(wk.value) : '—',
         btn: works ? '<a class="mc-btn" href="' + LINK.works + '">Открыть</a>' : '<a class="mc-btn mc-btn--acc" href="' + LINK.works + '">Узнать стоимость · 🎟</a>', dashed: !works }) +

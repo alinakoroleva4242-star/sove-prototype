@@ -1,7 +1,6 @@
 /* SOVE AI — главная. Вид блоков — 1:1 из эталонов (инлайн-стили в sove-ai-variants.js);
    здесь только каркас страницы, шапка и переключатель вариантов. */
 body[data-page="sove-ai"] { background: #F4F2EE; }
-body[data-page="sove-ai"] .appbar { display: none; }
 body[data-page="sove-ai"] #main { overflow-x: hidden; }
 .sai { max-width: 480px; margin: 0 auto; background: #F4F2EE; font-family: Montserrat, Arial, sans-serif; color: #1E1C1A; }
 .sai a { color: #A24E32; } .sai a:hover { color: #7E3A24; }
@@ -77,13 +76,103 @@ body[data-page="sove-ai"] #main { overflow-x: hidden; }
 .sai-hb__v .sai-hv__tag { max-width: 42%; }
 .sai-hb__c { height: 48px; border-radius: 12px; border: 0; background: #A24E32; color: #FFFFFF; font: 800 14px Montserrat, Arial, sans-serif; cursor: pointer; }
 
-/* вариант B, Визуализации: главный кадр + ряд комнат */
-.sai-rm__main { position: relative; }
-.sai-rm__main img { width: 100%; height: 170px; object-fit: cover; display: block; transition: opacity .2s; }
-.sai-rm__cap { position: absolute; right: 8px; bottom: 8px; font-size: 10px; font-weight: 700; color: #1E1C1A; background: rgba(255,255,255,0.94); padding: 3px 8px; border-radius: 10px; }
-.sai-rm__row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; padding: 6px 8px 0; }
-.sai-rm__t { display: flex; flex-direction: column; gap: 3px; padding: 0; border: 0; background: transparent; cursor: pointer; font-family: Montserrat, Arial, sans-serif; min-width: 0; }
-.sai-rm__t img { width: 100%; height: 40px; object-fit: cover; border-radius: 8px; display: block; opacity: .55; outline: 2px solid transparent; outline-offset: -2px; transition: opacity .15s; }
-.sai-rm__t span { font-size: 9px; font-weight: 600; color: #6B655F; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.sai-rm__t.is-on img { opacity: 1; outline-color: #1E1C1A; }
-.sai-rm__t.is-on span { color: #1E1C1A; font-weight: 800; }
+/* ---------- вариант B по референсам Вики 23.10: светлые блоки, капсулы. По её макету 27.10: сверху фото во всю ширину,
+   блоков два — «1 Планировка» и «2 Интерьеры»; терракота ссылок и контурных кнопок — #A24E32 (--gai-tc) ---------- */
+.gai { --gai-tc: #A24E32; display: flex; flex-direction: column; gap: 14px; padding: 0 16px 20px; font-family: var(--font); color: var(--ink); font-variant-numeric: lining-nums; }
+.gai a { color: inherit; text-decoration: none; }
+/* макет Вики 27.10: шапки «‹ Генерации» и заголовка нет — сверху фото с товарами во всю ширину экрана,
+   на его низ наезжает светлая подложка со скруглёнными углами: на ней «+ Создать», два блока и капсулы */
+body[data-page="sove-ai"] .appbar { display: none; }
+.gai-hero { margin: 0 -16px; }
+.gai-hero__pic { position: relative; overflow: hidden; background: var(--tile); aspect-ratio: 1.25; }
+.gai-sheet { position: relative; z-index: 3; display: flex; flex-direction: column; gap: 14px; margin: -38px -16px 0; padding: 14px 16px 0; border-radius: 24px 24px 0 0; background: #F4F2EE; }
+.gai-hero__pic img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 68%; display: block; }
+.gai-hero__pic::after { content: ''; position: absolute; inset: 0; background: linear-gradient(rgba(20,16,14,.28), rgba(20,16,14,0) 45%, rgba(20,16,14,.18)); pointer-events: none; }
+.gai-lines { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none; }
+.gai-lines line { stroke: rgba(255,255,255,.9); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.gai-dot { position: absolute; z-index: 2; width: 9px; height: 9px; margin: -4.5px 0 0 -4.5px; border-radius: 50%; background: #fff; box-shadow: 0 0 0 3px rgba(255,255,255,.35), 0 1px 4px rgba(0,0,0,.35); }
+.gai-tag { position: absolute; z-index: 2; display: flex; flex-direction: column; gap: 1px; max-width: 42%; color: #fff !important; font-family: var(--font-display); line-height: 1.05; text-shadow: 0 1px 6px rgba(0,0,0,.55); }
+.gai-tag span { font-size: 14px; font-weight: 500; }
+.gai-tag b { font-size: 15px; font-weight: 600; font-variant-numeric: lining-nums; }
+.gai-tag--l { text-align: right; align-items: flex-end; }
+.gai-hero__chip { position: absolute; left: 14px; bottom: 36px; z-index: 2; display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px 7px 10px; border-radius: var(--pill); background: rgba(255,255,255,.95); color: var(--ink) !important; font-size: 12.5px; font-weight: 600; }
+.gai-hero__chip svg { color: var(--accent-2); }
+.gai-create { display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 56px; border-radius: var(--r); background: var(--accent-2); color: #fff !important;
+  font-family: var(--font-display); font-size: 26px; font-weight: 500; box-shadow: 0 8px 18px -10px rgba(143,69,47,.7); transition: background .15s; }
+.gai-create:hover { background: var(--accent); }
+.gai-create svg { width: 22px; height: 22px; }
+
+.gai-stack { display: flex; flex-direction: column; gap: 12px; }
+.gai-blk { background: var(--white); border-radius: var(--r); padding: 12px; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 10px; }
+/* шапка блока: кружок на две строки, справа от заголовка «Пример ›», подпись — под ними во всю ширину (Вика 28.10) */
+.gai-blk__h { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; grid-template-areas: "n t ex" "n s s"; column-gap: 10px; row-gap: 3px; align-items: center; }
+.gai-blk__n { grid-area: n; width: 40px; height: 40px; border-radius: 50%; background: var(--accent-soft); color: var(--ink); display: inline-flex; align-items: center; justify-content: center;
+  font-family: var(--font); font-size: 17px; font-weight: 600; }
+.gai-blk__h h2 { grid-area: t; margin: 0; font-family: var(--font-display); font-weight: 500; font-size: 26px; line-height: 1; }
+.gai-blk__h p { grid-area: s; margin: 0; font-size: 11.5px; color: var(--graphite); line-height: 1.3; text-wrap: balance; }
+.gai-blk__ex { grid-area: ex; display: inline-flex; align-items: center; gap: 2px; font-size: 13px; font-weight: 600; color: var(--gai-tc) !important; white-space: nowrap; padding: 12px 0 12px 10px; margin: -12px 0 -12px -10px; }
+
+/* «1 Планировка» (макет Вики): слева 3D-план ~60 %, справа на светлой подложке — текст и кнопка по центру.
+   Кнопка в одну строку (Вика 28.10: «расширь кнопку и текст в ширину»): колонка текста не уже кнопки — на широком экране
+   план берёт свои 60 %, на телефоне отдаёт кнопке ровно столько, сколько ей нужно (кнопка ужата, чтобы план оставался крупным) */
+.gai-plan { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(min-content, 1fr); border-radius: var(--r-sm); background: var(--paper); }
+.gai-plan__pic { position: relative; display: block; align-self: stretch; justify-self: stretch; aspect-ratio: 1.25; border-radius: var(--r-sm); overflow: hidden; background: var(--tile); }
+.gai-plan__pic img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+.gai-plan__side { display: flex; flex-direction: column; justify-content: center; gap: 10px; min-width: 0; padding: 10px 6px 10px 8px; }
+.gai-plan__side p { margin: 0; font-family: var(--font-display); font-size: 16px; font-weight: 500; line-height: 1.15; color: var(--ink); }
+
+/* контурная пилюля: терракотовые текст и рамка на светло-розовом. На телефоне в узкой колонке текст в две строки —
+   отступы и стрелка ужаты, чтобы «планировке ›» влезало от 360 px (Вика 28.10) */
+.gai-pill { display: flex; align-items: center; justify-content: space-between; gap: 2px; min-height: 44px; padding: 6px 6px 6px 10px; border: 1px solid rgba(162,78,50,.7); border-radius: var(--pill);
+  background: #FBEEE9; color: var(--gai-tc) !important; font-size: 12px; font-weight: 600; line-height: 1.2; transition: background .15s; }
+.gai-pill:hover { background: #F7E3DB; }
+/* «Перейти к планировке ›» — длиннее и в одну строку (Вика 28.10: «очень короткая, расширь кнопку и текст в ширину») */
+.gai-plan .gai-pill { justify-content: center; gap: 2px; padding: 0 8px; white-space: nowrap; font-size: 11.5px; letter-spacing: -.005em; }
+.gai-plan .gai-pill svg { width: 12px; height: 12px; }
+@media (max-width: 374px) { .gai-plan .gai-pill { padding: 0 6px; font-size: 11px; } }
+.gai-pill svg { flex: none; width: 14px; height: 14px; }
+.gai-pill--wide { position: relative; justify-content: center; min-height: 48px; padding: 0 44px; font-family: var(--font-display); font-size: 22px; font-weight: 500; }
+.gai-pill--wide svg { position: absolute; right: 16px; top: 50%; width: 18px; height: 18px; margin-top: -9px; }
+
+/* «2 Интерьеры»: слева кадр комнаты, справа мудборд; ниже ряд комнат с подписями.
+   Фото — низкие полосы, как в макете (Вика 28.10): кадр 1.8:1, миниатюры 1.7:1 — блок не на весь экран */
+.gai-int { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 6px; }
+.gai-int__pic { position: relative; display: block; border-radius: var(--r-sm); overflow: hidden; background: var(--tile); }
+.gai-int__pic:first-child { aspect-ratio: 1.8; }
+.gai-int__pic img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 62%; display: block; }
+.gai-int__pic--mb img { object-position: 40% 52%; }
+.gai-rooms { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; margin-top: -4px; }
+.gai-room { display: flex; flex-direction: column; gap: 4px; padding: 0; border: 0; background: none; cursor: pointer; font: inherit; color: var(--ink); min-width: 0; text-align: left; -webkit-tap-highlight-color: transparent; }
+.gai-room__pic { position: relative; display: block; aspect-ratio: 1.7; border-radius: 10px; overflow: hidden; background: var(--tile); }
+.gai-room__pic img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 60%; display: block; }
+/* выбранная комната — тонкая терракотовая рамка поверх фото */
+.gai-room__pic::after { content: ''; position: absolute; inset: 0; border-radius: inherit; box-shadow: inset 0 0 0 2px transparent; transition: box-shadow .15s; pointer-events: none; }
+.gai-room.is-on .gai-room__pic::after { box-shadow: inset 0 0 0 2px var(--gai-tc); }
+/* подпись в одну строку: «Кухня-гостиная» влезает в четверть ширины на 360–430 px; вес обычный, как в макете (Вика 28.10) */
+.gai-room > span:last-child { font-family: var(--font-display); font-size: clamp(11px, 3.2vw, 12.5px); font-weight: 500; line-height: 1.15; letter-spacing: -.01em; }
+.gai-room:focus-visible { outline: 2px solid var(--gai-tc); outline-offset: 2px; border-radius: 10px; }
+
+.gai-caps { background: var(--white); border-radius: var(--r); padding: 12px; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 12px; }
+.gai-caps__h { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; }
+.gai-caps__h h2 { margin: 0; font-family: var(--font-display); font-weight: 500; font-size: 26px; line-height: 1; }
+.gai-caps__h p { margin: 3px 0 0; font-size: 12px; color: var(--graphite); text-wrap: balance; }
+.gai-caps__h a { display: inline-flex; align-items: center; gap: 2px; font-size: 13px; font-weight: 600; color: var(--gai-tc) !important; white-space: nowrap; padding: 14px 0 14px 10px; margin: -10px 0 -14px -10px; }
+.gai-caps__row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.gai-cap { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.gai-cap__pic { display: block; aspect-ratio: 1.15; border-radius: 10px; overflow: hidden; background: var(--tile); }
+.gai-cap__pic img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .3s; }
+.gai-cap:hover .gai-cap__pic img { transform: scale(1.04); }
+.gai-cap b { font-size: 12px; font-weight: 600; line-height: 1.2; }
+.gk-dots { display: inline-flex; gap: 3px; }
+.gk-dots i { width: 11px; height: 11px; border-radius: 50%; box-shadow: inset 0 0 0 1px rgba(0,0,0,.08); }
+
+/* широкий экран: колонка страницы как экран телефона — фото на всю её ширину со скруглением сверху */
+@media (min-width: 720px) {
+  .gai { max-width: 760px; margin: 0 auto; padding-top: 18px; }
+  .gai-hero__pic { border-radius: var(--r) var(--r) 0 0; }
+}
+/* план над текстом — только уже 360 px: на 360 (частый Android) план слева и текст справа, как в макете (Вика 28.10) */
+@media (max-width: 359px) {
+  .gai-plan { grid-template-columns: 1fr; }
+  .gai-plan__side { padding: 12px; }
+}

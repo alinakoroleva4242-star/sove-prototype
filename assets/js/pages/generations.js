@@ -1,4 +1,4 @@
-/* Генерации: лента поисков SOVEAPP AI. Данные — SOVE.gens, цены — SOVE.data.costs. */
+/* Генерации: лента поисков Генерациях. Данные — SOVE.gens, цены — SOVE.data.costs. */
 (function () {
   var S = window.SOVE; if (!S) return;
   var D = S.data, F = S.fmt;
@@ -75,7 +75,7 @@
       elWallet.innerHTML =
         '<span class="tiny muted">Пробные запуски без регистрации</span>' +
         '<span class="mid-num">демо: ' + S.demo.left() + ' из ' + D.demoLimit + '</span>' +
-        '<span class="tiny muted gens-wallet__hint">После входа подарим ' + F.tokens(D.gift.tokens) + ' на SOVEAPP AI</span>' +
+        '<span class="tiny muted gens-wallet__hint">После входа подарим ' + F.tokens(D.gift.tokens) + ' на генерации</span>' +
         '<a class="btn btn--link gens-wallet__link" href="auth.html?returnTo=' + encodeURIComponent(RETURN) + '">Войти</a>';
     }
   }
@@ -108,12 +108,12 @@
     var words = DEMO_WORDS[D.demoLimit] || (D.demoLimit + ' пробных запусков');
     var head, text, action;
     if (left > 0) {
-      head = 'Попробуйте SOVEAPP AI — ' + words + ' без регистрации';
+      head = 'Попробуйте Генерации — ' + words + ' без регистрации';
       text = 'Загрузите фото предмета или рендер комнаты. Найдём такие же или похожие товары в каталоге партнёров и покажем цены. Осталось ' + left + ' из ' + D.demoLimit + '.';
-      action = '<a class="btn btn--primary" href="ai.html">Попробовать SOVEAPP AI</a>';
+      action = '<a class="btn btn--primary" href="ai.html">Попробовать Генерации</a>';
     } else {
       head = 'Пробные запуски закончились';
-      text = 'Войдите по коду из SMS — подарим ' + F.tokens(D.gift.tokens) + ' на SOVEAPP AI. Поиск по фото стоит ' + F.tokens(D.costs.photo) + ', по рендеру — ' + F.tokens(D.costs.render) + '.';
+      text = 'Войдите по коду из SMS — подарим ' + F.tokens(D.gift.tokens) + ' на генерации. Поиск по фото стоит ' + F.tokens(D.costs.photo) + ', по рендеру — ' + F.tokens(D.costs.render) + '.';
       action = '<a class="btn btn--primary" href="auth.html?returnTo=' + encodeURIComponent('ai.html') + '">Войти и получить токены</a>';
     }
     return '<div class="gens-empty">' +

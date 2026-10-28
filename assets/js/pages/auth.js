@@ -290,8 +290,8 @@
       showStep('done');
       title.focus();
       if (r.gifted) {
-        $('done-text').textContent = 'Дарим ' + S.fmt.tokens(D.gift.tokens) + ' на SOVEAPP AI — действуют ' + D.gift.days + ' дней. Возвращаем вас туда, где вы остановились.';
-        S.ui.toast('Дарим ' + S.fmt.tokens(D.gift.tokens) + ' на SOVEAPP AI, действуют ' + D.gift.days + ' дней', 'ok');
+        $('done-text').textContent = 'Дарим ' + S.fmt.tokens(D.gift.tokens) + ' на генерации — действуют ' + D.gift.days + ' дней. Возвращаем вас туда, где вы остановились.';
+        S.ui.toast('Дарим ' + S.fmt.tokens(D.gift.tokens) + ' на генерации, действуют ' + D.gift.days + ' дней', 'ok');
       }
       setTimeout(function () { location.href = returnTo; }, r.gifted ? 1200 : 500);
     }, 700);
@@ -409,8 +409,8 @@
     showStep('done');
     title.focus();
     if (r.gifted) {
-      $('done-text').textContent = 'Дарим ' + S.fmt.tokens(D.gift.tokens) + ' на SOVEAPP AI — действуют ' + D.gift.days + ' дней. Возвращаем вас туда, где вы остановились.';
-      S.ui.toast('Дарим ' + S.fmt.tokens(D.gift.tokens) + ' на SOVEAPP AI, действуют ' + D.gift.days + ' дней', 'ok');
+      $('done-text').textContent = 'Дарим ' + S.fmt.tokens(D.gift.tokens) + ' на генерации — действуют ' + D.gift.days + ' дней. Возвращаем вас туда, где вы остановились.';
+      S.ui.toast('Дарим ' + S.fmt.tokens(D.gift.tokens) + ' на генерации, действуют ' + D.gift.days + ' дней', 'ok');
     }
     setTimeout(function () { location.href = returnTo; }, r.gifted ? 1200 : 500);
   }

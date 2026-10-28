@@ -16,9 +16,13 @@
   var CAPS = D.capsules.filter(function (c) { return !c.soon; });
   var DISCOUNTS = [10, 20, 30];
   function promoRank(p) { return D.isPromo(p.id) ? 0 : 1; }
+  /* акции партнёров идут первыми: это платное продвижение, помечено на карточке */
+  function byDiscount(a, b) { return promoRank(a) - promoRank(b) || b.discount - a.discount || b.metod - a.metod || a.id - b.id; }
   var SORTS = {
-    /* акции партнёров идут первыми: это платное продвижение, помечено на карточке */
-    discount: function (a, b) { return promoRank(a) - promoRank(b) || b.discount - a.discount || b.metod - a.metod || a.id - b.id; },
+    /* «Вперемешку» — по умолчанию (Таня и Алина 27.10): «по скидке» первыми шли одни светильники одного бренда.
+       Внутри раздела порядок тот же, что «по скидке», а разделы и бренды идут по кругу — см. mixed() */
+    mix: byDiscount,
+    discount: byDiscount,
     price_asc: function (a, b) { return a.metod - b.metod || a.id - b.id; },
     price_desc: function (a, b) { return b.metod - a.metod || a.id - b.id; }
   };
@@ -28,7 +32,7 @@
   var TICK = '<svg width="12" height="10" viewBox="0 0 12 10" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M1 5l3.5 3.5L11 1"/></svg>';
 
   var PAGE = 16;
-  var st = { shown: PAGE, page: 1, q: '', cats: [], sub: '', capsule: '', min: null, max: null, discount: 0, sort: 'discount', promo: false };
+  var st = { shown: PAGE, page: 1, q: '', cats: [], sub: '', capsule: '', min: null, max: null, discount: 0, sort: 'mix', promo: false };
   var loaded = false, demoError = S.ui.qs('demo') === 'error', loadError = false;
   var sheet = null; /* открытое окно фильтров на телефоне */
 
@@ -43,7 +47,7 @@
     st.capsule = CAPS.some(function (c) { return c.id === cap; }) ? cap : '';
     var d = parseInt(u.get('discount'), 10);
     st.discount = DISCOUNTS.indexOf(d) >= 0 ? d : 0;
-    st.sort = SORTS[u.get('sort')] ? u.get('sort') : 'discount';
+    st.sort = SORTS[u.get('sort')] ? u.get('sort') : 'mix';
     st.promo = u.get('promo') === '1';
     st.min = toInt(u.get('min')); st.max = toInt(u.get('max'));
     if (st.min && st.max && st.min > st.max) { st.min = st.max = null; }
@@ -58,7 +62,7 @@
     if (st.promo) u.set('promo', '1');
     if (st.min && !priceBad()) u.set('min', String(st.min));
     if (st.max && !priceBad()) u.set('max', String(st.max));
-    if (st.sort !== 'discount') u.set('sort', st.sort);
+    if (st.sort !== 'mix') u.set('sort', st.sort);
     var s = u.toString();
     return s ? '?' + s : '';
   }
@@ -75,17 +79,41 @@
   function goods(n) { return F.num(n) + ' ' + plural(n, ['товар', 'товара', 'товаров']); }
   function capCode() { var c = st.capsule ? D.capsule(st.capsule) : null; return c ? c.code : ''; }
 
+  /* ---------- «Вперемешку» ---------- */
+  /* по кругу: первый из каждого ряда, потом второй и т. д. */
+  function rotate(lists) {
+    var out = [], i = 0, more = true;
+    while (more) {
+      more = false;
+      lists.forEach(function (l) { if (i < l.length) { out.push(l[i]); more = true; } });
+      i++;
+    }
+    return out;
+  }
+  /* внутри раздела бренды чередуются: иначе подряд шли бы восемь одинаковых светильников одного бренда */
+  function brandMix(items) {
+    var by = {}, order = [];
+    items.forEach(function (p) { var k = p.brand || ''; if (!by[k]) { by[k] = []; order.push(k); } by[k].push(p); });
+    return rotate(order.map(function (k) { return by[k]; }));
+  }
+  /* круг по разделам — только общая витрина. Выбрал раздел, фильтр или ищет — выбор уже сузил сам: тогда «вперемешку» —
+     обычный порядок каталога (в нём бренды и так идут вразнобой), без восьми запросов и пустых подразделов */
+  function mixed() { return st.sort === 'mix' && !st.q && !st.sub && !st.capsule && !st.promo && !st.cats.length && !st.discount && !st.min && !st.max; }
+  /* разделы витрины по кругу: свет, мебель, обои, керамогранит… (у живого каталога обои и керамогранит — подразделы Отделки) */
+  var MIX = [['Освещение'], ['Мебель покупная'], ['Отделка', 'Обои'], ['Отделка', 'Керамогранит'], ['Сантехника'], ['Декор'],
+             ['Отделка', 'Напольные покрытия'], ['Техника']];
+
   /* ---------- источник: примеры из data.js ---------- */
   function norm(s) { return String(s || '').toLowerCase().replace(/ё/g, 'е'); }
   var hay = {};
   D.products.forEach(function (p) {
-    hay[p.id] = norm([p.name, p.brand, p.category, p.subcat].concat(p.capsules.map(function (id) { var c = D.capsule(id); return c ? c.code : ''; })).join(' '));
+    hay[p.id] = norm([p.name, p.brand, p.category, p.subcat].concat((p.capsules || []).map(function (id) { var c = D.capsule(id); return c ? c.code : ''; })).join(' '));
   });
   function match(p, skipCats) {
     if (st.q) { var words = norm(st.q).split(/\s+/).filter(Boolean); for (var i = 0; i < words.length; i++) if (hay[p.id].indexOf(words[i]) < 0) return false; }
     if (!skipCats && st.cats.length && st.cats.indexOf(p.category) < 0) return false;
     if (st.sub && p.subcat !== st.sub) return false;
-    if (st.capsule && p.capsules.indexOf(st.capsule) < 0) return false;
+    if (st.capsule && (p.capsules || []).indexOf(st.capsule) < 0) return false;
     if (st.discount && p.discount < st.discount) return false;
     if (st.promo && !D.isPromo(p.id)) return false;
     if (!priceBad()) { if (st.min && p.metod < st.min) return false; if (st.max && p.metod > st.max) return false; }
@@ -97,6 +125,12 @@
   var localSrc = {
     query: function (page) {
       var items = pool().filter(function (p) { return match(p); }).sort(SORTS[st.sort]);
+      if (mixed()) {
+        /* в образце data.js разделы — категории, а при одной выбранной — подкатегории */
+        var key = st.cats.length === 1 ? 'subcat' : 'category', by = {}, order = [];
+        items.forEach(function (p) { var k = p[key] || ''; if (!by[k]) { by[k] = []; order.push(k); } by[k].push(p); });
+        items = rotate(order.map(function (k) { return brandMix(by[k]); }));
+      }
       var from = items.length ? Math.min.apply(null, items.map(function (p) { return p.metod; })) : 0;
       return Promise.resolve({ total: items.length, items: items.slice(0, page * PAGE), from: from, more: page * PAGE < items.length });
     },
@@ -131,12 +165,52 @@
   /* ---------- источник: живой каталог ---------- */
   var facetsCache = {}, subsCache = {};
   function liveParams() {
-    var p = { q: st.q || undefined, sort: st.sort, page_size: PAGE };
+    /* «вперемешку» сервер не знает: каждый ряд он отдаёт «по скидке», перемешиваем на странице */
+    var p = { q: st.q || undefined, sort: st.sort === 'mix' ? undefined : st.sort, page_size: PAGE };
     if (st.sub) p.ptype = st.sub;
     if (st.capsule) p.capsule_id = capCode();
     if (st.discount) p.discount_min = st.discount;
     if (!priceBad()) { if (st.min) p.price_min = st.min; if (st.max) p.price_max = st.max; }
     return p;
+  }
+  /* «Вперемешку» в живом каталоге: по запросу на ряд (раздел или подраздел), в каждом ряду бренды чередуются,
+     ряды идут по кругу. Только общая витрина без фильтров (mixed()) — восемь рядов MIX */
+  function mixSlots() { return Promise.resolve(MIX); }
+  /* ряд не ответил за 9 с (холодный кэш каталога) — витрина показывается без него, а не падает целиком */
+  function slotSearch(p) {
+    var none = { total: 0, items: [], failed: true };
+    return new Promise(function (ok) {
+      var t = setTimeout(function () { ok(none); }, 9000);
+      S.catalog.search(p).then(function (r) { clearTimeout(t); ok(r); }, function () { clearTimeout(t); ok(none); });
+    });
+  }
+  function mixQuery(page) {
+    return mixSlots().then(function (slots) {
+      var per = Math.ceil(PAGE * page / slots.length) + 4;     /* с запасом: часть уйдёт на чередование брендов */
+      return Promise.all(slots.map(function (sl) {
+        var p = liveParams(); p.category = sl[0]; if (sl[1]) p.ptype = sl[1];
+        /* внутри ряда — обычный порядок каталога: «по скидке» наверху ряда стоит один бренд (восемь LIGHTSTAR подряд) */
+        delete p.sort;
+        p.page_size = per; p.page = 1;
+        return slotSearch(p);
+      })).then(function (rs) {
+        if (rs.every(function (r) { return r.failed; })) throw new Error('каталог не ответил');
+        var seen = {}, items = rotate(rs.map(function (r) { return brandMix(r.items); })).filter(function (p) { if (seen[p.id]) return false; seen[p.id] = 1; return true; });
+        var total = rs.reduce(function (a, r) { return a + (r.total || 0); }, 0);
+        var more = rs.some(function (r) { return r.items.length < r.total; });
+        /* в общей витрине счётчик — весь каталог, как было «по скидке», а не только восемь рядов */
+        var all = !st.cats.length && !st.discount && !st.min && !st.max;
+        var count = all ? (facetsCache['*'] || (facetsCache['*'] = S.catalog.facets({}))).then(function (d) {
+          var n = (d.category || []).reduce(function (a, x) { return a + (x.count || 0); }, 0);
+          return n || total;
+        }, function () { return total; }) : Promise.resolve(total);
+        return count.then(function (n) {
+          items = items.slice(0, page * PAGE);
+          var from = items.length ? Math.min.apply(null, items.map(function (p) { return p.metod; })) : 0;
+          return { total: n, items: items, from: from, more: more || items.length < Math.min(n, total) };
+        });
+      });
+    });
   }
   var liveSrc = {
     query: function (page) {
@@ -146,6 +220,7 @@
           return { total: items.length, items: items.slice(0, page * PAGE), from: items.length ? Math.min.apply(null, items.map(function (p) { return p.metod; })) : 0, more: page * PAGE < items.length };
         });
       }
+      if (mixed()) return mixQuery(page);
       var cats = st.cats.length ? st.cats : [''];
       /* капсула + скидка: сервер на такой запрос не отвечает, поэтому скидку отбираем на странице по всей капсуле */
       var capDisc = !!(st.capsule && st.discount);
@@ -159,7 +234,9 @@
         var items = [], total = 0, seen = {};
         rs.forEach(function (r) { total += r.total; r.items.forEach(function (p) { if (!seen[p.id]) { seen[p.id] = 1; items.push(p); } }); });
         if (capDisc) { items = items.filter(function (p) { return p.discount >= st.discount; }); total = items.length; }
-        if (rs.length > 1 || capDisc) items.sort(SORTS[st.sort]);
+        /* несколько разделов «вперемешку» — по кругу, как на витрине; иначе общая сортировка */
+        if (rs.length > 1 && st.sort === 'mix' && !capDisc) { var seen2 = {}; items = rotate(rs.map(function (r) { return brandMix(r.items); })).filter(function (p) { if (seen2[p.id]) return false; seen2[p.id] = 1; return true; }); }
+        else if (rs.length > 1 || capDisc) items.sort(SORTS[st.sort]);
         items = items.slice(0, page * PAGE);
         var from = items.length ? Math.min.apply(null, items.map(function (p) { return p.metod; })) : 0;
         return { total: total, items: items, from: from, more: items.length < total };
@@ -444,7 +521,7 @@
   qInput.addEventListener('input', function () { qClear.hidden = !qInput.value; clearTimeout(qTimer); qTimer = setTimeout(function () { st.q = qInput.value.trim().slice(0, 80); apply(); }, LIVE ? 350 : 160); });
   qClear.addEventListener('click', function () { qInput.value = ''; st.q = ''; apply(); qInput.focus(); });
   $('market-search').addEventListener('submit', function (e) { e.preventDefault(); clearTimeout(qTimer); st.q = qInput.value.trim().slice(0, 80); apply(); qInput.blur(); });
-  sortEl.addEventListener('change', function () { st.sort = SORTS[sortEl.value] ? sortEl.value : 'discount'; apply(); });
+  sortEl.addEventListener('change', function () { st.sort = SORTS[sortEl.value] ? sortEl.value : 'mix'; apply(); });
 
   /* фильтры на телефоне — в окне */
   openBtn.addEventListener('click', function () {

@@ -30,7 +30,7 @@
 
   function paint() {
     root.innerHTML =
-      '<div class="stack stack--3"><span class="eyebrow">Маркетплейс</span>' +
+      '<div class="stack stack--3"><span class="eyebrow">Каталог товаров</span>' +
       '<h1 class="h1">Мебель и решения на заказ</h1>' +
       '<p class="text">Эти партнёры изготавливают под ваш объект, а не продают готовое: цену и срок обсуждаете напрямую. В общем каталоге их нет.</p></div>' +
       chips() + cards() +

@@ -130,7 +130,7 @@
         KB.SLOTS.filter(function (s) { return foundKeys.indexOf(s.key) >= 0; }).map(function (s) {
           var it = KB.mainFor(s.key, lv), c = KB.dnaColor(a.dna, s.dna);
           return '<div class="mt-found__i">' + UI.sampleTile(it, 74, 60, { shape: 'rect', thickness: 3 }) + '<b>' + esc(s.name + ' · ' + (c ? c.name.toLowerCase() : '')) + '</b><small>✓ ' + Math.round(a.found[s.key].confidence * 100) + '%</small></div>';
-        }).join('') + '</div><p class="mt-note">не видно на фото: ' + esc(miss.join(', ')) + ' — подберёт SOVE под ДНК</p></section>') +
+        }).join('') + '</div><p class="mt-note">не видно на фото: ' + esc(miss.join(', ')) + ' — подберёт SOVEAPP под ДНК</p></section>') +
       '<section class="mt-sec"><h3 class="mt-h3">Сколько помещений собрать</h3><div class="mt-scope">' +
         [[1, '1 помещение'], [2, '2'], [3, '3'], ['all', 'Вся квартира']].map(function (x) {
           return '<button type="button" class="chip' + (sc.n == x[0] ? ' is-on' : '') + '" data-scope="' + x[0] + '" aria-pressed="' + (sc.n == x[0]) + '">' + x[1] + ' · ' + PRICE[x[0]] + ' 🎟</button>'; }).join('') + '</div>' +
@@ -145,7 +145,7 @@
     var a = d.answers || {};
     var q = function (key, opts) { return '<div class="mt-q">' + opts.map(function (o) { return '<button type="button" class="chip' + (a[key] === o ? ' is-on' : '') + '" data-ans="' + key + '" data-v="' + o + '" aria-pressed="' + (a[key] === o) + '">' + o + '</button>'; }).join('') + '</div>'; };
     var off = (a.light && a.light !== 'светлое') || (a.temp && a.temp !== 'тёплое') || (a.base && a.base !== 'дерево');
-    return '<section class="mt-sec"><h2 class="mt-h2 mt-h2--30">Собрать с нуля</h2><p class="mt-sub">три вопроса — и SOVE соберёт ДНК</p>' +
+    return '<section class="mt-sec"><h2 class="mt-h2 mt-h2--30">Собрать с нуля</h2><p class="mt-sub">три вопроса — и SOVEAPP соберёт ДНК</p>' +
       q('light', ['светлое', 'тёмное']) + q('temp', ['тёплое', 'холодное']) + q('base', ['дерево', 'камень']) +
       (off ? '<p class="mt-note">в прототипе оцифрована одна ДНК — тёплая неоклассика; показываем её</p>' : '') + '</section>';
   }

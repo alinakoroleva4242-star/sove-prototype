@@ -31,14 +31,14 @@
   function kv(r) { return '<div class="pa-kv"><span>' + r.k + '</span><b style="color:' + r.c + '">' + r.v + '</b></div>'; }
   function heart() { return '<button type="button" class="pv-heart" aria-label="В избранное">♡</button>'; }
 
-  /* общий бюджет квартиры из расчёта Скаута, уже сохранённый в «Мой ремонт» — внизу каждой карточки квартиры (просьба Алины 22.10).
+  /* общий бюджет квартиры из расчёта бюджета, уже сохранённый в «Мой ремонт» — внизу каждой карточки квартиры (просьба Алины 22.10).
      inLink — карточка сама ссылка, вложенную ссылку не ставим */
   function budgetBox(type, inLink) {
     var tag = inLink ? 'span' : 'a';
     if (!type) return '<div class="pv-bud pv-bud--none"><div class="pv-bud__h"><span class="pv-bud__c">ОБЩИЙ БЮДЖЕТ</span></div><div class="pv-bud__m">не рассчитан</div>' +
-      '<' + tag + ' class="pv-link12"' + (inLink ? '' : ' href="scout.html"') + '>Рассчитать в Скауте →</' + tag + '></div>';
-    return '<div class="pv-bud"><div class="pv-bud__h"><span class="pv-bud__c">ОБЩИЙ БЮДЖЕТ · ИЗ СКАУТА</span><span class="pv-bud__ok">✓ в Моём ремонте</span></div>' +
-      '<div class="pv-bud__sum">[сумма] ₽</div><div class="pv-bud__m">' + type + ' · расчёт Скаута</div>' +
+      '<' + tag + ' class="pv-link12"' + (inLink ? '' : ' href="scout.html"') + '>Рассчитать бюджет →</' + tag + '></div>';
+    return '<div class="pv-bud"><div class="pv-bud__h"><span class="pv-bud__c">ОБЩИЙ БЮДЖЕТ · ИЗ РАСЧЁТА</span><span class="pv-bud__ok">✓ в Моём ремонте</span></div>' +
+      '<div class="pv-bud__sum">[сумма] ₽</div><div class="pv-bud__m">' + type + ' · расчёт бюджета</div>' +
       '<' + tag + ' class="pv-link12"' + (inLink ? '' : ' href="my.html?v=budget"') + '>Открыть бюджет →</' + tag + '></div>';
   }
   function noBudget(r) { return r.k !== 'Бюджет'; }
@@ -196,13 +196,107 @@
     box.querySelectorAll('[data-e-save]').forEach(function (b) { b.addEventListener('click', function () { FLATS_E[eFlat].feed[Number(b.getAttribute('data-e-save'))].saved = true; drawFeed(root); S.ui.toast('Сохранено в Мой ремонт', 'ok'); }); });
   }
 
+  /* ---------- V · по макету Вики 25.10: карточка человека, METOD и токены, быстрый доступ, группы строк ----------
+     «Уберём поставщиков» (Вика 25.10) — в Профиле нет входа в кабинет поставщика, «Для бизнеса» — дизайнерам и стройкам */
+  function variantV() {
+    var GK = window.SOVE_GEN, ic = function (n, z) { return GK ? GK.ic(n, z || 20) : ''; };
+    var u = S.auth.user() || {}, name = P.name || u.name || 'Ваш профиль', phone = P.phone || u.phone || '';
+    var ini = String(P.name || u.name || '').split(/\s+/).filter(Boolean).slice(0, 2).map(function (w) { return w.charAt(0).toUpperCase(); }).join('');
+    var on = S.metod.active(), until = S.metod.until(), tok = S.tokens.balance();
+    function grp(t, rows) { return '<section class="vp-grp"><h2>' + t + '</h2><div class="vp-list">' + rows.map(function (r) {
+      return '<a class="vp-row" href="' + r[3] + '"' + (r[4] ? ' ' + r[4] : '') + '><span class="vp-row__ic">' + ic(r[0]) + '</span><span class="vp-row__t"><b>' + r[1] + '</b><small>' + r[2] + '</small></span><span class="vp-row__ch">' + ic('chev', 16) + '</span></a>';
+    }).join('') + '</div></section>'; }
+    var quick = [
+      ['my.html', 'home', 'Мой ремонт', 'Текущий ремонт и все инструменты', 'assets/img/capsules/hc/k4-main-2.jpg'],
+      ['#vp-projects', 'doc', 'Мои проекты', 'Все объекты ремонта', 'assets/img/demo/0-planirovka-po-ankete.jpg', 'data-vp-open'],
+      ['my.html?v=orders', 'box', 'Заказы', 'История покупок и доставки', 'assets/img/obj/armchair-boucle.jpg'],
+      ['favorites.html', 'heart', 'Избранное', 'Товары, интерьеры и подборки', 'assets/img/partners/sup.jpg']
+    ];
+    return '<div class="vp">' +
+      '<header class="vp-hd"><h1>Профиль</h1>' + gear('vp-gear', 'currentColor', 1.7) + '</header>' +
+      '<a class="vp-me" href="account.html?v=settings"><span class="vp-me__av" aria-hidden="true">' + (ini || ic('user', 28)) + '</span>' +
+        '<span class="vp-me__t"><b>' + esc(name) + '</b>' + (phone ? '<span>' + esc(F.phone(phone)) + '</span>' : '') +
+        '<button type="button" class="vp-me__kind" data-vp-kind>Личный профиль ' + ic('chev', 12) + '</button></span><span class="vp-row__ch">' + ic('chev', 18) + '</span></a>' +
+      '<div class="vp-cards">' +
+        '<a class="vp-metod" href="' + L.metod + '"><span class="vp-metod__pic" aria-hidden="true"></span><span class="vp-metod__b"><span class="vp-metod__top">' + ic('crown', 18) + '<small>Подписка</small>' +
+          '<i class="' + (on ? 'is-on' : '') + '">' + (on ? 'Активна' : 'Не оформлена') + '</i></span><b>METOD</b>' +
+          '<span class="vp-metod__d">' + (on && until ? 'До ' + F.dateLong(until) : 'Подключите — откроются закрытые цены') + '</span>' +
+          '<span class="vp-metod__s">Специальные цены на мебель, материалы и услуги</span></span><span class="vp-metod__go">' + ic('chev', 16) + '</span></a>' +
+        '<a class="vp-tok" href="account.html?v=tokens"><span class="vp-tok__top">' + ic('coins', 18) + '<small>Токены</small>' + ic('chev', 14) + '</span><b>' + F.num(tok) + '</b>' +
+          '<span class="vp-tok__up" data-vp-topup>Пополнить →</span></a>' +
+      '</div>' +
+      '<section class="vp-grp"><header class="vp-grp__h"><h2>Быстрый доступ</h2><a href="my.html">Главные разделы ' + ic('chev', 12) + '</a></header><div class="vp-quick">' + quick.map(function (q) {
+        return '<a class="vp-q" href="' + q[0] + '"' + (q[5] ? ' ' + q[5] : '') + '><span class="vp-q__pic"><img src="' + q[4] + '" alt="" loading="lazy"><i>' + ic(q[1], 16) + '</i></span><b>' + q[2] + '</b><small>' + q[3] + '</small></a>';
+      }).join('') + '</div></section>' +
+      grp('Подписка и бонусы', [['crown', 'Подписка METOD', 'Тариф, срок действия, продление', L.metod], ['coins', 'Токены', 'Баланс, история использования', 'account.html?v=tokens']]) +
+      '<section class="vp-grp" id="vp-projects"><h2>Мои данные</h2><div class="vp-list">' +
+        '<a class="vp-row" href="account.html?v=settings"><span class="vp-row__ic">' + ic('user') + '</span><span class="vp-row__t"><b>Личные данные</b><small>Телефон, имя, e-mail</small></span><span class="vp-row__ch">' + ic('chev', 16) + '</span></a>' +
+        '<button type="button" class="vp-row vp-row--acc" data-vp-proj aria-expanded="false" aria-controls="vp-proj"><span class="vp-row__ic">' + ic('home') + '</span><span class="vp-row__t"><b>Мои проекты</b><small>' + projLine() + '</small></span><span class="vp-row__ch vp-row__ch--acc">' + ic('chev', 16) + '</span></button>' +
+        '<div class="vp-proj" id="vp-proj" hidden>' + projCards() + '</div>' +
+      '</div></section>' +
+      grp('Настройки и поддержка', [['bell', 'Уведомления', 'Настройка push и e-mail', 'account.html?v=settings'], ['help', 'Помощь и поддержка', 'Частые вопросы, обратиться в поддержку', 'chats.html'], ['doc', 'Документы и соглашения', 'Правовые документы', 'about.html#docs']]) +
+      '<div class="vp-list vp-list--one">' + '<a class="vp-row" href="partner.html?who=designer"><span class="vp-row__ic">' + ic('case') + '</span><span class="vp-row__t"><b>Для бизнеса</b><small>Стать дизайнером или строительной компанией</small></span><span class="vp-row__ch">' + ic('chev', 16) + '</span></a></div>' +
+      '<button type="button" class="vp-out" data-vp-out>' + ic('logout', 18) + 'Выйти из аккаунта</button></div>';
+  }
+  /* «Мои проекты» (Вика 26.10): раскрываются вниз карточками объектов, как «Мои квартиры» у Алины; между объектами
+     переключаются кнопкой «Открыть Мой ремонт». Пока своих объектов нет — пример из прототипа Алины */
+  function projList() {
+    var R = S.repair; if (!R) return [];
+    return R.flats.list().map(function (f, i) {
+      var r = R.get(f.id), lvl = R.level(f.id), fav = R.fav.list(f.id).length, cart = R.cart.totals(f.id).qty, n = R.rendersCount(f.id);
+      var LV = R.LEVEL[lvl] || 'Без плана', active = (R.flats.active() || {}).id === f.id;
+      return { id: f.id, active: active, name: f.name, data: R.flatLine(f) || 'адрес и площадь не указаны', level: LV + (lvl === 'design_project' ? ' ✓' : ''), budget: r.budget ? (r.budget.type === 'premium' ? 'Премиум' : 'Базовый') : 'База / Премиум',
+        tone: ['#B98A72', '#A7A196', '#9E8775', '#C9A48E'][i % 4], img: r.interior && r.interior.img,
+        rows: [ { k: 'Основа', v: LV, c: lvl === 'none' ? M : (lvl === 'design_project' ? G : I) }, { k: 'Интерьер', v: r.interior ? esc(r.interior.name) : 'не выбран', c: r.interior ? I : M },
+          { k: 'Рендеры сохранены', v: String(n), c: I }, { k: 'Избранное · Корзина', v: fav + ' · ' + cart, c: I } ],
+        total: r.budget ? r.budget.total : 0, btype: r.budget ? (r.budget.type === 'premium' ? 'Премиум' : 'Базовый') : '' };
+    });
+  }
+  function projLine() { var n = projList().length; return n ? n + ' ' + (n === 1 ? 'объект' : n < 5 ? 'объекта' : 'объектов') + ' · переключайтесь между ними' : 'Все объекты ремонта'; }
+  function projCards() {
+    var list = projList(), demo = !list.length;
+    if (demo) list = FLATS_A.map(function (f) { return Object.assign({ demo: true, rows: f.rows.filter(noBudget) }, f); });
+    return (demo ? '<p class="vp-proj__note">Пример — ваши объекты появятся здесь, когда сохраните план, интерьер или товар</p>' : '') + list.map(function (f) {
+      var top = '<div class="pa-flat__top"><div class="pa-flat__pic" style="background:' + f.tone + (f.img ? ' url(\'' + esc(f.img) + '\') center / cover' : '') + '"></div><div class="pa-flat__b"><div class="pa-flat__n">' + esc(f.name) + (f.active ? ' <i class="vp-proj__on">сейчас открыт</i>' : '') + '</div><div class="pa-flat__d">' + esc(f.data) + '</div>' +
+        '<div class="pa-tags"><span class="pa-tag pa-tag--ok">' + f.level + '</span><span class="pa-tag pa-tag--b">' + f.budget + '</span></div></div></div>';
+      var bud = f.demo ? budgetBox(f.name === 'Дом' ? null : 'Премиум') : (f.total
+        ? '<div class="pv-bud"><div class="pv-bud__h"><span class="pv-bud__c">ОБЩИЙ БЮДЖЕТ · ИЗ РАСЧЁТА</span><span class="pv-bud__ok">✓ в Моём ремонте</span></div><div class="pv-bud__sum">' + F.rub(f.total) + '</div><div class="pv-bud__m">' + f.btype + ' · расчёт бюджета</div><a class="pv-link12" href="my.html?v=budget" data-vp-flat="' + f.id + '">Открыть бюджет →</a></div>'
+        : budgetBox(null));
+      return '<div class="pa-flat">' + top + '<div class="pa-flat__rows">' + f.rows.map(kv).join('') + '</div>' + bud +
+        '<a class="pa-flat__open" href="my.html"' + (f.id ? ' data-vp-flat="' + f.id + '"' : '') + '>Открыть Мой ремонт →</a></div>';
+    }).join('') + '<a class="pa-add" href="my.html?v=new">+ Добавить объект</a>';
+  }
+  function bindV(root) {
+    root.addEventListener('click', function (e) {
+      var x = e.target.closest('[data-vp-kind]');
+      if (x) { e.preventDefault(); e.stopPropagation(); S.ui.toast('Профиль компании — скоро'); return; }
+      if (e.target.closest('[data-vp-topup]')) { e.preventDefault(); location.href = L.topup; return; }
+      if (e.target.closest('[data-vp-out]')) { S.ui.confirm({ title: 'Выйти из аккаунта?', text: 'Объекты, токены и генерации сохранятся — вернётесь к ним после входа по тому же номеру.', ok: 'Выйти', onOk: function () { S.auth.logout(); location.href = 'index.html'; } }); return; }
+      var acc = e.target.closest('[data-vp-proj]');
+      if (acc) { var open = acc.getAttribute('aria-expanded') !== 'true'; acc.setAttribute('aria-expanded', open); $('vp-proj').hidden = !open; return; }
+      if (e.target.closest('[data-vp-open]')) { e.preventDefault(); var a2 = root.querySelector('[data-vp-proj]'); a2.setAttribute('aria-expanded', 'true'); $('vp-proj').hidden = false; $('vp-projects').scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
+      var fl = e.target.closest('[data-vp-flat]');
+      if (fl && S.repair) { S.repair.flats.setActive(fl.getAttribute('data-vp-flat')); return; }
+      if (e.target.closest('[data-vp-flats]')) {
+        e.preventDefault();
+        var R = S.repair, list = R ? R.flats.list() : [];
+        S.ui.modal({ eyebrow: 'Профиль', title: 'Мои проекты', html: (list.length ? '<div class="vp-flats">' + list.map(function (f) {
+          return '<a class="vp-row" href="my.html" data-vp-flat="' + esc(f.id) + '"><span class="vp-row__ic">' + (window.SOVE_GEN ? SOVE_GEN.ic('home', 20) : '') + '</span><span class="vp-row__t"><b>' + esc(f.name) + '</b><small>' + esc(R.flatLine(f) || 'адрес и площадь не указаны') + '</small></span></a>';
+        }).join('') + '</div>' : '<p class="text">Объектов пока нет — первый появится, когда сохраните план, интерьер или товар.</p>'),
+          actions: [{ label: '+ Добавить объект', kind: 'primary', onClick: function () { location.href = 'my.html?v=new'; } }, { label: 'Закрыть', kind: 'ghost' }] });
+        document.querySelectorAll('[data-vp-flat]').forEach(function (a) { a.addEventListener('click', function () { R.flats.setActive(a.getAttribute('data-vp-flat')); }); });
+      }
+    });
+  }
+
   /* ---------- переключатель вариантов (запоминается) ---------- */
   var PV_KEY = 'sove.proto.profileVariant';
-  var VARIANTS = { A: variantA, B: variantB, C: variantC, D: variantD, E: variantE };
+  var VARIANTS = { V: variantV, A: variantA, B: variantB, C: variantC, D: variantD, E: variantE };
+  var PICK = /[?&]variants=1/.test(location.search);   /* прежние варианты Алины — только по ссылке account.html?variants=1 */
   /* «Исходный» — Профиль до правок 21.10, отдельной страницей account-old.html */
-  try { if (VIEW === 'home' && localStorage.getItem('sove.proto.profileVariant') === '0') { location.replace('account-old.html'); return; } } catch (e) {}
+  try { if (VIEW === 'home' && /[?&]variants=1/.test(location.search) && localStorage.getItem('sove.proto.profileVariant') === '0') { location.replace('account-old.html'); return; } } catch (e) {}
   var old = $('pv-old'); if (old) old.addEventListener('click', function () { setPv('0'); });
-  function getPv() { try { var v = localStorage.getItem(PV_KEY); return VARIANTS[v] ? v : 'A'; } catch (e) { return 'A'; } }
+  function getPv() { if (!PICK) return 'V'; try { var v = localStorage.getItem(PV_KEY); return VARIANTS[v] ? v : 'A'; } catch (e) { return 'A'; } }
   function setPv(v) { try { localStorage.setItem(PV_KEY, v); } catch (e) {} }
   function renderVariant() {
     var v = getPv();
@@ -210,6 +304,8 @@
     document.body.setAttribute('data-pv', v);
     document.querySelectorAll('[data-pv]').forEach(function (b) { if (b.tagName === 'BUTTON') { var on = b.getAttribute('data-pv') === v; b.classList.toggle('is-on', on); b.setAttribute('aria-selected', String(on)); } });
     if (v === 'E') bindE($('pv-root'));
+    if (v === 'V') bindV($('pv-root'));
+    var pick = $('pv-pick'); if (pick) pick.hidden = !PICK;
     $('pv-root').querySelectorAll('.pv-heart').forEach(function (b) { b.addEventListener('click', function () { b.textContent = b.textContent === '♡' ? '♥' : '♡'; }); });
   }
 
@@ -277,11 +373,11 @@
 
   if (VIEW === 'tokens') {
     $('pv-pick').hidden = true; $('pv-root').hidden = true; $('acc-tokens-wrap').hidden = false;
-    document.title = 'История токенов — SOVE App';
+    document.title = 'История токенов — SOVEAPP';
     renderTokensView(); S.onChange(renderTokensView);
   } else if (VIEW === 'settings') {
     $('pv-pick').hidden = true; $('pv-root').hidden = true; $('acc-settings-wrap').hidden = false;
-    document.title = 'Настройки — SOVE App';
+    document.title = 'Настройки — SOVEAPP';
     renderSettings();
   } else {
     document.querySelectorAll('#pv-pick [data-pv]').forEach(function (b) { b.addEventListener('click', function () { setPv(b.getAttribute('data-pv')); renderVariant(); window.scrollTo(0, 0); }); });

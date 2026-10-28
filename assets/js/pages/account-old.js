@@ -8,7 +8,7 @@
 
   var KIND = { photo: 'Поиск по фото', render: 'Поиск по рендеру' };
   var STATUS = { done: ['Готово', 'badge--green'], running: ['Идёт поиск', 'badge--accent'], empty: ['Ничего не найдено', 'badge--line'], error: ['Не получилось', 'badge--line'] };
-  var LEAD = { adept: 'Адепт · дизайн-проект', track: 'Трек · ремонт под ключ', partner: 'Партнёрство' };
+  var LEAD = { adept: 'Дизайн-проект', track: 'Ремонт под ключ', partner: 'Партнёрство' };
   var HEART = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20.5s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7.6a4.3 4.3 0 0 1 7.5 2.7c0 5.6-7.5 10.2-7.5 10.2z"/></svg>';
   var PLUS = '<svg viewBox="0 0 40 40" aria-hidden="true"><path d="M20 4v32M4 20h32"/></svg>';
   var PAY = { paid: ['Оплачен', 'badge--green'], pending: ['Ожидает оплаты', 'badge--line'], failed: ['Отказ банка', 'badge--line'] };
@@ -95,7 +95,7 @@
       if (Number(d.step) > 0) bits.push('шаг ' + Number(d.step) + ' из 5');
       if (c) bits.push('капсула «' + c.name + '»');
       if (Number(d.area) > 0) bits.push(F.area(Number(d.area)));
-      out.push('<div class="notice"><div class="stack"><b>Расчёт в Скауте не закончен</b><span class="small muted">' + (bits.length ? esc(bits.join(' · ')) + '. ' : '') + 'Введённые данные сохранены, продолжите с того же места.</span></div><a class="btn btn--dark btn--sm" href="scout.html">Продолжить</a></div>');
+      out.push('<div class="notice"><div class="stack"><b>Расчёт бюджета не закончен</b><span class="small muted">' + (bits.length ? esc(bits.join(' · ')) + '. ' : '') + 'Введённые данные сохранены, продолжите с того же места.</span></div><a class="btn btn--dark btn--sm" href="scout.html">Продолжить</a></div>');
     }
     S.pay.list().filter(function (p) { return p.status === 'pending'; }).forEach(function (p) {
       var it = p.item || {};
@@ -129,7 +129,7 @@
       '<div class="pr-card__pic">' + (c ? '<img src="' + c.cover + '" alt="Капсула ' + c.code + ': ' + esc(c.name) + '" loading="lazy"><span class="pr-card__code">' + c.code + '</span>' : '<span class="pr-card__nocap">капсула не выбрана</span>') + '</div>' +
       '<div class="pr-card__body"><span class="pr-card__name">' + esc(pr.name) + '</span>' +
       '<span class="small muted num">' + meta + '</span>' +
-      (pr.scout && pr.scout.total ? '<span class="small">Смета Скаута: <span class="num">' + F.rub(pr.scout.total) + '</span></span>' : '<span class="small muted">Сметы пока нет</span>') +
+      (pr.scout && pr.scout.total ? '<span class="small">Смета ремонта: <span class="num">' + F.rub(pr.scout.total) + '</span></span>' : '<span class="small muted">Сметы пока нет</span>') +
       '<div class="pr-card__badges"><span class="badge badge--line">' + count(gn, ['генерация', 'генерации', 'генераций']) + '</span><span class="badge badge--line">' + count(pn, ['товар', 'товара', 'товаров']) + '</span></div>' +
       '</div></a>';
   }
@@ -137,8 +137,8 @@
     var list = S.projects.list().sort(function (a, b) { return b.ts - a.ts; }), box = $('acc-projects');
     $('acc-projects-note').textContent = list.length ? 'В проекте собираются смета, товары и генерации' : '';
     if (!list.length) {
-      box.innerHTML = empty('Проектов пока нет', 'Проект — это одна квартира: в нём собираются смета Скаута, выбранные товары и генерации SOVE AI.',
-        '<button class="btn btn--ghost" type="button" data-new-project>Создать проект</button><a class="btn btn--link" href="scout.html">Начать с расчёта в Скауте</a>');
+      box.innerHTML = empty('Проектов пока нет', 'Проект — это одна квартира: в нём собираются смета ремонта, выбранные товары и генерации.',
+        '<button class="btn btn--ghost" type="button" data-new-project>Создать проект</button><a class="btn btn--link" href="scout.html">Начать с расчёта бюджета</a>');
     } else {
       box.innerHTML = '<div class="grid grid--3 grid--gap-lg">' + list.map(projectCard).join('') +
         '<button class="pr-new" type="button" data-new-project>' + PLUS + '<span class="pr-new__title">Новый проект</span><span class="small muted">Название и капсула — остальное добавите позже</span></button></div>';
@@ -185,7 +185,7 @@
     $('acc-gens-all').textContent = list.length > 3 ? 'Все генерации · ' + list.length : 'Все генерации';
     box.innerHTML = list.length
       ? '<div class="grid grid--3 grid--gap-lg">' + list.slice(0, 3).map(genCard).join('') + '</div>'
-      : empty('Генераций пока нет', 'Загрузите фотографию предмета или рендер комнаты — SOVE AI найдёт такие же и похожие товары в каталоге. Поиск по фото — ' + F.tokens(D.costs.photo) + ', по рендеру — ' + F.tokens(D.costs.render) + '.',
+      : empty('Генераций пока нет', 'Загрузите фотографию предмета или рендер комнаты — найдём такие же и похожие товары в каталоге. Поиск по фото — ' + F.tokens(D.costs.photo) + ', по рендеру — ' + F.tokens(D.costs.render) + '.',
         '<a class="btn btn--ghost" href="ai.html">Найти товар по фото</a>');
   }
 
@@ -213,7 +213,7 @@
         rows.push('<li><div class="stack"><span>Контакт поставщика</span><span class="tiny muted">' + esc(p.name) + '</span></div><a class="link small" href="product.html?id=' + p.id + '">Открыть</a></li>');
       });
     }
-    /* выданные расчёты Скаута: оплаченный или бесплатный расчёт можно открыть снова, даже если его не сохранили в проект */
+    /* выданные расчёты расчёта: оплаченный или бесплатный расчёт можно открыть снова, даже если его не сохранили в проект */
     var levels = (D.scoutAccess && D.scoutAccess.levels) || [];
     S.scout.requests().forEach(function (r) {
       var p = r.params || {}, c = D.capsule(p.capsuleId), lv = levels.filter(function (l) { return l.id === p.level; })[0];
@@ -222,8 +222,8 @@
       if (lv) bits.push(lv.name);
       if (Number(p.area) > 0) bits.push(F.area(Number(p.area)));
       bits.push(S.scout.basisLabel(r.basis));
-      rows.push('<li><div class="stack"><span>Расчёт Скаута · <span class="num">заявка № ' + esc(r.number) + '</span></span><span class="tiny muted">' + esc(bits.join(' · ')) + ' · <span class="num">' + F.dateLong(r.ts) + '</span></span></div>' +
-        '<a class="link small" href="scout.html?request=' + encodeURIComponent(r.id) + '" aria-label="Открыть расчёт Скаута, заявка № ' + esc(r.number) + '">Открыть расчёт</a></li>');
+      rows.push('<li><div class="stack"><span>Расчёт бюджета · <span class="num">заявка № ' + esc(r.number) + '</span></span><span class="tiny muted">' + esc(bits.join(' · ')) + ' · <span class="num">' + F.dateLong(r.ts) + '</span></span></div>' +
+        '<a class="link small" href="scout.html?request=' + encodeURIComponent(r.id) + '" aria-label="Открыть расчёт бюджета, заявка № ' + esc(r.number) + '">Открыть расчёт</a></li>');
     });
     var leads = S.leads.list();
     var leadsHtml = leads.length
@@ -231,7 +231,7 @@
           var pr = l.projectId ? S.projects.get(l.projectId) : null;
           return '<li><div class="stack"><span>' + (LEAD[l.product] || 'Заявка') + '</span><span class="tiny muted num">' + F.dateLong(l.ts) + (pr ? ' · проект «' + esc(pr.name) + '»' : '') + '</span></div><span class="badge badge--line">' + esc(l.status || 'Заявка принята') + '</span></li>';
         }).join('') + '</ul>'
-      : '<div class="empty"><span class="empty__title">Заявок пока нет</span><p class="text small">Когда вы оставите заявку на дизайн-проект, ремонт под ключ или партнёрство, здесь появится её статус.</p><div class="row"><a class="arrow-link" href="adept.html">Об Адепте</a><a class="arrow-link" href="track.html">О Треке</a></div></div>';
+      : '<div class="empty"><span class="empty__title">Заявок пока нет</span><p class="text small">Когда вы оставите заявку на дизайн-проект, ремонт под ключ или партнёрство, здесь появится её статус.</p><div class="row"><a class="arrow-link" href="adept.html">О дизайн-проекте</a><a class="arrow-link" href="track.html">Об управлении ремонтом</a></div></div>';
     $('acc-leads').innerHTML =
       '<div class="col-6 acc-list rule-top"><h3 class="h4 acc-list__title">Доступы</h3><ul class="rows">' + rows.join('') + '</ul></div>' +
       '<div class="col-6 acc-list rule-top"><h3 class="h4 acc-list__title">Заявки</h3>' + leadsHtml + '</div>' + paymentsHtml();

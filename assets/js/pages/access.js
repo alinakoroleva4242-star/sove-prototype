@@ -17,7 +17,7 @@
     var balance = S.tokens.balance();
 
     root.innerHTML =
-      '<div class="stack stack--3"><span class="eyebrow">Маркетплейс</span><h1 class="h1">Мои доступы</h1>' +
+      '<div class="stack stack--3"><span class="eyebrow">Каталог товаров</span><h1 class="h1">Мои доступы</h1>' +
       '<p class="text">Здесь собраны контакты поставщиков, которые вы открыли: по подписке METOD или разово за одну вещь.</p></div>' +
 
       '<div class="ac-sum">' +

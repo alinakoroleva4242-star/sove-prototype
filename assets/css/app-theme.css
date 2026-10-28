@@ -268,3 +268,16 @@ body[data-page="my"] .pc__add { display: none; }
 
 /* подпись под ценой: цена без подписки видна рядом зачёркнутой */
 .price__sub { display: block; font-size: 11px; color: var(--stone); margin-top: 2px; }
+
+/* слоган на главной — тонко, в одну линию с логотипом, справа от него (Вика 26.10, Валерия: «на одну линию к логотипу») */
+.appbar__slogan { order: 1; flex: 0 1 auto; min-width: 0; margin: 0 auto 0 4px; font-family: var(--font); font-size: 12px; font-weight: 300; letter-spacing: .04em; line-height: 1.2; color: var(--graphite); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none; }
+body[data-page="home"] .appbar > .logo { order: 0; }
+body[data-page="home"] .appbar > :not(.logo):not(.appbar__slogan) { order: 2; }
+/* одна строка и на узком телефоне (Валерия 26.10): шрифт чуть меньше по ширине экрана, у логотипа и «токенов» на главной — поуже отступы */
+@media (max-width: 440px) {
+  .appbar__slogan { font-size: clamp(10.5px, 3.05vw, 12px); letter-spacing: .01em; margin-left: 2px; }
+  body[data-page="home"] .appbar .logo { padding-left: 8px; }
+  body[data-page="home"] .appbar .tok-chip { padding: 0 9px; font-size: 12px; height: 30px; }
+  body[data-page="home"] .appbar .tok-chip + .appbar__user { margin-left: 2px; }
+}
+@media (max-width: 380px) { .appbar__slogan { font-size: clamp(10px, 2.8vw, 11px); letter-spacing: 0; } body[data-page="home"] .appbar .logo { padding-left: 6px; } }

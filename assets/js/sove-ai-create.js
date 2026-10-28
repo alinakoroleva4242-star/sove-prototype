@@ -1,16 +1,18 @@
-/* SOVE AI — окно «Создать» (ТЗ 22.10, п. 1.5): шторка снизу со всеми 6 генерациями по группам.
+/* Генерации — окно «Создать» (ТЗ 22.10, п. 1.5): шторка снизу со всеми 6 генерациями по группам.
    Вид — 1:1 из design/sove-ai/etalon-sozdat.html. Подключается на любом экране:
    нужны data.js, site.js, sove-ai-config.js; открыть — SOVE_AI_CREATE.open() или кнопка [data-create]. */
 (function () {
   var S = window.SOVE, F = S.fmt, esc = F.esc, CFG = window.SOVE_AI_CONFIG;
   var IMG = 'assets/img/sove-ai/';
-  function planHref() { var f = window.SOVE_FLOW ? window.SOVE_FLOW.load() : {}; return f.step >= 2 ? 'arrange.html?v=panel&flow=1' : 'plan-demo.html'; }
+  /* Планировка всегда открывается с первой продающей страницы (ТЗ-planirovka 18.0) */
+  function planHref() { return 'plan-demo.html'; }
   /* блоки Материалы и Визуализации объединены в Интерьер (design/interior/TZ-interior.md; Алина 25.10): капсула = ДНК + материалы + комнаты.
-     «Замена предмета» живёт внутри Комнат — тап по материалу на рендере, отдельной генерации нет */
+     «Замена предмета» живёт внутри Комнат — тап по материалу на рендере, отдельной генерации нет.
+     Экран Интерьера есть (interior.html), поэтому «Мудборд по рендеру» → поиск по фото больше не нужен */
   var GROUPS = [
     { t: 'ПЛАНИРОВКА', items: [{ g: 'g1', t: 'План → 3D', img: 'g-domik.jpg', href: planHref }] },
     { t: 'ИНТЕРЬЕР', items: [
-      { g: 'g4', t: 'Капсула SOVE', img: 'k2-kitchen.jpg', href: function () { return 'interior.html'; } },
+      { g: 'g4', t: 'Капсула SOVEAPP', img: 'k2-kitchen.jpg', href: function () { return 'interior.html'; } },
       { g: 'g2', t: 'Своя картинка → капсула', img: 'k1-living.jpg', href: function () { return 'interior.html'; } },
       { g: 'g5', t: 'Комнаты · рендеры', img: 'k5.jpg', href: function () { return 'interior.html?tab=rooms'; } }] }
   ];
@@ -28,7 +30,7 @@
       '<div class="saic__sheet" role="dialog" aria-modal="true" aria-labelledby="saic-t">' +
       '<span class="saic__grip"></span>' +
       '<div class="saic__hd"><b id="saic-t">Создать</b><span>' + esc(tokens()) + ' · <a href="tokens.html" data-saic-topup>пополнить</a></span></div>' +
-      '<span class="saic__sub">всё сохранится в историю SOVE AI</span>' +
+      '<span class="saic__sub">всё сохранится в историю генераций</span>' +
       GROUPS.map(function (gr) {
         return '<div class="saic__g">' + gr.t + '</div><div class="saic__grid">' + gr.items.map(function (it) {
           var free = CFG.GEN_PRICES[it.g] === 0;
@@ -59,7 +61,9 @@
     el.remove(); el = null; document.body.style.overflow = ''; document.removeEventListener('keydown', onKey);
     if (prevFocus && prevFocus.focus) prevFocus.focus();
   }
-  /* любая кнопка [data-create] на любом экране открывает шторку */
-  document.addEventListener('click', function (e) { var b = e.target.closest('[data-create]'); if (b) { e.preventDefault(); open(); } });
-  window.SOVE_AI_CREATE = { open: open, close: close };
+  /* «＋ Создать» на любом экране ведёт в новую генерацию по референсу Вики 23.10 (gen-new.html);
+     прежняя шторка с шестью генерациями осталась — SOVE_AI_CREATE.sheet() */
+  function go(type) { location.href = 'gen-new.html' + (type ? '?type=' + encodeURIComponent(type) : ''); }
+  document.addEventListener('click', function (e) { var b = e.target.closest('[data-create]'); if (b) { e.preventDefault(); go(b.getAttribute('data-create')); } });
+  window.SOVE_AI_CREATE = { open: function () { go(); }, sheet: open, close: close };
 })();

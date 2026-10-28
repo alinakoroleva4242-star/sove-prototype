@@ -43,9 +43,17 @@
 
   document.addEventListener('click', function (e) {
     var b = e.target.closest && e.target.closest('[data-pz-back]'); if (!b) return;
-    /* из расстановки — всегда на шаг «Вопросы» Планировки, не по истории браузера (Алина 27.10) */
-    if (/arrange\.html/.test(location.pathname) && /flow=1/.test(location.search)) { location.href = 'plan-demo.html?back=1'; return; }
-    if (history.length > 1 && document.referrer.indexOf(location.host) >= 0) history.back(); else location.href = 'sove-ai.html';
+    /* из расстановки — всегда на шаг «Вопросы» Планировки (Алина 27.10: plan-demo.html?back=1).
+       Пришли туда со страницы Планировки — возвращаемся на ту же запись истории (вопросы восстанавливает plan-demo.js),
+       иначе заменяем запись: так «← Назад» с первого экрана Планировки не возвращает снова в расстановку */
+    if (/arrange\.html/.test(location.pathname) && /flow=1/.test(location.search)) {
+      if (history.length > 1 && /plan-demo\.html/.test(document.referrer)) history.back(); else location.replace('plan-demo.html?back=1');
+      return;
+    }
+    /* в Планировку вернулись из расстановки заменой записи или после входа (auth.html сам уводит обратно на экран мебели) —
+       «назад по истории» замкнул бы круг первая страница → мебель → …; ведём в Генерации */
+    var reentered = /plan-demo\.html/.test(location.pathname) && /\/(arrange|auth)\.html/.test(document.referrer);
+    if (!reentered && history.length > 1 && document.referrer.indexOf(location.host) >= 0) history.back(); else location.href = 'sove-ai.html';
   });
 
   /* ── цена «Вариантов стен» в токенах (открытое решение № 1 ТЗ: Алина 24.10 — «например, 10») ── */
@@ -92,8 +100,8 @@
   /* ── «Какой интерьер?»: плитка «＋ Свой интерьер» + капсулы (прямоугольные, только названия) ──
      общая для вопросов (A4), мебели по размерам (A5а) и «сменить интерьер» (A5б) */
   var CAPS = ['k2', 'k1', 'k3', 'k4', 'k5'];
-  /* названия капсул в выборе интерьера — открытый вопрос ТЗ (№ 3): кроме «Изумрудной неоклассики» стоит заглушка */
-  function capName(id) { return id === 'k2' ? 'Изумрудная неоклассика' : '[название]'; }
+  /* названия капсул в выборе интерьера — открытый вопрос ТЗ (№ 3); пока полные названия из data.js вместо заглушки «[название]» */
+  function capName(id) { var k = window.SOVE_KB && SOVE_KB.capsule(id), c = window.SOVE && SOVE.data.capsule(id); return k ? k.name : c ? c.name : 'Капсула'; }   /* настоящие названия капсул вместо «[название]»; сначала — как в Интерьере (kb), чтобы у капсулы было одно имя */
   function interiorTiles(it, dark) {
     var D = window.SOVE.data;
     return '<div class="pz-caps' + (dark ? ' is-dark' : '') + '">' +
@@ -151,12 +159,17 @@
       }).join('') + '</div>';
   }
   /* выбор интерьера: записываем в сценарий и в Мой ремонт → Интерьер (+25% готовности), тост, экран перестраивается */
+  /* доска Интерьера (со slots) — собранная и оплаченная в Интерьере; запись Планировки проще, поверх доски её не пишем */
+  function board() { var R = window.SOVE && window.SOVE.repair, b = R && R.flats.active() ? R.get().interior : null; return b && b.slots ? b : null; }
+  /* доска уже есть, а в Планировке интерьер не выбран — берём капсулу доски, а не спрашиваем заново (выбор затирал доску, её приходилось собирать снова) */
+  function adoptBoard() { var b = board(), it = b && b.capsuleId && !load().interior ? capsuleInterior(b.capsuleId) : null; if (it) save({ interior: it }); }
   function pickInterior(it) {
     var S = window.SOVE, R = S.repair;
     save({ interior: it });
     if (R) {
-      var c = it.type === 'capsule' ? S.data.capsule(it.id) : null;
-      R.save('interior', { capsuleId: c ? c.id : null, name: it.name, img: c ? c.cover : null, dna: c ? c.dna : [],
+      var c = it.type === 'capsule' ? S.data.capsule(it.id) : null, b = board();
+      /* та же капсула, что на доске Интерьера, — доску оставляем; другая — это новый выбор, доска уходит в историю */
+      if (!(b && c && b.capsuleId === c.id)) R.save('interior', { capsuleId: c ? c.id : null, name: it.name, img: c ? c.cover : null, dna: c ? c.dna : [],
         productIds: c ? R.capsuleProducts(c.id).map(function (p) { return p.id; }) : [] }, { force: true, silent: true });
     }
     if (stripOpts) stripOpts.chosen = true; drawStrip();
@@ -201,11 +214,12 @@
     var rooms = f.rooms && f.rooms.length ? f.rooms : A.rooms.filter(function (r) { return !r.part_of; }).map(function (r) { return { name: r.type === 'гостиная' ? 'Кухня-гостиная' : r.name, m2: r.m2 }; });
     var geo = T.geo || A, furniture = INT ? furnitureSum(T.goods, INT) : T.furniture;
     var R0 = window.SOVE.repair, fl0 = R0 && R0.flats.active(), bp0 = fl0 ? R0.get().budgetPlan : null;
-    /* параметры Скаута: из квартиры (правки в Скауте) или из Планировки — план, состояние, интерьер, тип */
+    /* параметры расчёта: из квартиры (правки в расчёте) или из Планировки — план, состояние, интерьер, тип */
     var STATE = { concrete_free: 'concrete', concrete_walls: 'concrete', whitebox: 'pre', finished: 'secondary' };
     var sp = fl0 && R0.get().scoutParams ? Object.assign({}, R0.get().scoutParams) : { stateId: STATE[f.state] || 'concrete',
       area: Math.round(rooms.reduce(function (a, r) { return a + (r.m2 || 0); }, 0) * 10) / 10, capsuleId: INT && INT.type === 'capsule' ? INT.id : null, level: bp0 && bp0.type || 'base' };
     if (bp0 && bp0.type) sp.level = bp0.type;
+    /* работы — ставкой расчёта × м², как у Алины: объёмов по плану и чертежа в Планировке нет (28.10) */
     var budget = window.SOVE_BUDGET ? window.SOVE_BUDGET.compute({ scout: sp, geo: geo, rooms: rooms, state: f.state || 'concrete_walls', type: bp0 && bp0.type || 'base', interior: INT,
       kitchenLen: T.kitchenLen, furniture: furniture, partitions: V ? V.partitions : null, accuracy: f.accuracy || 'примерно' }) : { lines: [], total: null, type: 'base' };
     return { T: T, INT: INT, V: V, rooms: rooms, geo: geo, furniture: furniture, budget: budget, flatName: f.flat || 'ЖК PRIDE · 47,3 м²',
@@ -221,14 +235,16 @@
     var rec = list.filter(function (x) { return x.key === key; })[0], dup = !!rec;
     if (!rec) { rec = { id: 'pl-' + Date.now().toString(36), key: key, flatId: flat.id, type: V ? 'replan' : '3d', variant: V ? V.letter : null, createdAt: Date.now() }; list.unshift(rec); }
     Object.assign(rec, { planImg: T.img, layout: T.items, arrangement: T.arrangement, interiorId: INT ? (INT.id || INT.type) : null, interiorName: INT ? INT.name : null,
-      items: T.goods, count: T.count, budget: { lines: P.budget.lines, total: P.budget.total, type: P.budget.type }, flat: P.flatName, answers: P.answers });
+      items: INT ? T.goods : null, count: T.count, budget: INT ? { lines: P.budget.lines, total: P.budget.total, type: P.budget.type } : null, flat: P.flatName, answers: P.answers });
     list.forEach(function (x) { x.isMain = x === rec; });
     try { localStorage.setItem(HKEY, JSON.stringify(all)); } catch (e) { list.forEach(function (x) { if (x !== rec) x.planImg = null; }); try { localStorage.setItem(HKEY, JSON.stringify(all)); } catch (e2) {} }
     r.base = { historyId: rec.id, source: P.source, accuracy: P.accuracy, state: P.state };
     r.replan = V ? { historyId: rec.id, variant: V.letter, approval: V.approval } : null;
-    r.budgetPlan = { lines: P.budget.lines, type: P.budget.type, total: P.budget.total, ts: Date.now(), full: !!(r.budgetPlan && r.budgetPlan.full), furniture: P.furniture };
+    /* мебель и бюджет сохраняем только с интерьером: без него цены мебели и бюджета нет (Алина 24.10) */
+    if (INT) r.budgetPlan = { lines: P.budget.lines, type: P.budget.type, total: P.budget.total, ts: Date.now(), full: !!(r.budgetPlan && r.budgetPlan.full), furniture: P.furniture };
     r.progress = INT ? 50 : 25;
-    if (INT) {
+    /* доску Интерьера сохранение плана не перезаписывает: она полнее и собрана позже выбора в Планировке */
+    if (INT && !board()) {
       var c = INT.type === 'capsule' ? S.data.capsule(INT.id) : null;
       R.save('interior', { capsuleId: c ? c.id : null, name: INT.name, img: c ? c.cover : null, dna: c ? c.dna : [], productIds: c ? R.capsuleProducts(c.id).map(function (p) { return p.id; }) : [] }, { force: true, silent: true });
     }
@@ -249,7 +265,7 @@
   function fileBase(P) {
     var d = new Date(), date = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
     var m = String(P.flatName).match(/([\d,]+)\s*м²/), jk = P.T.live ? 'мой-план' : 'PRIDE';
-    return 'SOVE_' + jk + '_' + (m ? m[1] : '') + 'м2_планировка_' + date;
+    return 'SOVEAPP_' + jk + '_' + (m ? m[1] : '') + 'м2_планировка_' + date;
   }
   function absUrl(u) { try { return new URL(u, location.href).href; } catch (e) { return u; } }
   function rub(v) { return v === null || v === undefined ? '[сумма] ₽' : window.SOVE.fmt.rub(v); }
@@ -267,7 +283,7 @@
   }
   function headHtml(sub) {
     var d = new Date().toLocaleDateString('ru-RU');
-    return '<div class="h"><span><span class="logo">SOVE</span> <small>' + esc(sub) + '</small></span><small>' + d + '</small></div>';
+    return '<div class="h"><span><span class="logo">SOVEAPP</span> <small>' + esc(sub) + '</small></span><small>' + d + '</small></div>';
   }
   function pdfPlan(getImg) {
     var P = planDoc(); if (!P) return;
@@ -276,11 +292,12 @@
       '<h1>' + esc(P.flatName) + '</h1><p class="sub">' + esc((P.INT ? P.INT.name + ' · ' : '') + '«' + T.arrangement + '» · ' + T.count + ' предметов') + '</p>' +
       (img ? '<img class="plan" src="' + esc(absUrl(img)) + '" alt="">' : '') +
       '<div class="rooms">' + P.rooms.slice(0, 4).map(function (r) { return '<div><b>' + String(r.m2 || '').replace('.', ',') + '</b>' + esc(r.name.toLowerCase()) + '</div>'; }).join('') + '</div>' +
-      '<div class="tot"><span>Мебель</span><span>≈ ' + rub(P.furniture) + '</span></div><div class="list">' +
+      /* без интерьера — только план и расстановка, без цен мебели и бюджета */
+      (P.INT ? '<div class="tot"><span>Мебель</span><span>≈ ' + rub(P.furniture) + '</span></div><div class="list">' +
       (T.goods || []).slice(0, 4).map(function (g) { return '<div><span>' + esc(g.label + ' · ' + String(g.room || '').toLowerCase()) + '</span><span>' + rub(g.metod) + '</span></div>'; }).join('') +
-      (rest ? '<div><span>ещё ' + rest + ' предметов …</span><span></span></div>' : '') + '</div>' +
-      (budgetFull() ? '<div class="tot"><span>Ремонт под ключ</span><span>≈ ' + rub(P.budget.total) + '</span></div>' : '') +
-      '<div class="foot">Сделано в SOVE · sove.app<br>Расстановка по нормам проходов. Перед стройкой проверьте размеры по обмеру. Цены METOD на ' + d + '.</div>');
+      (rest ? '<div><span>ещё ' + rest + ' предметов …</span><span></span></div>' : '') + '</div>' : '') +
+      (P.INT && budgetFull() ? '<div class="tot"><span>Ремонт под ключ</span><span>≈ ' + rub(P.budget.total) + '</span></div>' : '') +
+      '<div class="foot">Сделано в SOVEAPP · sove.app<br>Расстановка по нормам проходов. Перед стройкой проверьте размеры по обмеру. Цены METOD на ' + d + '.</div>');
   }
   /* план с размерами: вид сверху, комнаты с размерами, мебель с габаритами в мм — для бригады */
   function pdfDims() {
@@ -295,7 +312,7 @@
       items.map(function (it) { var b = it.box, w = b[2] - b[0], h = b[3] - b[1]; return '<rect x="' + b[0] + '" y="' + b[1] + '" width="' + w + '" height="' + h + '" fill="#EEEAE3" stroke="#6B655F"/>' +
         '<text x="' + ((b[0] + b[2]) / 2) + '" y="' + ((b[1] + b[3]) / 2 + 3) + '" font-size="7" text-anchor="middle" fill="#1E1C1A">' + esc(it.label) + ' ' + mm(w) + '×' + mm(h) + '</text>'; }).join('') + '</svg>';
     printDoc(fileBase(P) + '_размеры', headHtml('план с размерами · для бригады') + '<h1>' + esc(P.flatName) + '</h1><p class="sub">размеры в мм · «' + esc(P.T.arrangement) + '»</p>' + svg +
-      '<div class="foot">Сделано в SOVE · sove.app<br>Перед стройкой проверьте размеры по обмеру.</div>');
+      '<div class="foot">Сделано в SOVEAPP · sove.app<br>Перед стройкой проверьте размеры по обмеру.</div>');
   }
   /* PNG: чистая картинка плана, «sove.app» мелко в поле под картинкой — не на плане */
   function pngPlan(getImg) {
@@ -313,7 +330,7 @@
   function downloadSheet(getImg) {
     var back = document.createElement('div'); back.className = 'pz-sheet-back';
     back.innerHTML = '<div class="pz-sheet" role="dialog" aria-modal="true" aria-labelledby="pz-dl-t"><i class="pz-sheet__grip"></i>' +
-      '<b class="pz-sheet__t" id="pz-dl-t">Скачать планировку</b><small class="pz-sheet__s">файл в оформлении SOVE · на самом плане никаких знаков</small>' +
+      '<b class="pz-sheet__t" id="pz-dl-t">Скачать планировку</b><small class="pz-sheet__s">файл в оформлении SOVEAPP · на самом плане никаких знаков</small>' +
       '<button type="button" class="pz-dl" data-dl="pdf"><b>PDF · 1 страница</b><small>3D-план с мебелью, площади, мебель с ценами, итог ремонта</small></button>' +
       '<button type="button" class="pz-dl" data-dl="png"><b>PNG · картинка</b><small>для мессенджеров — чистый 3D-план</small></button>' +
       '<button type="button" class="pz-dl" data-dl="dims"><b>План с размерами · PDF</b><small>вид сверху, размеры мебели в мм — для бригады</small></button>' +
@@ -333,12 +350,13 @@
     if (!navigator.share) { pngPlan(getImg); return; }
     fetch(src).then(function (r) { return r.blob(); }).then(function (b) {
       var file = new File([b], fileBase(P) + '.png', { type: b.type || 'image/png' });
-      var data = navigator.canShare && navigator.canShare({ files: [file] }) ? { files: [file], title: 'Моя планировка · SOVE', url: url } : { title: 'Моя планировка · SOVE', url: url };
+      var data = navigator.canShare && navigator.canShare({ files: [file] }) ? { files: [file], title: 'Моя планировка · SOVEAPP', url: url } : { title: 'Моя планировка · SOVEAPP', url: url };
       return navigator.share(data);
     }).catch(function () {});
   }
   /* «Дальше: визуализации»: без интерьера — сначала выбор интерьера; перед переходом — автосохранение (15.3) */
   function goVisual() {
+    adoptBoard();
     var f = load();
     if (!f.interior) {
       var m = window.SOVE.ui.modal({ eyebrow: 'Сначала интерьер', title: 'В каком интерьере показать комнаты?', html: interiorTiles(null), actions: [{ label: 'Отмена', kind: 'link' }] });
@@ -350,6 +368,7 @@
     if (finishOpts && finishOpts.before) finishOpts.before();
     var r = savePlan();
     window.SOVE.ui.toast('Сохранено в Мой ремонт', 'ok');
+    /* как у Алины: в Интерьер на комнаты без ?capsule= — с ним Интерьер сразу собирал доску и молча списывал 10 токенов, гостя уводил на вход */
     setTimeout(function () { location.href = 'interior.html?from=plan&tab=rooms&flat=' + encodeURIComponent(r ? r.flatId : ''); }, 600);
   }
   var finishOpts = null;
@@ -363,6 +382,7 @@
       '<button type="button" class="pz-visual" data-pf="visual"><span class="pz-visual__t"><b>✦ Дальше: визуализации</b><small>Покажем каждую комнату в интерьере · ' + priceTxt() + ' за комнату</small>' +
         '<span class="pz-visual__th">' + thumbs.map(function (t) { return '<i style="background-image:url(assets/img/demo/' + t + '.jpg)"></i>'; }).join('') + '</span></span><em>›</em></button>' +
       /* одно «Дальше» на экране (методология, П2): скачать, поделиться и перепланировка — в «Ещё» */
+      /* Алина: экран добавил перепланировку в «Ещё» — подпись «…, стены» */
       '<button type="button" class="pz-link" data-pf="more">Ещё ⋯ скачать, поделиться' + (finishOpts.more && finishOpts.more.length ? ', стены' : '') + '</button>' +
       '</section>';
   }
@@ -391,18 +411,20 @@
   }
 
   /* ── список товаров с выбором галочками (ТЗ-planirovka, раздел 16): один компонент на все списки блока,
-     дальше — SOVE AI и Мой ремонт. rows: [{ p: товар, label, room, pick? }]; opts: { key, title, rerender, limit }.
+     дальше — Генерации и Мой ремонт. rows: [{ p: товар, label, room, pick? }]; opts: { key, title, rerender, limit }.
      Обычный режим — ♡ / 🛒 у каждого товара и «Выбрать»; режим выбора — галочки, «Выбрать все», панель снизу. ── */
   var PL = {};
   function plState(key) { return PL[key] || (PL[key] = { on: false, sel: {}, all: false, rows: [], opts: {} }); }
   function productList(rows, opts) {
     var R = window.SOVE.repair, F = window.SOVE.fmt, st = plState(opts.key || 'list'); st.rows = rows; st.opts = opts;
     var withP = rows.filter(function (r) { return r.p; }), sum = withP.reduce(function (a, r) { return a + (r.p.metod || 0); }, 0);
+    /* цены всегда две: с подпиской METOD и без (Алина 24.10) */
+    var sumR = withP.reduce(function (a, r) { return a + (r.p.retail || r.p.metod || 0); }, 0);
     var shown = st.on || st.all || !opts.limit ? rows : rows.slice(0, opts.limit), nSel = Object.keys(st.sel).length, key = esc(opts.key || 'list');
     var html = '<section class="pz-card pz-goods pz-pl' + (st.on ? ' is-sel' : '') + '" data-pl="' + key + '">' +
       '<div class="pz-goods__h"><b>' + esc(opts.title) + ' · ' + rows.length + '</b>' +
         (st.on ? '<span class="pz-pl__ctl"><button type="button" data-pl-act="all">' + (nSel === withP.length ? 'Снять все' : 'Выбрать все · ' + withP.length) + '</button><button type="button" data-pl-act="done">Готово</button></span>'
-               : '<span class="pz-pl__ctl"><b>≈ ' + F.rub(sum) + '</b><button type="button" data-pl-act="select">Выбрать</button></span>') + '</div>' +
+               : '<span class="pz-pl__ctl"><span class="pz-2p"><b>≈ ' + F.rub(sum) + '</b><small>без подписки ' + F.rub(sumR) + '</small></span><button type="button" data-pl-act="select">Выбрать</button></span>') + '</div>' +
       shown.map(function (r, i) {
         var on = !!st.sel[i], inCart = r.p && R.cart.has(r.p.id);
         return '<div class="pz-good' + (st.on ? ' is-sel' : '') + (on ? ' is-on' : '') + '"' + (st.on && r.p ? ' data-pl-row="' + i + '" role="checkbox" aria-checked="' + on + '" tabindex="0"' : '') + '>' +
@@ -474,7 +496,7 @@
   function budgetFull() { var R = window.SOVE.repair; return !!(R && R.flats.active() && R.get().budgetPlan && R.get().budgetPlan.full); }
   /* полный бюджет куплен — держим строки актуальными при любых изменениях (бесплатно) */
   function refreshBudget() {
-    var R = window.SOVE.repair, P = planDoc(); if (!budgetFull() || !P || !window.SOVE_BUDGET) return;   /* без расчёта не затираем итог */
+    var R = window.SOVE.repair, P = planDoc(); if (!budgetFull() || !P || !P.INT || !window.SOVE_BUDGET) return;   /* без расчёта и без интерьера не затираем итог */
     var bp = R.get().budgetPlan; Object.assign(bp, { lines: P.budget.lines, total: P.budget.total, type: P.budget.type, furniture: P.furniture, ts: Date.now() });
     R.flats.update(R.flats.active().id, {});
   }
@@ -484,8 +506,9 @@
   }
   /* бюджет по методологии (П6): сумма известных слоёв — Мебель · Материалы · Декор и текстиль · Работы, «известно N из 4».
      Мебель — из расстановки, материалы — по выбранному интерьеру (бесплатно), декор — после визуализаций,
-     работы — за токены через Скаут (П5). Одна цифра «итого» — и здесь, и в полосе «Бюджет» над меню. */
+     работы — за токены через Расчёт бюджета (П5). Одна цифра «итого» — и здесь, и в полосе «Бюджет» над меню. */
   function budgetLayers() {
+    if (!interiorChosen()) return null;                /* без интерьера бюджета нет */
     var P = window.SOVE_BUDGET && planDoc(); if (!P) return null;
     var R = window.SOVE.repair, r = R && R.flats.active() ? R.get() : {}, L = {};
     P.budget.lines.forEach(function (l) { L[l.key] = l.value || 0; });
@@ -493,12 +516,12 @@
     var parts = [
       /* мебель — расстановка Планировки + разница от предметов, заменённых на рендерах Интерьера (ТЗ Интерьера, 3: уровень 3 меняет строку «Мебель») */
       { key: 'furniture', t: 'Мебель', sub: P.T.count + ' ' + plural3(P.T.count, 'предмет', 'предмета', 'предметов') + ' по расстановке', known: true, value: P.furniture + (r.interior && r.interior.objectDelta || 0) },
-      /* «Материалы» — один источник (ТЗ Интерьера, 9): interior — сумма товаров капсулы (только вся квартира), norm — нормы Скаута, метка «план».
+      /* «Материалы» — один источник (ТЗ Интерьера, 9): interior — сумма товаров капсулы (только вся квартира), norm — нормы расчёта, метка «план».
          Цифры не складываются и рядом не показываются; «дороже нормы» не пишем */
       OWN ? { key: 'materials', src: 'interior', t: 'Материалы', sub: OWN.known ? 'по выбору · 12 позиций' : OWN.zones === 1 ? '1 комната' : OWN.zones + ' из ' + OWN.total + ' зон', known: OWN.known, value: OWN.value }
         : { key: 'materials', src: 'norm', t: 'Материалы', sub: INT ? 'план · по интерьеру «' + INT.name + '»' : 'план · пол, стены, плитка, свет', known: !!INT, value: L.finish_mat + L.plumbing + L.electric + L.kitchen },
       { key: 'decor', t: 'Декор и текстиль', sub: renders ? 'по визуализациям' : 'после визуализаций', known: renders > 0, value: L.decor },
-      { key: 'works', t: 'Работы', sub: 'черновые и чистовые · Скаут', known: budgetFull(), value: (L.demolition || 0) + L.rough_works + (L.partitions || 0) + L.rough_mat + L.finish_works }
+      { key: 'works', t: 'Работы', sub: 'черновые и чистовые · Расчёт бюджета', known: budgetFull(), value: (L.demolition || 0) + L.rough_works + (L.partitions || 0) + L.rough_mat + L.finish_works }
     ];
     /* полный бюджет куплен — 4 слоя = свёртка 9 категорий + 5 этапов (design/budget/TZ-budget.md): итог = totals.plan экрана Бюджета, одна цифра везде */
     var C = budgetFull() && window.SOVE_BUDGET.current ? window.SOVE_BUDGET.current() : null;
@@ -535,7 +558,7 @@
       }).join('') +
       '<div class="pz-bud__t"><span>Итого ' + (B.known < 4 ? 'сейчас' : '') + '</span><b>≈ ' + rub(B.total) + '</b></div>' +
       (B.known < 4 ? '<small class="pz-note">станет точнее</small>' : '') +
-      (budgetFull() ? '<a class="pz-link pz-link--left" href="scout.html?from=plan&flat=' + encodeURIComponent(fid) + '&step=result">Подробно в Скауте ›</a>' : '') +
+      (budgetFull() ? '<a class="pz-link pz-link--left" href="scout.html?from=plan&flat=' + encodeURIComponent(fid) + '&step=result">Подробно в расчёте ›</a>' : '') +
       '</section>';
   }
   var budgetOnDone = null;
@@ -544,7 +567,7 @@
     var rt = encodeURIComponent(location.pathname.split('/').pop() + location.search);
     var back = document.createElement('div'); back.className = 'pz-sheet-back';
     back.innerHTML = '<div class="pz-sheet" role="dialog" aria-modal="true" aria-labelledby="pz-bud-t"><i class="pz-sheet__grip"></i>' +
-      '<b class="pz-sheet__t" id="pz-bud-t">Стоимость работ</b><small class="pz-sheet__s">черновые и чистовые работы по твоему плану считает Скаут · дальше пересчёт бесплатный</small>' +
+      '<b class="pz-sheet__t" id="pz-bud-t">Стоимость работ</b><small class="pz-sheet__s">черновые и чистовые работы по твоему плану считает Расчёт бюджета · дальше пересчёт бесплатный</small>' +
       '<div class="pz-sheet__row"><span>Стоимость</span><b>' + priceTxt() + '</b></div>' +
       '<div class="pz-sheet__row pz-sheet__row--plain"><span>У тебя</span><b>' + esc(S.fmt.tokens(bal)) + (inn ? '' : ' 🎁') + '</b></div>' +
       (!inn ? '<small class="pz-note">50 подарочных токенов — после входа по номеру телефона</small>' : '') +
@@ -589,6 +612,7 @@
     var b = e.target.closest && e.target.closest('[data-bud], [data-bud-type]'); if (!b) return;
     if (b.hasAttribute('data-bud-type')) { setBudgetType(b.getAttribute('data-bud-type')); if (budgetOnDone) budgetOnDone(); return; }
     /* весь бюджет считается только с интерьером: нет интерьера — сначала выбор, потом окно оплаты (Алина 24.10) */
+    adoptBoard();
     if (!load().interior) {
       var m = window.SOVE.ui.modal({ eyebrow: 'Сначала интерьер', title: 'Под какой интерьер считать работы?', html: interiorTiles(null), actions: [{ label: 'Отмена', kind: 'link' }] });
       var then = function (it) { pickInterior(it); setTimeout(function () { buyBudget(budgetOnDone); }, 300); };

@@ -13,7 +13,7 @@
     return Promise.all(ids.map(function (id) { return resolve(id).catch(function () { return null; }); })).then(function (mine) { askWhat(mine.filter(Boolean)); });
   });
   function askWhat(mine) {              /* без товара в ссылке спрашиваем, что примеряем */
-    root.innerHTML = '<div class="fit__head"><span class="eyebrow">Примерка · SOVEAPP AI</span>' +
+    root.innerHTML = '<div class="fit__head"><span class="eyebrow">Примерка · Генерации</span>' +
       '<h1 class="h2">Что примеряем?</h1>' +
       '<p class="text">Выберите вещь в каталоге или возьмите из «Моего ремонта» — покажем, как она встанет в вашей комнате.</p></div>' +
       (mine.length ? '<div class="fit__mine">' + mine.map(function (x) {
@@ -32,7 +32,7 @@
   var st = { view: 'idle', room: null, x: 50, y: 74, scale: 1, genId: null };
 
   function head() {
-    return '<div class="fit__head"><span class="eyebrow">Примерка · SOVEAPP AI</span>' +
+    return '<div class="fit__head"><span class="eyebrow">Примерка · Генерации</span>' +
       '<h1 class="h2">Как вещь встанет в вашей комнате</h1>' +
       '<p class="text">Загрузите фотографию комнаты — поставим в неё выбранный товар. Это черновой вид: он помогает понять масштаб и сочетание, а не заменяет дизайн-проект.</p></div>';
   }

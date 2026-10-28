@@ -1,4 +1,4 @@
-/* Расчёт ремонта (Скаут), v2: три шага — Квартира → Интерьер → Результат. «Формат участия» вынесен из мастера (на цифры не влияет). Доступ к результату — по правилам платформы (SOVE.scout):
+/* Расчёт ремонта (Расчёт бюджета), v2: три шага — Квартира → Интерьер → Результат. «Формат участия» вынесен из мастера (на цифры не влияет). Доступ к результату — по правилам платформы (SOVE.scout):
    первый расчёт бесплатно, по подписке METOD бесплатно, открытая пара «капсула + тип ремонта» пересчитывается бесплатно,
    иначе счёт в рублях (токены не участвуют). Состояние мастера живёт в SOVE.draft('scout') и восстанавливается при загрузке. */
 (function () {
@@ -34,7 +34,7 @@
           return '<div class="cls-row"><span class="cls-row__k">' + esc(r.item) + '</span><b class="cls-row__v">' + esc(r[level] || '—') + '</b>' + (r[other] ? '<span class="cls-row__o small muted">' + otherName + ': ' + esc(r[other]) + '</span>' : '') + '</div>';
         }).join('') + '</div>';
       }).join('') + '</div>' +
-      '<p class="small muted">Цены — ориентиры классификатора SOVEAPP за единицу. Итог по вашей планировке считает Скаут.</p>';
+      '<p class="small muted">Цены — ориентиры классификатора SOVEAPP за единицу. Итог посчитаем по вашей планировке.</p>';
   }
   function openClassifier(level) {
     var api = S.ui.modal({ eyebrow: 'Классификатор SOVEAPP', title: 'Что входит в ремонт', html: clsHtml(level), actions: [{ label: 'Понятно', kind: 'primary' }] });
@@ -116,8 +116,8 @@
     var fp = S.scout.fromRepair(qFromPlan), cap0 = okCapsule(fp.capsuleId) ? fp.capsuleId : (D.capsules.filter(function (x) { return okCapsule(x.id) && !x.designer; })[0] || {}).id;
     st = Object.assign(blank(), { capsuleId: cap0, stateId: byId(SC.states, fp.stateId) ? fp.stateId : 'concrete', level: fp.level === 'premium' ? 'premium' : 'base', formatId: 'self',
       plan: { mode: 'manual', fileName: null, meta: null, rooms: (fp.rooms && fp.rooms.length ? fp.rooms : [{ name: 'Вся квартира', m2: fp.area }]).map(function (r) { return { id: 'n' + (++roomSeq), name: r.name, area: Number(r.m2 || r.area) || null }; }) },
-      fromPlan: qFromPlan, step: 4 });
-  } else { delete st.fromPlan; if (qFromInt === null) delete st.fromInterior; }                       /* обычный вход в Скаут — без бесплатного пересчёта из Планировки */
+      fromPlan: qFromPlan, step: 4, volumes: fp.volumes || null });   /* объёмы плана: работы по позициям, а не ставка × м² */
+  } else { delete st.fromPlan; delete st.volumes; if (qFromInt === null) delete st.fromInterior; }  /* обычный вход в Расчёт бюджета — без бесплатного пересчёта из Планировки */
 
   /* «Вся квартира» — общая площадь, она не меняется; помещения ниже — разбивка внутри неё и к общей не прибавляются (Вика 21.10) */
   function isWhole(r) { return /^(вся\s+квартира|вся\s+площадь|общая(\s+площадь)?|квартира\s+целиком)$/i.test(String(r.name || '').trim()); }
@@ -169,11 +169,12 @@
 
   /* ---------- расчёт ---------- */
   function calc() {
-    var s = byId(SC.states, st.stateId), area = totalArea(), works = s.rate * area, c = null, lines = null, kitMetod, kitRetail;
+    var s = byId(SC.states, st.stateId), area = totalArea(), VW = S.scout.planWorks(st.volumes, s.id, st.level, area);
+    var works = VW ? VW.total : s.rate * area, c = null, lines = null, kitMetod, kitRetail;
     if (isVis()) { var vk = visKit(area); kitMetod = vk.kitMetod; kitRetail = vk.kitRetail; lines = vk.lines; }
     else { c = D.capsule(st.capsuleId); kitMetod = c.pricePerM2 * area; kitRetail = kitMetod * SC.retailMarkup; }
     var total = works + kitMetod;
-    return { capsule: c, visuals: lines, state: s, level: byId(LEVELS, st.level), format: byId(SC.formats, st.formatId), area: area,
+    return { capsule: c, visuals: lines, state: s, level: byId(LEVELS, st.level), format: byId(SC.formats, st.formatId), area: area, plan: VW,
       works: works, kitMetod: kitMetod, kitRetail: kitRetail, total: total, perM2: total / area,
       save: kitRetail - kitMetod, savePct: kitRetail > 0 ? Math.round((kitRetail - kitMetod) / kitRetail * 100) : 0 };
   }
@@ -220,12 +221,12 @@
     return a.kind === 'repeat' ? 'Открыть расчёт' : isPayable(a) ? 'Перейти к счёту' : a.kind === 'unavailable' ? 'Далее' : 'Рассчитать';
   }
   function resultData(r) { return { area: r.area, works: r.works, kitMetod: r.kitMetod, kitRetail: r.kitRetail, total: r.total, sameAsBase: !!r.level.sameAsBase }; }
-  /* выдать расчёт: новая заявка Скаут (basis) или уже существующая (повтор — новую не создаём) */
+  /* выдать расчёт: новая заявка Расчёт бюджета (basis) или уже существующая (повтор — новую не создаём) */
   function issue(basis, existing) {
     var req = existing || S.scout.register(accessParams(), resultData(calc()), basis);
     st.issued = { requestId: req.id, sig: sig() }; st.gate = false; st.payId = null; st.pendingPay = 0; st.step = 5;
     var rr = calc(); S.my.set({ capsuleId: isVis() ? null : st.capsuleId, level: st.level, area: rr.area, stateId: st.stateId, total: rr.total, works: rr.works, kitMetod: rr.kitMetod, kitRetail: rr.kitRetail });
-    /* из Интерьера: расчёт и есть весь бюджет квартиры — параметры Скаута в паспорт, бюджет «посчитан» (Бюджет строит 9 + 5 по ним) */
+    /* из Интерьера: расчёт и есть весь бюджет квартиры — параметры расчёта в паспорт, бюджет «посчитан» (Бюджет строит 9 + 5 по ним) */
     if (st.fromInterior && S.repair) {
       var R1 = S.repair, rp1 = R1.get(st.fromInterior);
       if (rp1) {
@@ -234,7 +235,7 @@
         R1.flats.update(st.fromInterior, {});
       }
     }
-    /* из Планировки: правки Скаута сразу меняют бюджет квартиры — Планировка, Мой ремонт и полоса «Бюджет» (17.2) */
+    /* из Планировки: правки расчёта сразу меняют бюджет квартиры — Планировка, Мой ремонт и полоса «Бюджет» (17.2) */
     if (st.fromPlan !== undefined && st.fromPlan !== null && S.repair) {
       var R = S.repair, fid = st.fromPlan || (R.flats.active() || {}).id, rp = fid ? R.get(fid) : null;
       if (rp) {
@@ -288,11 +289,11 @@
   /* ---------- шапка страницы и шаги ---------- */
   function renderHead() {
     var t = document.getElementById('scout-title'), lead = document.getElementById('scout-lead'), head = document.getElementById('scout-head');
-    var compact = st.step > 1;
-    t.className = compact ? 'h2' : 'h1';
-    lead.hidden = compact;
-    head.classList.toggle('is-compact', compact);
-    if (project) document.getElementById('scout-crumbs').innerHTML = '<a href="account.html#projects">Кабинет</a><span aria-hidden="true">/</span><a href="project.html?id=' + encodeURIComponent(project.id) + '">' + esc(project.name) + '</a><span aria-hidden="true">/</span><span>Скаут</span>';
+    /* макет Вики 23.10: под шапкой сразу линия шагов, заголовок страницы — только для чтения с экрана */
+    t.className = 'vh';
+    lead.hidden = true;
+    head.classList.add('is-compact');
+    if (project) document.getElementById('scout-crumbs').innerHTML = '<a href="account.html#projects">Кабинет</a><span aria-hidden="true">/</span><a href="project.html?id=' + encodeURIComponent(project.id) + '">' + esc(project.name) + '</a><span aria-hidden="true">/</span><span>Расчёт ремонта</span>';
   }
   function stepValue(n) {
     if (n === 1) { if (isVis()) return 'по картинкам'; var c1 = okCapsule(st.capsuleId); return c1 ? c1.name : ''; }
@@ -314,12 +315,12 @@
   /* предварительная сумма видна с первого шага и уточняется по ходу */
   function estimate() {
     var s0 = byId(SC.states, st.stateId), ar = totalArea(); if (!s0 || !(ar > 0)) return '';
-    var c = okCapsule(st.capsuleId);
+    var c = okCapsule(st.capsuleId), VW = S.scout.planWorks(st.volumes, s0.id, st.level, ar), wk = VW ? VW.total : s0.rate * ar;
     function mln(n) { return (Math.round(n / 100000) / 10).toFixed(1).replace('.', ','); }
-    if (isVis()) return 'Предварительно: ' + mln(s0.rate * ar + visKit(ar).kitMetod) + ' млн ₽';
-    if (c) return 'Предварительно: ' + mln((s0.rate + c.pricePerM2) * ar) + ' млн ₽';
+    if (isVis()) return 'Предварительно: ' + mln(wk + visKit(ar).kitMetod) + ' млн ₽';
+    if (c) return 'Предварительно: ' + mln(wk + c.pricePerM2 * ar) + ' млн ₽';
     var ps = D.capsules.filter(function (x) { return okCapsule(x.id) && !x.designer; }).map(function (x) { return x.pricePerM2; });
-    return 'Предварительно: от ' + mln((s0.rate + Math.min.apply(null, ps)) * ar) + ' до ' + mln((s0.rate + Math.max.apply(null, ps)) * ar) + ' млн ₽';
+    return 'Предварительно: от ' + mln(wk + Math.min.apply(null, ps) * ar) + ' до ' + mln(wk + Math.max.apply(null, ps) * ar) + ' млн ₽';
   }
   function hint() {
     var n = st.step;
@@ -329,7 +330,7 @@
     if (n === 1) {
       if (recog) return 'Распознаём технический проект…';
       if (visRecog) return 'Подбираем товары по картинкам…';
-      return (st.plan && st.plan.mode === 'file') ? 'Выберите капсулу — посчитаем её под ваши размеры' : 'Выберите капсулу или загрузите свои визуалы';
+      return (st.plan && st.plan.mode === 'file') ? 'Выберите капсулу — посчитаем её под ваши размеры' : 'Выберите капсулу или загрузите план и свои картинки';
     }
     return '';
   }
@@ -353,7 +354,10 @@
      Технический проект (обмерный план, чертежи) — берём из него размеры, выбранная капсула считается под них.
      Свои визуалы (картинки из Pinterest) — подбираем похожие товары из каталога, капсула не нужна, метры — на шаге «Параметры».
      В прототипе распознавание — имитация: план — пример планировки, подборка — товары каталога прототипа. */
-  var SRC_IC = { plus: '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>' };
+  /* тексты кнопок — как в макете Вики 23.10 («Загрузить техпаспорт / план», «Моя капсула»), под ними — коротко, что будет */
+  function srcSvg(d, w) { return '<svg viewBox="0 0 24 24" width="' + (w || 22) + '" height="' + (w || 22) + '" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + d + '</svg>'; }
+  var SRC_IC = { plus: srcSvg('<path d="M12 5v14M5 12h14"/>'), doc: srcSvg('<path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4M9 12h6M9 16h6"/>'),
+    image: srcSvg('<rect x="3.5" y="4.5" width="17" height="15" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M4 18l5-5 4 4 3-3 4 4"/>'), chev: srcSvg('<path d="M9 5l7 7-7 7"/>', 18) };
   var VIS_STAGES = ['Разбираю картинки', 'Нахожу предметы', 'Подбираю товары из каталога'];
   /* что ищем на картинках: категория, начало подкатегории, сколько позиций и штук; отделка — на долю площади (м²) */
   var VIS_PLAN = [
@@ -396,22 +400,22 @@
     var roomsN = doneT ? st.plan.rooms.filter(function (r) { return r.area > 0 && !isWhole(r); }).length : 0;
     var noteT = busyT ? esc(RECOG[Math.min(recog.stage, RECOG.length - 1)]) + '…'
       : doneT ? esc(st.plan.fileName || 'план') + ' · ' + (roomsN ? roomsN + ' ' + pl(roomsN, ['помещение', 'помещения', 'помещений']) + ' · ' : '') + F.area(totalArea()) + ' · заменить'
-      : 'Обмерный план или чертежи — возьмём из них размеры и посчитаем капсулу под вашу квартиру';
+      : 'размеры из плана';
     var vis = st.visuals, busyV = !!visRecog, doneV = !busyV && !!vis && vis.items.length > 0;
     var noteV = busyV ? esc(VIS_STAGES[Math.min(visRecog.stage, VIS_STAGES.length - 1)]) + '…'
       : doneV ? vis.files.length + ' ' + pl(vis.files.length, ['картинка', 'картинки', 'картинок']) + ' · подобрали ' + vis.items.length + ' ' + pl(vis.items.length, ['товар', 'товара', 'товаров']) + ' из каталога' + (isVis() ? '' : ' · сейчас считаем по капсуле')
-      : 'Картинки из Pinterest «хочу так» — подберём похожие товары из каталога SOVEAPP, капсула не нужна';
-    function opt(kind, title, note, busy, done, on) {
+      : 'по вашим картинкам';
+    function opt(kind, title, note, busy, done, on, icon) {
       return '<button type="button" class="scout-src__opt' + (done ? ' is-done' : '') + (on ? ' is-on' : '') + (busy ? ' is-busy' : '') + '" data-own="' + kind + '"' + (busy ? ' aria-busy="true"' : '') + '>' +
-        '<span class="scout-src__ic">' + (done ? ICON.check : SRC_IC.plus) + '</span>' +
-        '<span class="scout-src__txt"><span class="scout-src__t">' + title + '</span><span class="scout-src__n">' + note + '</span></span></button>';
+        '<span class="scout-src__ic">' + (done ? ICON.check : SRC_IC[icon]) + '</span>' +
+        '<span class="scout-src__txt"><span class="scout-src__t">' + title + '</span><span class="scout-src__n">' + note + '</span></span><span class="scout-src__ch" aria-hidden="true">' + SRC_IC.chev + '</span></button>';
     }
     function prog(stage, total) { return '<div class="progress scout-src__bar" role="presentation"><i style="width:' + Math.round((stage + 1) / total * 100) + '%"></i></div>'; }
     var actsV = doneV ? '<div class="scout-src__acts">' + (isVis() ? '' : '<button type="button" class="btn btn--link" data-act="use-visuals">Считать по картинкам</button>') +
       '<button type="button" class="btn btn--link" data-act="drop-visuals">Убрать картинки</button></div>' : '';
     return '<div class="scout-src" role="group" aria-label="Загрузить своё">' +
-      '<div class="scout-src__item">' + opt('tech', 'Загрузить технический проект', noteT, busyT, doneT, doneT) + (busyT ? prog(recog.stage, RECOG.length) : '') + '</div>' +
-      '<div class="scout-src__item">' + opt('visuals', 'Загрузить свои визуалы', noteV, busyV, doneV, isVis()) + (busyV ? prog(visRecog.stage, VIS_STAGES.length) : '') + actsV + '</div>' +
+      '<div class="scout-src__item">' + opt('tech', 'Загрузить техпаспорт / план', noteT, busyT, doneT, doneT, 'doc') + (busyT ? prog(recog.stage, RECOG.length) : '') + '</div>' +
+      '<div class="scout-src__item">' + opt('visuals', 'Моя капсула', noteV, busyV, doneV, isVis(), 'image') + (busyV ? prog(visRecog.stage, VIS_STAGES.length) : '') + actsV + '</div>' +
       '<input type="file" id="scout-tech-file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png" hidden>' +
       '<input type="file" id="scout-vis-file" accept="image/*" multiple hidden>' +
     '</div>';
@@ -475,14 +479,23 @@
   }
 
   /* ---------- шаг 1: капсула и уровень ---------- */
+  /* карточки по макету Вики 23.10: широкий кадр, название, стиль, палитра, цена за м²; фильтр по тегам капсул (data.js); без кодов К1–К7 (Алина 26.10) */
+  var CAP_FILTERS = [{ id: 'all', t: 'Все' }, { id: 'light', t: 'Светлые' }, { id: 'modern', t: 'Современные' }, { id: 'warm', t: 'Тёплые' }, { id: 'classic', t: 'Классика' }];
+  var capFilter = 'all';
   function viewCapsule() {
-    var caps = D.capsules.map(function (c) {
+    var shown = D.capsules.filter(function (c) { return capFilter === 'all' || (c.tags || []).indexOf(capFilter) >= 0 || c.id === st.capsuleId; });
+    var caps = shown.map(function (c) {
       var on = !isVis() && c.id === st.capsuleId, off = !!c.soon || !c.pricePerM2;
       return '<button type="button" class="scout-cap' + (on ? ' is-active' : '') + '" data-capsule="' + c.id + '" aria-pressed="' + on + '"' + (off ? ' disabled' : '') + '>' +
-        '<span class="scout-cap__pic"><img src="' + c.cover + '" alt="Капсула «' + esc(c.name) + '»: ' + esc(c.style.toLowerCase()) + '" loading="lazy" width="560" height="700"><span class="scout-cap__check">' + ICON.check + '</span></span>' +
-        '<span class="scout-cap__name">' + esc(c.name) + '</span>' +
-        (off ? '<span class="badge badge--line scout-cap__soon">скоро</span>' : '<span class="scout-cap__price num">' + F.rub(c.pricePerM2) + '/м²</span>') + '</button>';
+        '<span class="scout-cap__pic"><img src="' + (c.wide || c.cover) + '"' + (c.wide && c.widePos ? ' style="object-position:' + c.widePos + '"' : '') + ' alt="Капсула «' + esc(c.name) + '»: ' + esc(c.style.toLowerCase()) + '" loading="lazy" width="560" height="430"><span class="scout-cap__check">' + ICON.check + '</span></span>' +
+        '<span class="scout-cap__body"><span class="scout-cap__name">' + esc(c.name) + '</span><span class="scout-cap__style">' + esc(c.style) + '</span>' +
+        '<span class="scout-cap__foot"><span class="scout-cap__dots" aria-hidden="true">' + (c.palette || []).map(function (h) { return '<i style="background:' + h + '"></i>'; }).join('') + '</span>' +
+        (off ? '<span class="badge badge--line scout-cap__soon">скоро</span>' : '<span class="scout-cap__price num">от <b>' + F.num(c.pricePerM2) + '</b>\u00a0₽/м²</span>') + '</span></span></button>';
     }).join('');
+    var filters = '<div class="scout-filt" role="group" aria-label="Фильтр капсул">' + CAP_FILTERS.map(function (f) {
+      var on = f.id === capFilter;
+      return '<button type="button" class="scout-filt__b' + (on ? ' is-on' : '') + '" data-cap-filter="' + f.id + '" aria-pressed="' + on + '">' + esc(f.t) + '</button>';
+    }).join('') + '</div>';
     var cur = okCapsule(st.capsuleId);
     var INFO_IC = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg>';
     var levels = LEVELS.map(function (l) {
@@ -494,9 +507,8 @@
     }).join('');
     var vis = isVis();
     return '<div class="scout-step">' +
-      stepHead('Какой интерьер считаем?', 'Загрузите технический проект или свои визуалы — или выберите готовую капсулу.') +
-      srcHtml() +
-      '<div class="stack stack--2 scout-src__or"><h3 class="h3">Или выберите капсулу</h3><p class="small muted">' + (vis ? 'Сейчас считаем по вашим картинкам. Нажмите на капсулу, чтобы считать по ней.' : 'Капсула задаёт комплектацию: отделку, мебель, свет и сантехнику. Цена — за квадратный метр по ценам METOD.') + '</p></div>' +
+      stepHead('Выберите капсулу', vis ? 'Сейчас считаем по вашим картинкам. Нажмите на капсулу, чтобы считать по ней.' : 'Капсула задаёт комплектацию: отделку, мебель, свет и сантехнику. Цена — за квадратный метр по ценам METOD.') +
+      srcHtml() + filters +
       '<div class="scout-caps' + (vis ? ' is-muted' : '') + '">' + caps + '</div>' +
       (vis ? '<div class="stack scout-block">' + pairLine() + '</div>'
         : '<div class="stack scout-block"><h3 class="h4">Тип ремонта</h3><div class="scout-levels">' + levels + '</div><button type="button" class="arrow-link scout-cls-link" data-classifier="1">Что входит в Базовый и Премиум</button>' + pairLine() + '</div>') +
@@ -512,14 +524,16 @@
         '<span class="scout-state__main"><span class="option__title">' + esc(s.name) + '</span><span class="option__note">' + esc(s.note) + '</span></span>' +
         '<span class="scout-state__rate"><span class="mid-num num">' + F.rub(s.rate) + '/м²</span>' + (s.estimate ? '<span class="badge badge--line">предварительный</span>' : '') + '</span></button>';
     }).join('');
-    var hasEst = SC.states.some(function (s) { return s.estimate; });
+    /* свёрнуто (Алина 27.10): состояние выбрано — одна строка «Бетон · 60 000 ₽/м² · изменить», список — по тапу;
+       у предварительной ставки и в свёрнутой строке значок «предварительный», сноска — только когда значок виден */
+    var one = st.stateId && !stateOpen ? byId(SC.states, st.stateId) : null;
+    var hasEst = one ? !!one.estimate : SC.states.some(function (s) { return s.estimate; });
     /* один заголовок шага (Вика 22.10: верхний дубль «Что сейчас в квартире» убран); пояснение — под ним */
     return '<section class="stack stack--4 scout-sub"><div class="stack stack--2"><h2 class="h3" id="scout-h" tabindex="-1">Что сейчас в квартире</h2>' +
       '<p class="text">Ставка работ бригады зависит от состояния стен — независимо от капсулы и уровня.</p></div>' +
-      /* свёрнуто (Алина 27.10): состояние выбрано — одна строка «Бетон · 60 000 ₽/м² · изменить», список — по тапу */
-      (st.stateId && !stateOpen ? (function () { var c = byId(SC.states, st.stateId); return '<button type="button" class="option scout-state is-active scout-state--one" data-state-open aria-expanded="false">' +
-        '<span class="scout-state__main"><span class="option__title">' + esc(c.name) + '</span><span class="option__note">' + esc(c.note) + '</span></span>' +
-        '<span class="scout-state__rate"><span class="mid-num num">' + F.rub(c.rate) + '/м²</span><span class="scout-state__ch">изменить ›</span></span></button>'; })()
+      (one ? '<button type="button" class="option scout-state is-active scout-state--one" data-state-open aria-expanded="false">' +
+        '<span class="scout-state__main"><span class="option__title">' + esc(one.name) + '</span><span class="option__note">' + esc(one.note) + '</span></span>' +
+        '<span class="scout-state__rate"><span class="mid-num num">' + F.rub(one.rate) + '/м²</span>' + (one.estimate ? '<span class="badge badge--line">предварительный</span>' : '') + '<span class="scout-state__ch">изменить ›</span></span></button>'
         : '<div class="scout-states">' + opts + '</div>') +
       (hasEst ? '<p class="small muted scout-foot">«Предварительный» — ставку работ команда SOVEAPP ещё уточняет.</p>' : '') + '</section>';
   }
@@ -562,7 +576,11 @@
       '<p class="tiny muted scout-rooms__note" id="scout-breakdown"' + (breakdownHtml() ? '' : ' hidden') + '>' + breakdownHtml() + '</p></div>';
   }
   function viewPlan() {
-    var head = '<div class="stack stack--2"><h3 class="h3">Площадь квартиры</h3><p class="text">Загрузите план — посчитаем помещения сами. Плана под рукой нет — впишите площадь вручную.</p></div>';
+    /* Вика 23.10: план загружают в самом начале (шаг 1), здесь загрузки нет — только площади.
+       Из Интерьера («Досчитать весь бюджет») шаг 1 пропускается — там, как у Алины, загрузка плана, пример или площади вручную */
+    if (!st.plan && !recog && !st.fromInterior) st.plan = { mode: 'manual', fileName: null, meta: null, rooms: [ { id: 'n' + (++roomSeq), name: 'Вся квартира', area: null } ] };
+    var fromFile = st.plan && st.plan.mode !== 'manual';
+    var head = '<div class="stack stack--2"><h3 class="h3">Площадь квартиры</h3><p class="text">' + (fromFile && st.plan.mode === 'sample' ? 'Это пример планировки — поправьте площади под свою квартиру или загрузите свой план.' : fromFile ? 'Площади взяли из вашего плана — проверьте и поправьте.' : !st.plan ? 'Загрузите план — посчитаем помещения сами. Плана под рукой нет — впишите площадь вручную.' : 'Впишите площадь квартиры. Помещения можно добавить для точности.') + '</p></div>';
     var body;
     if (recog) {
       body = '<div class="split"><div class="col-8 card card--pad stack stack--6 scout-recog" role="status">' +
@@ -582,7 +600,9 @@
     } else {
       var p = st.plan, manual = p.mode === 'manual';
       var src = p.mode === 'file' ? 'Файл: ' + esc(p.fileName || 'планировка') : p.mode === 'sample' ? 'Пример планировки' : 'Площади введены вручную';
-      var top = '<div class="row row--between scout-plan-src"><span class="small"><b>' + src + '</b></span><button type="button" class="btn btn--link" data-act="reset-plan">' + (manual ? 'Загрузить планировку' : 'Заменить планировку') + '</button></div>';
+      /* из Интерьера шага 1 нет — план загружают и меняют здесь (как у Алины) */
+      var top = st.fromInterior ? '<div class="row row--between scout-plan-src"><span class="small"><b>' + src + '</b></span><button type="button" class="btn btn--link" data-act="reset-plan">' + (manual ? 'Загрузить планировку' : 'Заменить планировку') + '</button></div>'
+        : manual ? '' : '<div class="row row--between scout-plan-src"><span class="small"><b>' + src + '</b></span><button type="button" class="btn btn--link" data-step-go="1">Заменить на шаге 1</button></div>';
       var notice = p.mode === 'file' ? '<div class="notice"><span class="small">В прототипе распознавание не подключено: подставили пример, поправьте площади под свою квартиру.</span></div>' : '';
       if (manual) {
         /* Вика 22.10: блок «Где взять площади» убран; вместо «посчитаем на замере» — «не входят в расчёт» */
@@ -600,7 +620,8 @@
     return '<div class="scout-step stack stack--10">' + viewState() + bar() + '</div>';
   }
   function viewPlanStep() {
-    return '<div class="scout-step stack stack--10">' + stepHead('Параметры объекта', 'Загрузите план — посчитаем площади сами. Можно взять пример или ввести площади вручную.') +
+    return '<div class="scout-step stack stack--10">' + stepHead('Параметры объекта', st.plan && st.plan.mode === 'sample' ? 'Площади — из примера планировки.' : st.plan && st.plan.mode !== 'manual' ? (st.fromInterior ? 'Площади — из вашего плана.' : 'Площади — из плана, который вы загрузили на шаге 1.')
+      : st.fromInterior && !st.plan ? 'Загрузите план — посчитаем площади сами. Можно взять пример или ввести площади вручную.' : 'Площадь квартиры и помещений — от неё считаем работы и комплектацию.') +
       viewPlan() + bar() + '</div>';
   }
 
@@ -678,34 +699,42 @@
   }
   function viewResult() {
     var r = calc(), c = r.capsule, rq = issuedRequest();
-    /* цифры берём из заявки Скаут: повторный расчёт показывает ровно то, что было выдано */
+    /* цифры берём из заявки Расчёт бюджета: повторный расчёт показывает ровно то, что было выдано */
     if (rq && rq.result && rq.result.total > 0 && rq.result.area === r.area) {
       r.works = rq.result.works; r.kitMetod = rq.result.kitMetod; r.kitRetail = rq.result.kitRetail; r.total = rq.result.total;
       r.perM2 = r.total / r.area; r.save = r.kitRetail - r.kitMetod; r.savePct = Math.round(r.save / r.kitRetail * 100);
     }
-    var reqLine = rq ? '<p class="small scout-req"><b class="num">Заявка Скаут № ' + rq.number + '</b><br>основание: ' + esc(S.scout.basisLabel(rq.basis)) + ', <span class="muted" style="white-space:nowrap">' + esc(F.dateLong(rq.ts)) + '</span></p>' : '';
+    var reqLine = rq ? '<p class="small scout-req"><b class="num">Заявка на расчёт № ' + rq.number + '</b><br>основание: ' + esc(S.scout.basisLabel(rq.basis)) + ', <span class="muted" style="white-space:nowrap">' + esc(F.dateLong(rq.ts)) + '</span></p>' : '';
     var premiumNote = (r.level.sameAsBase && !r.visuals) ? '<div class="notice"><span class="small">В прототипе сумма для Премиума посчитана как для Базового — данные калькулятора подключаются на сервере.</span></div>' : '';
     var savedPr = st.savedProjectId ? S.projects.get(st.savedProjectId) : null;
     var pid = targetProjectId();
     var tail = c ? '?capsule=' + c.id + (pid ? '&project=' + encodeURIComponent(pid) : '') : (pid ? '?project=' + encodeURIComponent(pid) : '');
 
-    var stages = SC.stages.map(function (s) {
-      return '<li class="scout-line scout-line--stage"><span class="scout-line__name">' + esc(s[0]) + '</span><span class="bar" aria-hidden="true"><i style="width:' + s[1] + '%"></i></span><span class="scout-line__pct num muted">' + s[1] + ' %</span><span class="scout-line__sum num">' + F.rub(r.works * s[1] / 100) + '</span></li>';
+    /* по плану — суммы этапов из позиций Scout; без плана — доли ставки за м² */
+    var stageRows = r.plan ? r.plan.stages.filter(function (s) { return s[1] > 0; }).map(function (s) { return [s[0], Math.round(s[1] / r.works * 100), s[1]]; })
+      : SC.stages.map(function (s) { return [s[0], s[1], r.works * s[1] / 100]; });
+    var stages = stageRows.map(function (s) {
+      return '<li class="scout-line scout-line--stage"><span class="scout-line__name">' + esc(s[0]) + '</span><span class="bar" aria-hidden="true"><i style="width:' + s[1] + '%"></i></span><span class="scout-line__pct num muted">' + s[1] + ' %</span><span class="scout-line__sum num">' + F.rub(s[2]) + '</span></li>';
     }).join('');
+    var V = st.volumes, planWorksHtml = r.plan ? '<details class="scout-plan"><summary>Работы по вашему плану · ' + r.plan.lines.length + ' позиций</summary>' +
+      '<p class="tiny muted">По комнатам плана: стены ' + F.area(V.walls) + ' за вычетом дверей и окон, пол ' + F.area(V.floor_dry) + ', санузлы ' + F.area(V.walls_bath) + ' стен, плинтус ' + String(V.plinth_m).replace('.', ',') + ' м, потолки ' + String(V.h).replace('.', ',') + ' м. Расценки — Scout на ' + esc((r.plan.date || '').split('-').reverse().join('.')) + '.</p>' +
+      '<ul class="scout-plan__list">' + r.plan.lines.map(function (l) {
+        return '<li><span>' + esc(l.work) + '<small class="num">' + String(l.qty).replace('.', ',') + ' ' + esc(l.unit) + ' × ' + F.rub(l.price) + '</small></span><b class="num">' + F.rub(l.sum) + '</b></li>';
+      }).join('') + '</ul></details>' : '';
     var kit = r.visuals ? visLinesHtml(r) : SC.kitShares.map(function (k) {
       return '<li class="scout-line scout-line--kit"><span class="scout-line__name">' + esc(k[0]) + '</span><span class="scout-line__pct num muted">' + k[1] + ' %</span><span class="scout-line__retail num strike muted">' + F.rub(r.kitRetail * k[1] / 100) + '</span><span class="scout-line__sum num green">' + F.rub(r.kitMetod * k[1] / 100) + '</span></li>';
     }).join('');
 
     var adeptFrom = Math.min.apply(null, D.adept.packages.map(function (p) { return p.rate; }));
     var cards = {
-      adept: '<a class="card card--pad card--link scout-next" href="adept.html' + tail + '"><span class="row row--between"><span class="eyebrow">Адепт · дизайн-проект</span>' + (st.formatId === 'adept' ? '<span class="badge badge--line">ваш формат</span>' : '') + '</span>' +
-        '<h3 class="h3">' + (c ? 'Адаптируем «' + esc(c.name) + '» под вашу квартиру' : 'Соберём дизайн-проект по вашим картинкам') + '</h3><p class="small muted grow">' + (c ? 'Дизайнер переложит капсулу на вашу планировку' : 'Дизайнер разложит подборку по вашей планировке') + ': расстановка, визуализации, чертежи. Расчёт Скаута передадим вместе с заявкой. От <span class="num">' + F.rub(adeptFrom) + '/м²</span>.</p><span class="arrow-link">Перейти в Адепт</span></a>',
-      track: '<a class="card card--pad card--link scout-next" href="track.html' + tail + '"><span class="row row--between"><span class="eyebrow">Трек · ремонт под ключ</span>' + (st.formatId === 'track' ? '<span class="badge badge--line">ваш формат</span>' : '') + '</span>' +
-        '<h3 class="h3">Сделаем ремонт по этому расчёту</h3><p class="small muted grow">Команда SOVEAPP ведёт работы по этапам из сметы. Акты, сроки и оплаты видны в личном кабинете.</p><span class="arrow-link">Перейти в Трек</span></a>'
+      adept: '<a class="card card--pad card--link scout-next" href="adept.html' + tail + '"><span class="row row--between"><span class="eyebrow">Дизайн-проект</span>' + (st.formatId === 'adept' ? '<span class="badge badge--line">ваш формат</span>' : '') + '</span>' +
+        '<h3 class="h3">' + (c ? 'Адаптируем «' + esc(c.name) + '» под вашу квартиру' : 'Соберём дизайн-проект по вашим картинкам') + '</h3><p class="small muted grow">' + (c ? 'Дизайнер переложит капсулу на вашу планировку' : 'Дизайнер разложит подборку по вашей планировке') + ': расстановка, визуализации, чертежи. Расчёт бюджета передадим вместе с заявкой. От <span class="num">' + F.rub(adeptFrom) + '/м²</span>.</p><span class="arrow-link">Перейти к дизайн-проекту</span></a>',
+      track: '<a class="card card--pad card--link scout-next" href="track.html' + tail + '"><span class="row row--between"><span class="eyebrow">Ремонт под ключ</span>' + (st.formatId === 'track' ? '<span class="badge badge--line">ваш формат</span>' : '') + '</span>' +
+        '<h3 class="h3">Сделаем ремонт по этому расчёту</h3><p class="small muted grow">Команда SOVEAPP ведёт работы по этапам из сметы. Акты, сроки и оплаты видны в личном кабинете.</p><span class="arrow-link">Перейти к ремонту под ключ</span></a>'
     };
     var order = st.formatId === 'track' ? ['track', 'adept'] : ['adept', 'track'];
     var nextLead = st.formatId === 'self' ? 'Вы делаете ремонт сами: сохраните расчёт — смета и список товаров останутся в кабинете. Если понадобится помощь, расчёт можно передать дальше.'
-      : st.formatId === 'track' ? 'Вы выбрали ремонт под ключ — расчёт уйдёт в Трек вместе с заявкой.' : 'Вы выбрали дизайн-проект — расчёт уйдёт в Адепт вместе с заявкой.';
+      : st.formatId === 'track' ? 'Вы выбрали ремонт под ключ — расчёт уйдёт в ремонт под ключ вместе с заявкой.' : 'Вы выбрали дизайн-проект — расчёт уйдёт в дизайн-проект вместе с заявкой.';
 
     return '<div class="scout-step scout-step--result">' +
       '<h2 class="scout-vh" id="scout-h" tabindex="-1">Результат расчёта</h2>' +
@@ -723,7 +752,8 @@
         '</div>' +
         '<div class="dim" aria-hidden="true"><span>' + F.area(r.area) + '</span></div>' +
         '<div class="scout-res__parts">' +
-          '<div class="stack stack--2"><span class="eyebrow">Работы</span><span class="mid-num">' + F.rub(r.works) + '</span><span class="small muted"><span class="num">' + F.rub(r.state.rate) + '/м²</span>' + (r.state.estimate ? ' · ставка предварительная' : '') + '</span></div>' +
+          '<div class="stack stack--2"><span class="eyebrow">Работы</span><span class="mid-num">' + F.rub(r.works) + '</span><span class="small muted">' + (r.plan ? 'по вашему плану · <span class="num">' + F.rub(Math.round(r.works / r.area)) + '/м²</span>'
+            : '<span class="num">' + F.rub(r.state.rate) + '/м²</span>' + (r.state.estimate ? ' · ставка предварительная' : '')) + '</span></div>' +
           '<div class="stack stack--2"><span class="eyebrow">Комплектация по ценам METOD</span><span class="mid-num">' + F.rub(r.kitMetod) + '</span><span class="small muted"><span class="num strike">' + F.rub(r.kitRetail) + '</span> в рознице</span></div>' +
           '<div class="stack stack--2"><span class="eyebrow">Экономия с METOD</span><span class="mid-num scout-res__save">' + F.rub(r.save) + '</span><span class="small muted num">−' + r.savePct + ' % к рознице</span></div>' +
         '</div>' +
@@ -737,7 +767,7 @@
 
       '<div class="split scout-detail">' +
         '<section class="col-6 stack" aria-labelledby="scout-stages-t"><div class="scout-detail__head"><h3 class="h3" id="scout-stages-t">Работы по этапам</h3></div>' +
-          '<ol class="scout-lines">' + stages + '<li class="scout-line scout-line--sum"><span class="scout-line__name">Все работы</span><span class="scout-line__sum num">' + F.rub(r.works) + '</span></li></ol></section>' +
+          '<ol class="scout-lines">' + stages + '<li class="scout-line scout-line--sum"><span class="scout-line__name">Все работы</span><span class="scout-line__sum num">' + F.rub(r.works) + '</span></li></ol>' + planWorksHtml + '</section>' +
         '<section class="col-6 stack" aria-labelledby="scout-kit-t"><div class="scout-detail__head"><h3 class="h3" id="scout-kit-t">' + (c ? 'Комплектация по категориям' : 'Подборка по вашим картинкам') + '</h3>' + (c ? '<a class="arrow-link" href="market.html?capsule=' + c.id + '">Смотреть позиции капсулы</a>' : '<button type="button" class="arrow-link scout-cls-link" data-act="vis-to-my">Добавить в «Мой ремонт»</button>') + '</div>' +
           '<ul class="scout-lines">' + kit + '<li class="scout-line scout-line--kit scout-line--sum"><span class="scout-line__name">Вся комплектация</span><span class="scout-line__pct"></span><span class="scout-line__retail num strike muted">' + F.rub(r.kitRetail) + '</span><span class="scout-line__sum num green">' + F.rub(r.kitMetod) + '</span></li></ul>' +
           '<p class="tiny muted">Зачёркнута розничная цена, зелёным — цена METOD. ' + (S.metod.active() ? 'Ваша подписка METOD активна.' : 'Цены METOD действуют с подпиской.') + '</p>' +
@@ -828,6 +858,8 @@
   stage.addEventListener('click', function (e) {
     var t = e.target.closest('button, a'); if (!t || t.disabled) return;
     var v;
+    if ((v = t.getAttribute('data-step-go'))) { go(Number(v)); return; }
+    if ((v = t.getAttribute('data-cap-filter'))) { capFilter = v; focusAfter = '[data-cap-filter="' + v + '"]'; render(); return; }
     if ((v = t.getAttribute('data-capsule'))) { if (okCapsule(v)) { st.capsuleId = v; st.source = 'capsule'; touch(); syncUrl(); focusAfter = '[data-capsule="' + v + '"]'; render(); } return; }
     if ((v = t.getAttribute('data-level'))) { st.level = v; touch(); focusAfter = '[data-level="' + v + '"]'; render(); return; }
     if (t.hasAttribute('data-state-open')) { stateOpen = true; render(); return; }
@@ -896,7 +928,7 @@
   if (qFromPlan !== null && S.ui.qs('step') === 'result' && validInputs()) { var ap0 = S.scout.access(accessParams()); issue('plan', ap0.kind === 'repeat' ? ap0.request : null); }
   if (issuedOnLoad) { restoredNote = false; persist(); }
   render();
-  if (issuedOnLoad) setTimeout(function () { S.ui.toast('Расчёт открыт · заявка Скаут № ' + issuedOnLoad.number, 'ok'); }, 300);
+  if (issuedOnLoad) setTimeout(function () { S.ui.toast('Расчёт открыт · заявка на расчёт № ' + issuedOnLoad.number, 'ok'); }, 300);
   else if (st.gate && st.pendingPay) {
     var freshPay = Date.now() - st.pendingPay < 30 * 60 * 1000;
     st.pendingPay = 0; persist();

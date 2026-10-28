@@ -248,6 +248,68 @@
 .scout-level__info { position: absolute; top: 14px; right: 14px; display: inline-flex; align-items: center; gap: 6px; min-height: 30px; padding: 4px 12px 4px 9px; border: 1px solid var(--line); border-radius: 999px; background: var(--accent-soft); color: var(--accent); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
 .scout-level__info:hover { border-color: var(--accent); }
 .scout-level__info:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* ---------- макет Вики 23.10: линия шагов с точками, «Выберите капсулу», две кнопки рядом, фильтры, широкие карточки ---------- */
+.scout-steps.steps { position: relative; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0; padding-bottom: 0; margin-top: 0; }
+.scout-steps.steps::before { content: ''; position: absolute; left: 10%; right: 10%; top: 7px; height: 2px; background: var(--line-2); }
+.scout-steps.steps > * { position: relative; align-items: center; text-align: center; border-top: 0; padding: 0; gap: 6px; min-height: 44px; color: var(--stone); }
+.scout-steps.steps > *::before { content: ''; width: 16px; height: 16px; border-radius: 50%; background: var(--paper); border: 2px solid var(--line-2); box-sizing: border-box; position: relative; z-index: 1; transition: background .15s, border-color .15s; }
+.scout-steps.steps > .is-done::before { background: var(--accent-2); border-color: var(--accent-2); }
+.scout-steps.steps > .is-current::before { background: var(--accent-2); border-color: var(--accent-2); box-shadow: 0 0 0 4px var(--accent-soft); }
+.scout-steps.steps > * b { font-size: 12px; font-weight: 500; letter-spacing: 0; text-transform: none; color: var(--stone); }
+.scout-steps.steps > .is-done b { color: var(--ink); }
+.scout-steps.steps > .is-current b { color: var(--accent); font-weight: 700; }
+.scout-steps.steps > * span, .scout-steps.steps > * em { display: none !important; }
+.scout-steps.steps > *:not([disabled]):not(.is-current):hover { color: var(--ink); }
+.scout-step__head .h2 { font-size: clamp(32px, 8.4vw, 40px); line-height: 1.02; }
+
+.scout-src { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.scout-src__opt { border-style: solid; border-color: var(--line); padding: 10px; gap: 8px; min-height: 68px; box-shadow: var(--shadow); }
+.scout-src__opt.is-on { padding: 9px; }
+.scout-src__ic { width: 36px; height: 36px; }
+.scout-src__ic svg { width: 20px; height: 20px; }
+.scout-src__t { font-size: 13.5px; font-weight: 600; line-height: 1.2; }
+.scout-src__n { font-size: 12px; line-height: 1.3; color: var(--graphite); }
+.scout-src__ch { color: var(--stone); display: inline-flex; flex: none; }
+.scout-src__acts { grid-column: 1 / -1; }
+
+.scout-filt { display: flex; flex-wrap: wrap; gap: 8px; }
+.scout-filt__b { min-height: 38px; padding: 0 16px; border: 1px solid var(--line); border-radius: var(--pill); background: var(--white); color: var(--ink); font: 500 14px var(--font); cursor: pointer; transition: background .15s, border-color .15s; }
+.scout-filt__b:hover { border-color: var(--line-2); }
+.scout-filt__b.is-on { background: var(--accent-2); border-color: var(--accent-2); color: #fff; }
+
+.scout-caps { gap: 12px; }
+@media (min-width: 1100px) { .scout-caps { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; } }
+.scout-cap { background: var(--white); border-radius: var(--r); overflow: hidden; box-shadow: var(--shadow); gap: 0; cursor: pointer; transition: box-shadow .15s; }
+.scout-cap:not([disabled]):hover { box-shadow: 0 8px 22px rgba(46,31,24,.12); }
+.scout-cap__pic { border-radius: 0; }
+.scout-cap__pic img { aspect-ratio: 1.3; display: block; }
+.scout-cap__pic::after { border-radius: var(--r) var(--r) 0 0; }
+.scout-cap.is-active { box-shadow: 0 0 0 2px var(--accent-2), var(--shadow); }
+.scout-cap.is-active .scout-cap__pic::after { border-width: 0; }
+.scout-cap__check { top: 8px; right: 8px; width: 30px; height: 30px; border-radius: 50%; background: var(--accent-2); box-shadow: 0 0 0 2px #fff; }
+.scout-cap__check svg { width: 16px; height: 16px; }
+.scout-cap__body { display: flex; flex-direction: column; gap: 4px; padding: 10px 12px 12px; width: 100%; box-sizing: border-box; }
+.scout-cap__name { font-family: var(--font-display); font-size: 20px; font-weight: 500; line-height: 1.05; margin: 0; font-variant-numeric: lining-nums; }
+.scout-cap__style { font-size: 12px; color: var(--graphite); }
+.scout-cap__foot { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-top: 4px; flex-wrap: wrap; }
+.scout-cap__dots { display: inline-flex; gap: 3px; }
+.scout-cap__dots i { width: 12px; height: 12px; border-radius: 50%; box-shadow: inset 0 0 0 1px rgba(0,0,0,.08); }
+.scout-cap__price { font-size: 12px; color: var(--accent); white-space: nowrap; }
+.scout-cap__price b { font-size: 15px; font-weight: 700; }
+.scout-cap[disabled] { opacity: .7; }
+@media (max-width: 360px) { .scout-src { grid-template-columns: 1fr; } }
+
+/* «Работы по вашему плану» — позиции Scout × объёмы плана (plan-volumes.js, 27.10.2026) */
+.scout-plan { margin-top: 12px; border-top: 1px solid var(--line); padding-top: 10px; }
+.scout-plan summary { cursor: pointer; font-weight: 600; font-size: 14px; padding: 6px 0; min-height: 44px; display: flex; align-items: center; }
+.scout-plan .tiny { margin: 4px 0 8px; }
+.scout-plan__list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.scout-plan__list li { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; font-size: 13px; padding: 4px 0; border-bottom: 1px solid var(--line); }
+.scout-plan__list li span { display: grid; gap: 2px; min-width: 0; overflow-wrap: anywhere; }
+.scout-plan__list small { font-size: 11px; color: var(--graphite); }
+.scout-plan__list b { white-space: nowrap; font-weight: 600; }
+
 /* «Что сейчас в квартире» свёрнуто: одна строка с выбранным состоянием и «изменить ›» (Алина 27.10) */
 .scout-state--one, .scout-state.scout-state--one { flex-direction: row; min-height: 0; padding: var(--s4) var(--s5, 20px); width: 100%; }
 .scout-state__ch { font-size: 12px; font-weight: 700; color: var(--accent, #A24E32); }

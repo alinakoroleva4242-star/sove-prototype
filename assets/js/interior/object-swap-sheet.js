@@ -47,7 +47,7 @@
     return '<i class="ss-grip"></i><div class="sw-head"><span><b class="sw-t">Сменить интерьер</b><span class="sw-sub">другая капсула или свой рендер — пересоберём ДНК, 12 материалов и комнаты</span></span>' +
         '<button type="button" class="sw-x" data-sw-close aria-label="Закрыть">✕</button></div>' +
       (o.changes ? '<div class="ci-warn"><b>!</b> твои замены сбросятся · ' + o.changes + ' ' + (o.changes === 1 ? 'замена' : o.changes < 5 ? 'замены' : 'замен') + ' в «' + esc(o.current) + '»</div>' : '') +
-      '<small class="bs-l">КАПСУЛЫ SOVE · БЕСПЛАТНО</small>' + UI.capsuleStrip(o.caps, { current: o.currentId }) +
+      '<small class="bs-l">КАПСУЛЫ SOVEAPP · БЕСПЛАТНО</small>' + UI.capsuleStrip(o.caps, { current: o.currentId }) +
       '<label class="up up--line"><input type="file" accept="image/jpeg,image/png,image/webp,image/heic,.heic" hidden data-up><span class="up__ic">⇪</span><span class="up__t"><b>Свой рендер, фото, Pinterest</b><small>разберём ДНК и соберём материалы · от ' + UI.fmtTokens(o.ownPrice) + '</small></span><span class="up__a">›</span></label>' +
       '<button type="button" class="mt-btn2" data-sw-close>Отмена</button>';
   };

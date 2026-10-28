@@ -1,0 +1,49 @@
+/* Визуализации · «Примерка капсулы» (result.html): шапка блока как в Планировке, капсулы и комнаты сеткой —
+   без прокрутки вбок, товары в комнате под кадром, мудборд капсулы, итоговые кнопки */
+body[data-page="result"] .appbar { display: none; }
+#rs-root:has(> .pz-head:first-child) { padding-top: 0; }
+
+.tr-caps { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.tr-cap { display: grid; align-content: start; gap: 0; padding: 0; border: 1px solid #E6E1DA; border-radius: 14px; background: #fff; overflow: hidden; text-align: left; font: inherit; color: #1E1C1A; cursor: pointer; }
+.tr-cap.is-on { border: 2px solid #A24E32; }
+.tr-cap__pic { display: block; aspect-ratio: 1.35; background: #F4F2EE; }
+.tr-cap__pic img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.tr-cap__b { display: grid; gap: 6px; padding: 8px 10px 10px; min-width: 0; }
+.tr-cap__b b { font-size: 12px; line-height: 1.25; }
+.tr-cap__b small { font-size: 10px; color: #6B655F; line-height: 1.3; }
+.tr-mini { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2px; border-radius: 6px; overflow: hidden; }
+.tr-mini img { width: 100%; aspect-ratio: 1; object-fit: cover; display: block; }
+.tr-dots { display: flex; gap: 4px; }
+.tr-dots i { width: 14px; height: 14px; border-radius: 50%; border: 1px solid rgba(0,0,0,.08); }
+
+.tr-noplan { display: grid; gap: 4px; }
+.tr-rooms { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.tr-room { display: flex; align-items: center; gap: 10px; padding: 12px; border: 1px solid #E6E1DA; border-radius: 14px; background: #fff; text-align: left; font: inherit; color: #1E1C1A; cursor: pointer; min-width: 0; }
+.tr-room span { display: grid; gap: 2px; min-width: 0; }
+.tr-room b { font-size: 12px; }
+.tr-room small { font-size: 10px; color: #6B655F; }
+.tr-room__ch { flex: none; width: 22px; height: 22px; border-radius: 50%; background: #fff; border: 1px solid #E6E1DA; font-style: normal; font-size: 12px; display: grid; place-items: center; color: transparent; }
+.tr-room.is-on { border: 2px solid #A24E32; padding: 11px; }
+.tr-room.is-on .tr-room__ch { background: #A24E32; border-color: #A24E32; color: #fff; }
+.tr-price { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.tr-price div { display: grid; gap: 2px; }
+.tr-price small { font-size: 10px; color: #6B655F; }
+
+.tr-goods__box { margin-top: 4px; }
+.tr-goods__t { width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; border: 1px solid #E6E1DA; border-radius: 12px; background: #F8F6F2; font: 700 12px/1.2 var(--font); color: #1E1C1A; cursor: pointer; }
+.tr-goods__t i { font-style: normal; font-size: 16px; color: #A24E32; }
+.tr-goods { display: grid; gap: 8px; margin-top: 8px; }
+.tr-goods .rp-card { min-width: 0; }
+.tr-goods__wait { display: block; }
+
+.tr-mb { display: grid; gap: 8px; }
+.tr-mb__t { font-size: 14px; }
+.tr-mb__grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; border-radius: 12px; overflow: hidden; aspect-ratio: 1.6; }
+.tr-mb__grid img { width: 100%; height: 100%; object-fit: cover; display: block; min-height: 0; }
+
+.tr-final { display: grid; gap: 10px; }
+.tr-btn2 { background: #F3E4DB; color: #7E3A24; }
+.tr-btn2:hover { background: #EBD5C8; }
+.tr-next { display: block; padding: 12px 14px; border-radius: 14px; background: #2E6B4E; color: #fff; font-weight: 700; font-size: 13px; text-decoration: none; text-align: center; }
+.tr-final__links { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 18px; }
+.tr-noimg { background: #F4F2EE; border-radius: 8px; }

@@ -1,4 +1,4 @@
-/* SOVE AI — все нерешённые места ТЗ (⚠️, design/sove-ai/BRIEF-gaps.md) в одном месте.
+/* Генерации — все нерешённые места ТЗ (⚠️, design/sove-ai/BRIEF-gaps.md) в одном месте.
    Поменять решение = поменять одну строку здесь. */
 window.SOVE_AI_CONFIG = {
   variant: 'B',                    /* А1 решено: Алина утвердила B 22.10. Остальные: A | C | D | E | F (F — горизонтальная лента) */
@@ -19,7 +19,7 @@ window.SOVE_AI_CONFIG = {
   perFrame: { g4: false, g5: true },
   fromPrice: { g2: true },         /* «от 10 токенов» — цена зависит от охвата */
   collapseOnReturn: true,          /* ⚠️ А6 второй заход: заголовок в одну строку */
-  budgetFormula: 'scout+cart',     /* ⚠️ А2 бюджет в полосе: расчёт Скаута + товары корзины вне расчёта */
+  budgetFormula: 'scout+cart',     /* ⚠️ А2 бюджет в полосе: расчёт бюджета + товары корзины вне расчёта */
   stepsInFlow: 3,                  /* ⚠️ А5 шагов в сценарии Планировки */
   moodboardLayout: 'B',            /* ⚠️ А7 оформление мудборда: фото с точками */
   metodLock: true,                 /* ⚠️ А9 без METOD цена METOD видна с замком */

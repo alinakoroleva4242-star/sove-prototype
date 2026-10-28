@@ -1,6 +1,6 @@
-/* Адепт: два блока, которые нужны в нескольких местах.
+/* Дизайн-проект: два блока, которые нужны в нескольких местах.
    SOVE.adeptBanner(el, opts) — вход в воронку: лист с планом сдвигается, под ним тот же кадр в интерьере.
-   SOVE.adeptCompare(el, opts) — уже внутри страницы Адепта: что на руках с капсулой и что добавит проект. */
+   SOVE.adeptCompare(el, opts) — уже внутри страницы дизайн-проекта: что на руках с капсулой и что добавит проект. */
 (function () {
   var S = window.SOVE, D = S.data, F = S.fmt;
   var PK = D.adept.packages;
@@ -33,7 +33,7 @@
       '<text class="pl-d" x="14" y="172" text-anchor="middle" transform="rotate(-90 14 172)">4,6 м</text>' +
       (compact ? '' :
         '<path class="pl-stamp" d="M20 326h132v48H20zM20 342h132M20 358h132"/>' +
-        '<text class="pl-st" x="26" y="338">SOVEAPP · Адепт</text><text class="pl-st" x="26" y="354">план расстановки</text><text class="pl-st" x="26" y="370">М 1:50</text>') +
+        '<text class="pl-st" x="26" y="338">SOVEAPP · дизайн-проект</text><text class="pl-st" x="26" y="354">план расстановки</text><text class="pl-st" x="26" y="370">М 1:50</text>') +
       '</svg>';
   }
 
@@ -50,7 +50,7 @@
     el.className = 'adb' + (compact ? ' adb--compact' : '') + (opts.bare ? ' adb--bare' : '');
     el.innerHTML =
       (opts.bare ? '' :
-        '<div class="adb__head"><span class="adb__k">Адепт · дизайн-проект</span>' +
+        '<div class="adb__head"><span class="adb__k">Дизайн-проект</span>' +
         '<b class="adb__t">' + F.esc(opts.title || 'Ваша квартира — в интерьере капсулы') + '</b></div>') +
       '<div class="adb__stage" id="' + id + '-stage">' +
         '<img class="adb__photo" src="' + cap.cover + '" alt="Гостиная в интерьере капсулы ' + F.esc(cap.code) + '">' +
@@ -106,7 +106,7 @@
     if (order) order.addEventListener('click', function () {
       if (S.draft && S.draft.set) S.draft.set('adept', { capsuleId: cap.id });
       S.ui.leadSheet({
-        eyebrow: 'Адепт · дизайн-проект',
+        eyebrow: 'Дизайн-проект',
         title: 'Проект по капсуле «' + cap.name + '»',
         note: 'Пакет «' + pack.name + '» — от ' + F.rub((cap.adeptRates && cap.adeptRates.start) || pack.rate) + '/м², ' + pack.term + '.\nВ проект входит: ' + pack.includes.join('; ') + '. Спецификация с ценами METOD — с пакета «' + PK[1].name + '». Площадь и пакет уточним при звонке.',
         cta: 'Отправить заявку',
@@ -312,9 +312,9 @@
     ];
     el.className = 'adc';
     el.innerHTML =
-      '<span class="adb__k">Адепт · дизайн-проект</span>' +
+      '<span class="adb__k">Дизайн-проект</span>' +
       '<h2 class="adc__t">' + F.esc(opts.title || 'Что у вас на руках') + '</h2>' +
-      '<div class="adc__seg" role="tablist"><button type="button" role="tab" data-v="0" class="is-on">Только капсула</button><button type="button" role="tab" data-v="1">Капсула + Адепт</button></div>' +
+      '<div class="adc__seg" role="tablist"><button type="button" role="tab" data-v="0" class="is-on">Только капсула</button><button type="button" role="tab" data-v="1">Капсула + дизайн-проект</button></div>' +
       '<ul class="adc__list">' + ROWS.map(function (r, i) {
         return '<li style="--i:' + i + '" data-base="' + (r.base ? 1 : 0) + '"><b>' + r.t + '</b><span>' + r.d + '</span></li>';
       }).join('') + '</ul>' +
@@ -332,7 +332,7 @@
         var on = Number(b.getAttribute('data-v')) === mode;
         b.classList.toggle('is-on', on); b.setAttribute('aria-selected', on ? 'true' : 'false');
       });
-      if (opts.inside) {                       /* уже на странице Адепта: ведём к расчёту */
+      if (opts.inside) {                       /* уже на странице дизайн-проекта: ведём к расчёту */
         go.textContent = mode ? 'Собрать проект' : 'Смотреть капсулу';
         go.setAttribute('href', mode ? (opts.calc || '#calc') : ('capsule.html?id=' + cap.id));
       } else {

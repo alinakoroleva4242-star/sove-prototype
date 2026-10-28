@@ -1,4 +1,4 @@
-/* Адепт: капсула, пакет, площадь → цена; заявка без онлайн-оплаты */
+/* Дизайн-проект: капсула, пакет, площадь → цена; заявка без онлайн-оплаты */
 (function () {
   var S = window.SOVE, D = S.data, F = S.fmt, esc = F.esc;
   function $(id) { return document.getElementById(id); }
@@ -39,12 +39,12 @@
     [packages.length + ' пакета', 'от планировки до полной спецификации']
   ].map(function (f) { return '<div class="rule-top stack stack--2"><span class="mid-num">' + f[0] + '</span><span class="tiny muted">' + f[1] + '</span></div>'; }).join('');
 
-  /* уже есть заявка на Адепт */
+  /* уже есть заявка на Дизайн-проект */
   function paintTop() {
     var mine = S.leads.list().filter(function (l) { return l.product === 'adept' && (!project || l.projectId === project.id); })[0];
     var top = $('ad-top');
     if (!mine) { top.hidden = true; top.innerHTML = ''; return; }
-    top.innerHTML = '<div class="notice"><span class="small">Вы уже оставляли заявку на Адепт ' + F.dateLong(mine.ts) + (project ? ' по' + NB + 'проекту «' + esc(project.name) + '»' : '') + '. Статус: ' + esc((mine.status || 'Заявка принята').toLowerCase()) + '. Можно отправить новую, если условия изменились.</span><a class="btn btn--ghost btn--sm" href="account.html#leads">Посмотреть в кабинете</a></div>';
+    top.innerHTML = '<div class="notice"><span class="small">Вы уже оставляли заявку на дизайн-проект ' + F.dateLong(mine.ts) + (project ? ' по' + NB + 'проекту «' + esc(project.name) + '»' : '') + '. Статус: ' + esc((mine.status || 'Заявка принята').toLowerCase()) + '. Можно отправить новую, если условия изменились.</span><a class="btn btn--ghost btn--sm" href="account.html#leads">Посмотреть в кабинете</a></div>';
     top.hidden = false;
   }
 
@@ -59,11 +59,11 @@
     var scoutHref = 'scout.html?capsule=' + c.id + (project ? '&project=' + encodeURIComponent(project.id) : '');
     if (scout) {
       var sc = D.capsule(scout.capsuleId), other = scout.capsuleId && scout.capsuleId !== c.id;
-      $('ad-scout').innerHTML = '<div class="notice ad-notice"><span class="stack stack--2"><span class="small">Бюджет из Скаута: <b class="num">' + F.rub(scout.total) + '</b> · <span class="num">' + F.area(scout.area) + '</span>' + (sc ? ' · ' + esc(sc.code) : '') + '</span>' +
-        '<span class="tiny muted">' + (other ? 'Расчёт сделан для ' + esc(sc ? sc.code : 'другой капсулы') + '. Для ' + esc(c.code) + ' бюджет будет другим — пересчитайте в Скауте.' : 'Проект «' + esc(project.name) + '». Расчёт передадим дизайнеру вместе с заявкой.') + '</span></span>' +
-        '<a class="arrow-link" href="' + scoutHref + '">' + (other ? 'Пересчитать в Скауте' : 'Открыть расчёт') + '</a></div>';
+      $('ad-scout').innerHTML = '<div class="notice ad-notice"><span class="stack stack--2"><span class="small">Бюджет из расчёта: <b class="num">' + F.rub(scout.total) + '</b> · <span class="num">' + F.area(scout.area) + '</span>' + (sc ? ' · ' + esc(sc.code) : '') + '</span>' +
+        '<span class="tiny muted">' + (other ? 'Расчёт сделан для ' + esc(sc ? sc.code : 'другой капсулы') + '. Для ' + esc(c.code) + ' бюджет будет другим — пересчитайте бюджет.' : 'Проект «' + esc(project.name) + '». Расчёт передадим дизайнеру вместе с заявкой.') + '</span></span>' +
+        '<a class="arrow-link" href="' + scoutHref + '">' + (other ? 'Пересчитать бюджет' : 'Открыть расчёт') + '</a></div>';
     } else {
-      $('ad-scout').innerHTML = '<p class="ad-scout-hint"><span>Сначала посчитайте бюджет в' + NB + 'Скауте' + NB + '— дизайнер получит его вместе с заявкой.</span><a class="arrow-link" href="' + scoutHref + '">Посчитать в Скауте</a></p>';
+      $('ad-scout').innerHTML = '<p class="ad-scout-hint"><span>Сначала посчитайте бюджет' + NB + '— дизайнер получит его вместе с заявкой.</span><a class="arrow-link" href="' + scoutHref + '">Посчитать бюджет</a></p>';
     }
   }
 
@@ -88,7 +88,7 @@
     range.style.setProperty('--fill', ((st.area - AREA_MIN) / (AREA_MAX - AREA_MIN) * 100) + '%');
     range.setAttribute('aria-valuetext', F.area(st.area));
     $('ad-area-out').textContent = F.area(st.area);
-    $('ad-area-note').textContent = scout && clampArea(scout.area) === st.area ? 'Площадь взята из расчёта Скаута. Можно изменить.' : 'Квартира больше ' + AREA_MAX + NB + 'м²? Выберите ' + AREA_MAX + ' и' + NB + 'напишите площадь в' + NB + 'комментарии' + NB + '— менеджер пересчитает.';
+    $('ad-area-note').textContent = scout && clampArea(scout.area) === st.area ? 'Площадь взята из расчёта бюджета. Можно изменить.' : 'Квартира больше ' + AREA_MAX + NB + 'м²? Выберите ' + AREA_MAX + ' и' + NB + 'напишите площадь в' + NB + 'комментарии' + NB + '— менеджер пересчитает.';
   }
   function paintSum() {
     var c = capsule(), p = pack(), parts = st.mode === 'parts';
@@ -167,7 +167,7 @@
     $('ad-done-text').innerHTML = 'Позвоним по' + NB + 'номеру <span class="num">' + phoneFormat(phoneDigits(lead.phone)) + '</span>, уточним детали и' + NB + 'согласуем состав работ. Оплата' + NB + '— только после этого. Статус заявки виден в' + NB + 'кабинете, в' + NB + 'разделе «Заявки».';
     $('ad-done-rows').innerHTML = rowsHtml([['Капсула', c.name], ['Пакет', p.name + ' · ' + p.term], ['Площадь', F.area(lead.area)],
       [lead.payMode === 'parts' ? 'Цена, рассрочка' : 'Цена', lead.payMode === 'parts' ? nb(F.rub(lead.price)) + ' · от' + NB + nb(F.rub(Math.round(lead.price / PARTS))) + '/мес' : nb(F.rub(lead.price))]]
-      .concat(project ? [['Проект', project.name]] : []).concat(scout ? [['Бюджет из Скаута', nb(F.rub(scout.total))]] : []).concat([['Имя', lead.name]]));
+      .concat(project ? [['Проект', project.name]] : []).concat(scout ? [['Бюджет из расчёта', nb(F.rub(scout.total))]] : []).concat([['Имя', lead.name]]));
     $('calc').hidden = true; $('ad-top').hidden = true;
     (document.querySelector('.app-hero__cta') || {}).hidden = true; /* якорь на форму больше некуда вести */
     $('ad-done').hidden = false;
@@ -216,7 +216,7 @@
     var HOW = [
       'Выбираете капсулу и пакет — фиксируете площадь',
       'Присылаете план БТИ, обмер или фото комнат',
-      'Адепт адаптирует капсулу под вашу планировку',
+      'Дизайн-проект адаптирует капсулу под вашу планировку',
       'Согласуете планировку и визуализации',
       'Получаете чертежи и спецификацию материалов',
       'Открывается доступ к скидкам партнёров на 6 месяцев'

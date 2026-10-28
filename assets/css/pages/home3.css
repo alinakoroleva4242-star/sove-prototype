@@ -1005,3 +1005,49 @@
 .mkp__go { display: inline-block; justify-self: start; margin-top: 8px; text-decoration: none;
   background: var(--accent); color: #fff; border-radius: var(--pill); padding: 7px 13px;
   font-size: 12px; font-weight: 600; }
+
+/* ---------- калькулятор на главной по макету Вики 23.10: листалка капсул + пример расчёта ---------- */
+.hc { margin: 12px var(--gutter) 0; display: flex; flex-direction: column; gap: 12px; }
+.hc-hero { position: relative; aspect-ratio: 1.22; border-radius: 20px; overflow: hidden; background: var(--surface-2); touch-action: pan-y; }
+.hc-hero__img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.hc-hero__img.is-in { animation: hcIn .45s ease both; }
+.hc-hero.is-loading .hc-hero__img { opacity: .55; transition: opacity .2s; }
+.hc-hero.is-loading::before { content: ''; position: absolute; left: 50%; top: 45%; z-index: 3; width: 28px; height: 28px; margin: -14px 0 0 -14px; border-radius: 50%; border: 2.5px solid rgba(255,255,255,.5); border-top-color: #fff; animation: hcSpin .8s linear infinite; }
+@keyframes hcSpin { to { transform: rotate(360deg); } }
+@keyframes hcIn { from { opacity: .25; transform: scale(1.03); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .hc-hero__img.is-in { animation: none; } }
+.hc-hero::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 55%; background: linear-gradient(to top, rgba(20,16,14,.6), rgba(20,16,14,0)); pointer-events: none; }
+.hc-hero__area { position: absolute; left: 12px; top: 12px; z-index: 2; padding: 6px 12px; border-radius: var(--pill); background: rgba(255,255,255,.94); color: var(--ink); font-size: 13px; font-weight: 600; }
+.hc-hero__foot { position: absolute; left: 16px; right: 12px; bottom: 22px; z-index: 2; display: flex; align-items: flex-end; justify-content: space-between; gap: 10px; }
+.hc-hero__name { font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 500; font-size: 25px; line-height: 1; color: #fff; text-shadow: 0 1px 12px rgba(0,0,0,.25); min-width: 0; }
+.hc-hero__nav { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.hc-hero__n { color: #fff; font-size: 13px; font-weight: 600; margin-right: 2px; white-space: nowrap; }
+.hc-hero__b { width: 40px; height: 40px; border-radius: 50%; border: 0; background: rgba(255,255,255,.3); color: #fff; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); transition: background .15s; }
+.hc-hero__b:hover { background: rgba(255,255,255,.5); }
+.hc-hero__b--on { background: #fff; color: var(--ink); }
+.hc-hero__b--on:hover { background: #fff; }
+.hc-hero__dots { position: absolute; left: 50%; transform: translateX(-50%); bottom: 9px; z-index: 2; display: flex; gap: 5px; }
+.hc-hero__dots i { width: 20px; height: 3px; border-radius: 2px; background: rgba(255,255,255,.45); transition: background .2s; }
+.hc-hero__dots i.is-on { background: #fff; }
+.hc-card { background: var(--white); border-radius: 20px; padding: 16px 16px 18px; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 6px; }
+.hc-card__k { font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--accent-2); }
+.hc-card__t { margin: 0; font-size: 30px; font-weight: 700; line-height: 1.1; white-space: nowrap; overflow: hidden; }
+.hc-card__t b { color: var(--accent-2); }
+.hc-card__sub { font-size: 13px; color: var(--graphite); line-height: 1.35; }
+.hc-save { display: grid; grid-template-columns: 44px minmax(0, 1fr) 22px; gap: 12px; align-items: center; margin-top: 8px; padding: 14px; border-radius: 16px; background: #f6ece5; color: var(--ink) !important; text-decoration: none; }
+.hc-save__ic { width: 44px; height: 44px; border-radius: 50%; background: #efd9cc; color: var(--accent); display: inline-flex; align-items: center; justify-content: center; }
+.hc-save__txt { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.hc-save__txt small { font-size: 13px; font-weight: 600; }
+.hc-save__txt b { font-family: 'Cormorant Garamond', Georgia, serif; font-size: 30px; font-weight: 600; line-height: 1; color: var(--accent-2); font-variant-numeric: lining-nums; }
+.hc-save__txt em { font-style: normal; font-size: 12px; color: var(--graphite); line-height: 1.35; }
+.hc-save__i { color: var(--accent-2); display: inline-flex; align-self: start; }
+.hc .fview__sw { margin-top: 10px; }
+.hc .fview__sw-b.is-on { box-shadow: inset 0 0 0 1.5px var(--accent-2); }
+.hc-go { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 54px; margin-top: 10px; border-radius: 16px; background: var(--accent-2); color: #fff !important; font-size: 16px; font-weight: 600; text-decoration: none; transition: background .15s; }
+.hc-go:hover { background: var(--accent); }
+.hc .plan__range input { accent-color: var(--accent-2); }
+@media (min-width: 900px) {
+  .hc { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); align-items: stretch; gap: 16px; }
+  .hc-hero { aspect-ratio: auto; min-height: 420px; }
+  .hc-hero__name { font-size: 34px; }
+}

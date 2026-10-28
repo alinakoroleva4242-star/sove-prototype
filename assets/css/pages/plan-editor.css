@@ -1,0 +1,142 @@
+/* Правка плана словами и пальцем — экран 1 сценария «план → расстановка → интерьер».
+   Чертёж говорит тем же языком, что «Расстановка мебели»: серая плита стен, светлые
+   комнаты, голубые окна, двери со створкой. Стена, которую двигают, — терракотовая. */
+
+.pe { display: grid; gap: 12px; min-width: 0; }
+.pe-col { display: grid; gap: 12px; min-width: 0; align-content: start; }
+@media (min-width: 960px) {
+  .pe { grid-template-columns: minmax(0, 1.45fr) minmax(320px, 1fr); column-gap: 28px; align-items: start; }
+  .pe-col--side { position: sticky; top: calc(var(--header-h, 72px) + 16px); }
+}
+
+/* переключатель «Схема / исходный план» */
+.pe-view { justify-self: start; display: inline-grid; grid-auto-flow: column; gap: 2px; padding: 3px;
+  background: var(--surface-2); border-radius: var(--pill); }
+.pe-view__b { min-height: 34px; padding: 0 14px; border: 0; background: transparent; border-radius: var(--pill);
+  font: 600 13px/1 var(--font); color: var(--graphite); cursor: pointer; }
+.pe-view__b.is-on { background: var(--white); color: var(--ink); box-shadow: 0 1px 4px rgba(46, 31, 24, .12); }
+.pe-view__b:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+/* чертёж на всю ширину телефона, как на экране расстановки; на широком — в рамке */
+.pe-stage { position: relative; margin: 0 calc(var(--s4, 16px) * -1); }
+@media (min-width: 560px) { .pe-stage { margin: 0; } }
+.pe-plan { display: block; width: 100%; height: auto; max-height: 72vh; background: var(--white);
+  border-top: 1px solid var(--line); border-bottom: 1px solid var(--line);
+  user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; }
+@media (min-width: 560px) { .pe-plan { border: 1px solid var(--line); border-radius: var(--r-sm); } }
+.pe-file { display: block; width: 100%; height: auto; background: var(--white); border: 1px solid var(--line); }
+@media (min-width: 560px) { .pe-file { border-radius: var(--r-sm); } }
+.pe-legend { margin: 6px 16px 0; font-size: 12px; line-height: 1.35; color: var(--stone); }
+@media (min-width: 560px) { .pe-legend { margin-left: 2px; } }
+
+/* слои чертежа */
+.pe-slab { fill: #ddd8d0; }
+.pe-out { fill: var(--white); }
+.pe-room { cursor: pointer; outline: none; }
+.pe-room rect { fill: #fbfaf8; transition: fill .2s cubic-bezier(.16, 1, .3, 1); }
+.pe-room.is-hl rect { fill: #f6ede7; }
+.pe-room.is-sel rect { fill: var(--accent-soft); }
+.pe-room:focus-visible rect { stroke: var(--accent); stroke-width: 2; vector-effect: non-scaling-stroke; }
+.pe-win { fill: #bcd9ea; stroke: #7ba9c4; stroke-width: 1; vector-effect: non-scaling-stroke; }
+.pe-gap { fill: #fbfaf8; }
+.pe-arc { fill: none; stroke: #a9a299; stroke-width: 1.2; stroke-dasharray: 3 3; vector-effect: non-scaling-stroke; }
+.pe-leaf { stroke: #6f6760; stroke-width: 2.4; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+.pe-leaf.is-entrance { stroke: var(--accent); }
+
+/* стены, которые можно двигать: видимая часть — сама стена, а ловушка для пальца шире */
+.pe-line { cursor: grab; outline: none; }
+.pe-line:active { cursor: grabbing; }
+.pe-line__v { fill: transparent; transition: fill .15s cubic-bezier(.16, 1, .3, 1); }
+.pe-line__hit { fill: transparent; touch-action: none; }
+@media (hover: hover) { .pe-line:hover .pe-line__v { fill: rgba(143, 69, 47, .32); } }
+.pe-line.is-sel .pe-line__v, .pe-line:focus-visible .pe-line__v { fill: var(--accent); }
+.pe-line.is-moved .pe-line__v { fill: var(--accent-2); }
+.pe-ghost { fill: none; stroke: var(--accent); stroke-width: 1.4; stroke-dasharray: 4 3; vector-effect: non-scaling-stroke;
+  opacity: .75; animation: pe-in .25s cubic-bezier(.16, 1, .3, 1); }
+@keyframes pe-in { from { opacity: 0; } }
+
+/* подписи и размеры не ловят палец — он попадает в стену или комнату под ними */
+.pe-label, .pe-dim, .pe-handle { pointer-events: none; }
+.pe-label__n { font-family: var(--font); font-weight: 600; letter-spacing: .06em; fill: var(--graphite); text-anchor: middle; }
+.pe-label__a { font-family: var(--font); font-weight: 600; fill: var(--ink); text-anchor: middle; font-variant-numeric: tabular-nums; }
+.pe-label__d { font-family: var(--font); font-weight: 700; text-anchor: middle; font-variant-numeric: tabular-nums; }
+.pe-label__d.is-up { fill: var(--green); }
+.pe-label__d.is-down { fill: var(--danger); }
+.pe-dim line { stroke: var(--accent); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.pe-dim text { font-family: var(--font); font-weight: 600; fill: var(--accent-ink); text-anchor: middle; font-variant-numeric: tabular-nums;
+  paint-order: stroke; stroke: #fbfaf8; stroke-width: 3px; stroke-linejoin: round; }
+.pe-handle circle { fill: var(--white); stroke: var(--accent); stroke-width: 1.6; vector-effect: non-scaling-stroke;
+  filter: drop-shadow(0 2px 4px rgba(46, 31, 24, .2)); }
+.pe-handle path { stroke: var(--accent); fill: none; stroke-linecap: round; stroke-linejoin: round; }
+
+/* плашка выбранной стены или комнаты */
+.pe-panel { border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--white); padding: 12px 14px;
+  display: grid; gap: 10px; }
+.pe-panel__t { margin: 0; font-size: 14px; line-height: 1.4; color: var(--ink); overflow-wrap: anywhere; }
+.pe-panel__t b { font-weight: 600; }
+.pe-panel__b { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.pe-panel__b .btn { justify-content: center; text-align: center; white-space: normal; line-height: 1.2; padding: 6px 10px; }
+.pe-panel__h { margin: 0; font-size: 12px; line-height: 1.4; color: var(--stone); }
+
+/* строка команды */
+.pe-cmd { position: relative; }
+.pe-cmd__in { width: 100%; min-height: 52px; padding-right: 58px; font-size: 16px; caret-color: var(--accent); }
+.pe-cmd__in::placeholder { color: #9a928c; }
+.pe-cmd__go { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); width: 42px; height: 42px; border: 0;
+  border-radius: 50%; background: var(--accent); color: #fff; display: grid; place-items: center; cursor: pointer;
+  transition: background .15s ease-out; }
+@media (hover: hover) { .pe-cmd__go:hover { background: var(--accent-2); } }
+.pe-cmd__go:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.pe-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; }
+
+/* подсказки и варианты ответа: переносятся строками, а не уезжают вбок */
+.pe-sugg, .pe-opts { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.pe-sugg__k { width: 100%; font-size: 12px; color: var(--stone); }
+.pe .pe-ex, .pe .pe-opt { flex: 0 1 auto; max-width: 100%; height: auto; min-height: 36px; padding: 8px 12px; white-space: normal;
+  text-align: left; line-height: 1.3; font-weight: 500; font-size: 13px; }
+
+/* журнал правок */
+.pe-log { display: grid; gap: 8px; }
+.pe-log[hidden] { display: none; }
+.pe-log__more { justify-self: center; border: 0; background: none; padding: 6px 8px; color: var(--graphite);
+  font: 500 13px/1 var(--font); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.pe-msg { margin: 0; font-size: 14px; line-height: 1.45; overflow-wrap: anywhere; }
+.pe-msg--me { justify-self: end; max-width: 86%; padding: 8px 12px; background: var(--accent-soft); color: var(--ink);
+  border-radius: 14px 14px 4px 14px; }
+.pe-msg--app { display: grid; gap: 6px; padding: 10px 12px; background: var(--white); border: 1px solid var(--line);
+  border-radius: 14px 14px 14px 4px; }
+.pe-msg--app > p { margin: 0; }
+.pe-msg--app.is-err { background: #fdf6f5; border-color: #efd3cf; }
+.pe-rows { list-style: none; margin: 2px 0 0; padding: 0; display: grid; gap: 4px; }
+.pe-rows li { display: grid; grid-template-columns: minmax(0, 1fr) auto 3.4em; gap: 8px; align-items: baseline; font-size: 13px; }
+.pe-rows span { color: var(--graphite); overflow-wrap: anywhere; }
+.pe-rows b { font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.pe-rows em, .pe-list__a em { font-style: normal; font-weight: 700; font-size: 12px; text-align: right; font-variant-numeric: tabular-nums; }
+.pe .is-up { color: var(--green); }
+.pe .is-down { color: var(--danger); }
+.pe-note { margin: 0; font-size: 12px; line-height: 1.4; color: var(--graphite); }
+
+/* помещения: названия правятся прямо здесь, площади пересчитываются сами */
+.pe-rooms { gap: 12px; }
+.pe-rooms__head { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.pe-tools { display: inline-flex; gap: 6px; }
+.pe-tool { display: inline-flex; align-items: center; gap: 4px; min-height: 36px; padding: 0 12px; border: 1px solid var(--line-2);
+  border-radius: var(--pill); background: var(--white); color: var(--ink); font: 600 12px/1 var(--font); cursor: pointer; }
+.pe-tool:disabled { opacity: .4; cursor: default; }
+@media (hover: hover) { .pe-tool:not(:disabled):hover { border-color: var(--ink); } }
+.pe-tool:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.pe-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.pe-list li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: center; }
+.pe-list__in { min-height: 48px; }
+.pe-list__a { min-width: 66px; display: grid; justify-items: end; gap: 2px; font-size: 13px; color: var(--graphite);
+  font-variant-numeric: tabular-nums; }
+
+@media (prefers-reduced-motion: reduce) {
+  .pe-room rect, .pe-line__v, .pe-cmd__go { transition: none; }
+  .pe-ghost { animation: none; }
+}
+
+/* «Проверь план» (plan-demo): переключатель вида — над чертежом, а не поверх него */
+.pz-edbar { display: flex; justify-content: flex-end; }
+.pz-edbar .pz-seg { position: static; }
+.pz-edline { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; font-size: 12px; font-weight: 700; color: #1E1C1A; }

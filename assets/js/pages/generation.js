@@ -1,4 +1,4 @@
-/* Результат генерации SOVEAPP AI: generation.html?id=<id>. Данные — SOVE.gens, примеры распознавания — SOVE.data.ai. */
+/* Результат генерации: generation.html?id=<id>. Данные — SOVE.gens, примеры распознавания — SOVE.data.ai. */
 (function () {
   var S = window.SOVE; if (!S) return;
   var D = S.data, F = S.fmt;
@@ -157,12 +157,12 @@
       '<h2 class="h2">Поиск ещё идёт</h2>' +
       '<p class="text">Можно уйти со страницы — результат появится в Генерациях, а эта страница обновится сама. ' + (g.cost ? F.tokens(g.cost) + ' в резерве: спишем их, только если что-то найдём.' : '') + '</p>' +
       '<ol class="stages"><li class="is-done">Изображение загружено</li><li class="is-now">' + (g.kind === 'render' ? 'Находим предметы на рендере' : 'Распознаём предмет') + '</li><li>Подбираем товары в каталоге партнёров</li></ol>' +
-      '<div class="row"><a class="btn btn--ghost" href="ai.html">Открыть SOVEAPP AI</a><a class="btn btn--link" href="generations.html">Все генерации</a></div>');
+      '<div class="row"><a class="btn btn--ghost" href="ai.html">Открыть Генерации</a><a class="btn btn--link" href="generations.html">Все генерации</a></div>');
   }
   function renderNotFound() {
     document.title = 'Генерация не найдена — SOVEAPP';
     return crumbs('Не найдена') +
-      '<section class="gen-missing stack stack--6"><span class="eyebrow">SOVEAPP AI</span><h1 class="h1">Генерация не найдена</h1>' +
+      '<section class="gen-missing stack stack--6"><span class="eyebrow">Генерации</span><h1 class="h1">Генерация не найдена</h1>' +
       '<p class="lead">Возможно, ссылка устарела или данные прототипа сбросили. Генерации хранятся только в том браузере, где их запускали.</p>' +
       '<div class="row"><a class="btn btn--primary" href="generations.html">Все генерации</a><a class="btn btn--ghost" href="ai.html">Новая генерация</a></div></section>';
   }

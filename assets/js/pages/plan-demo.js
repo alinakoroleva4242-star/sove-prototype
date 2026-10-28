@@ -34,26 +34,215 @@
   var saved = FLOW.load();
   var st = { view: 'idle', source: 'developer', fileName: null, live: null, error: null, typical: null,
              noplan: { m2: '', rooms: 2 }, answers: {}, interior: null, state: null, mode: '3d', geo: null,
-             rp: { purpose: null, who: '2', guests: 'не нужно', add: [] } };
+             rp: { purpose: null, who: '2', guests: 'не нужно', add: [] },
+             seq: 0, entry: false, placingFrom: null };
 
   var READ_STAGES = ['Стены: несущие и перегородки', 'Комнаты и площади', 'Двери, окна, вход', 'Стояки и вентшахты'];
-  var STEP = { idle: 'plan', noplan: 'plan', error: 'plan', reading: 'read', rooms: 'check', brief: 'questions', placing: 'questions' };
+  var STEP = { idle: 'plan', upload: 'plan', zk: 'plan', noplan: 'plan', error: 'plan', reading: 'read', rooms: 'check', brief: 'questions', placing: 'questions' };
+  var Q = new URLSearchParams(location.search);
+  var ZK = window.SOVE_ZK || null;
 
   function head() { return FLOW.blockHead(KIND, STEP[st.view] || 'plan'); }
   function title(t, sub) { return '<div class="pz-title"><h2>' + esc(t) + '</h2>' + (sub ? '<span>' + esc(sub) + '</span>' : '') + '</div>'; }
   function flatName() { return st.live ? (st.fileName || 'твой план') : st.typical ? 'типовой план · ' + F.area(st.typical.m2) : 'ЖК PRIDE · 47,3 м²'; }
 
-  /* ── A1 · Загрузи план ── */
+  /* ── Первый экран — макет Вики 28.10: «← Назад» и токены плашкой, «Планировка», блок «Что вы получите»
+     (План → 3D интерьер → Бюджет), цветной пример с ценниками и бюджетом, «Загрузить план»,
+     «Найди свой план у застройщика» (база — assets/js/kb/zk.js). Полосы шагов здесь нет: шаг 1 начинается с загрузки ── */
+  var CAT = window.SOVE_ARRANGE_CATALOG || {};
+  function plural(n, a, b, c) { var x = n % 100, y = n % 10; return x > 10 && x < 20 ? c : y === 1 ? a : y >= 2 && y <= 4 ? b : c; }
+  function mln(v) { return v === null || v === undefined ? '[сумма]' : (Math.round(v / 1e5) / 10).toFixed(1).replace('.', ','); }
+  function headNoBar() { return head().replace(/<div class="pz-bar"[\s\S]*?<\/div>/, ''); }
+  /* шапка первого экрана (Вика 28.10): на фоне страницы, без белой полосы; токены — плашкой. На шагах шапка прежняя */
+  function startHead() { return headNoBar().replace('class="pz-head"', 'class="pz-head pz-head--start"'); }
+  /* значки первого экрана линиями, цвет — в CSS (Вика 28.10); .f — заливка цветом кружка, чтобы стопки монет не просвечивали */
+  var ICO = {
+    plan: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="1.5"/><path d="M11 3.5V9M11 12.5v8M3.5 12.5H7M11 12.5h3.5M17.5 12.5h3"/></svg>',
+    cube: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M4 7.5l8 4.5 8-4.5M12 12v9"/></svg>',
+    coins: '<svg viewBox="0 0 24 24" aria-hidden="true"><path class="f" d="M12.5 12c0-1 1.9-1.8 4.25-1.8S21 11 21 12v6.2c0 1-1.9 1.8-4.25 1.8s-4.25-.8-4.25-1.8z"/>' +
+      '<path d="M12.5 12c0 1 1.9 1.8 4.25 1.8S21 13 21 12M12.5 15.1c0 1 1.9 1.8 4.25 1.8S21 16.1 21 15.1"/>' +
+      '<path class="f" d="M3 6c0-1.1 2.2-2 5-2s5 .9 5 2v12c0 1.1-2.2 2-5 2s-5-.9-5-2z"/><path d="M3 6c0 1.1 2.2 2 5 2s5-.9 5-2M3 10c0 1.1 2.2 2 5 2s5-.9 5-2M3 14c0 1.1 2.2 2 5 2s5-.9 5-2"/></svg>',
+    arrow: '<svg viewBox="0 0 14 10" aria-hidden="true"><path d="M1 5h11.5M8.5 1.2L12.5 5l-4 3.8"/></svg>',
+    up: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15.5V4.5M7.5 9L12 4.5 16.5 9M4.5 14.5v3.75c0 .97.78 1.75 1.75 1.75h11.5c.97 0 1.75-.78 1.75-1.75V14.5"/></svg>',
+    search: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L20 20"/></svg>'
+  };
+  /* «Что вы получите» (Вика 28.10): три карточки в ряд со стрелками — что даст загрузка плана */
+  var GETS = [
+    { ic: 'plan', t: 'План', d: 'Удобная планировка' },
+    { ic: 'cube', t: '3D интерьер', d: 'Ваш объект в\u00a0объёме' },
+    { ic: 'coins', t: 'Бюджет', d: 'Примерная стоимость ремонта' }
+  ];
+  function gets() {
+    return '<section class="pz-gets" aria-label="Что вы получите"><b class="pz-gets__k">Что вы получите</b>' +
+      '<p class="pz-gets__s">Загрузите план — и за 20 секунд получите:</p><div class="pz-gets__row">' +
+      GETS.map(function (g, i) {
+        return (i ? '<em class="pz-gets__ar">' + ICO.arrow + '</em>' : '') +
+          '<div class="pz-gets__i"><i>' + ICO[g.ic] + '</i><span><b>' + esc(g.t) + '</b><small>' + esc(g.d) + '</small></span></div>';
+      }).join('') + '</div></section>';
+  }
+  /* пример — ЖК PRIDE 2-комн 47,3 м² + «Изумрудная неоклассика»; бюджет считает Расчёт бюджета (SOVE_ZK.budgetExample) */
+  function example() {
+    var x = ZK && ZK.layout('pride-2k-47'); if (!x) return null;
+    return { zk: x.zk, l: x.layout, b: ZK.budgetExample(x.layout), lay: ZK.layoutOf(x.layout), geo: ZK.markupOf(x.layout) };
+  }
+  /* ценники: предметы расстановки примера, цены — каталог Маркета (arrange-catalog.js); одинаковые — одной плашкой «×2»;
+     не больше 8, самые дорогие. Координаты — в пикселях плана примера (те же, что у картинки 3D 730×610).
+     Точка выноски у одинаковых — первый из них, а не середина между ними (Вика 28.10: линия ведёт к предмету) */
+  function heroTags(E) {
+    if (!E || !E.lay) return [];
+    var by = {};
+    E.lay.furniture.forEach(function (it) {
+      var p = (CAT[it.label] || [])[0]; if (!p || !p.metod) return;
+      var b = it.box, t = by[it.label] || (by[it.label] = { label: it.label, p: p, n: 0, x: (b[0] + b[2]) / 2, y: (b[1] + b[3]) / 2, box: b });
+      t.n++;
+    });
+    var ppm = E.geo && E.geo.px_per_m || 76.8;
+    return Object.keys(by).map(function (k) {
+      var t = by[k], b = t.box, name = t.label;
+      if (/^Кровать$/.test(name)) name += ' ' + Math.round((b[2] - b[0]) / ppm * 100) + '×' + Math.round((b[3] - b[1]) / ppm * 100);
+      if (t.n > 1) name += ' ×' + t.n;
+      return { name: name, p: t.p, sum: t.p.metod * t.n, x: t.x, y: t.y };
+    }).sort(function (a, b) { return b.sum - a.sum; }).slice(0, 8);
+  }
+  function hero(E) {
+    var b = E && E.b, tags = heroTags(E);
+    return '<div class="pz-hero" id="pd-hero">' +
+      '<img src="assets/img/demo/1-domik-vsya-kvartira.jpg" alt="Пример: 2-комнатная квартира 47 м² в 3D с мебелью, вид сверху">' +
+      '<svg class="pz-hero__lines" aria-hidden="true"></svg>' +          /* линии-выноски от ценников к предметам (Вика 28.10) */
+      '<span class="pz-hero__k">ПРИМЕР · 2-КОМН · 47 М²</span>' +
+      tags.map(function (t, i) {
+        /* на плашке одна цена — с подпиской METOD; обе цены — в карточке товара по тапу (Вика 28.10) */
+        return '<button type="button" class="pz-price" data-tag="' + i + '" data-x="' + t.x + '" data-y="' + t.y + '"><small><i></i>' + esc(t.name) + '</small><b>' + esc(F.rub(t.sum)) + '</b></button>';
+      }).join('') +
+      /* неразрывные пробелы: на узком экране строка переносится только по « · », «2,8 млн» не разрывается */
+      '<div class="pz-hero__bud"><span><b>Ремонт под ключ</b><em>мебель\u00a0' + mln(b && b.furniture) + ' · материалы\u00a0' + mln(b && b.materials) + ' · работы\u00a0' + mln(b && b.works) + '\u00a0млн</em></span>' +
+        '<strong>≈ ' + mln(b && b.total) + ' млн ₽</strong></div></div>';
+  }
+  /* ценники на своих местах: картинка лежит «cover» — пересчитываем координаты под фактический размер.
+     Вика 28.10: плашка встаёт рядом с предметом, к предмету ведёт линия с кружком. Плашки не налезают друг на друга,
+     на метку «Пример» и на полосу бюджета и не закрывают точки других предметов; места нет — ценник не показываем; не больше 6 */
+  function placeTags() {
+    var el = document.getElementById('pd-hero'); if (!el) return;
+    var W = el.clientWidth, H = el.clientHeight, k = Math.max(W / 730, H / 610), ox = (W - 730 * k) / 2, oy = (H - 610 * k) / 2;
+    var bud = el.querySelector('.pz-hero__bud'), lab = el.querySelector('.pz-hero__k'), svg = el.querySelector('.pz-hero__lines');
+    var bottom = H - (bud ? bud.offsetHeight : 84) - 6, G = 12, shown = 0, lines = '';
+    var placed = lab ? [{ l: lab.offsetLeft, t: lab.offsetTop, w: lab.offsetWidth, h: lab.offsetHeight }] : [];
+    var tags = [].slice.call(el.querySelectorAll('.pz-price'));
+    var pts = tags.map(function (t) { return { x: ox + (+t.dataset.x) * k, y: oy + (+t.dataset.y) * k }; });
+    function fits(c, w, h) {
+      if (c.l < 6 || c.l + w > W - 6 || c.t < 6 || c.t + h > bottom) return false;
+      return !placed.some(function (q) { return c.l < q.l + q.w + 4 && q.l < c.l + w + 4 && c.t < q.t + q.h + 4 && q.t < c.t + h + 4; });
+    }
+    /* сколько точек других предметов закрыла бы плашка */
+    function covers(c, w, h, me) {
+      return pts.filter(function (p, j) { return j !== me && p.y < bottom && p.x > c.l - 6 && p.x < c.l + w + 6 && p.y > c.t - 6 && p.y < c.t + h + 6; }).length;
+    }
+    tags.forEach(function (t, n) {
+      t.hidden = false;                                /* скрытый ценник не измерить — сначала показываем */
+      var w = t.offsetWidth, h = t.offsetHeight, x = pts[n].x, y = pts[n].y, pick = null, best = 1e9;
+      /* места по порядку предпочтения: слева или справа от предмета (выше или ниже точки), сверху, снизу;
+         s — край плашки, откуда идёт линия */
+      var spots = [{ l: x - G - w, t: y - h + 4, s: 'r' }, { l: x + G, t: y - h + 4, s: 'l' },
+                   { l: x - G - w, t: y - 4, s: 'r' }, { l: x + G, t: y - 4, s: 'l' },
+                   { l: x - w * .6, t: y - G - h, s: 'b' }, { l: x - w * .4, t: y + G, s: 't' },
+                   { l: x - 10, t: y + G, s: 't' }, { l: x - w + 10, t: y + G, s: 't' }];
+      if (shown < 6 && x > 0 && x < W && y > 0 && y < bottom) {
+        spots.forEach(function (c, i) {
+          if (!fits(c, w, h)) return;
+          var cost = i + 100 * covers(c, w, h, n);
+          if (cost < best) { best = cost; pick = c; }
+        });
+      }
+      t.hidden = !pick; if (!pick) return;
+      shown++; placed.push({ l: pick.l, t: pick.t, w: w, h: h });
+      t.style.left = pick.l + 'px'; t.style.top = pick.t + 'px';
+      var side = pick.s === 'r' || pick.s === 'l';
+      var sx = pick.s === 'r' ? pick.l + w : pick.s === 'l' ? pick.l : x, sy = pick.s === 'b' ? pick.t + h : pick.s === 't' ? pick.t : pick.t + h / 2;
+      var cx = side ? x : sx, cy = side ? sy : y;      /* изгиб: от плашки вбок, потом к предмету */
+      lines += '<path d="M' + sx.toFixed(1) + ' ' + sy.toFixed(1) + 'Q' + cx.toFixed(1) + ' ' + cy.toFixed(1) + ' ' + x.toFixed(1) + ' ' + y.toFixed(1) + '"/>' +
+        '<circle cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" r="3"/>';
+    });
+    if (svg) { svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H); svg.innerHTML = lines; }
+  }
+  /* карточка товара по ценнику: ♡ / 🛒 */
+  function tagSheet(t) {
+    var p = t.p, R = S.repair;
+    if (R && R.registerProduct) R.registerProduct(p);
+    var m = S.ui.modal({ eyebrow: t.name, title: p.name, html: '<div class="pz-tagsheet">' + (p.img ? '<img src="' + esc(p.img) + '" alt="">' : '') +
+        '<span><b>' + F.rub(p.metod) + ' <small>с подпиской METOD</small></b><em>' + F.rub(p.retail || p.metod) + ' <small>без подписки</small></em><small>' + esc(p.brand || '') + '</small></span></div>',
+      actions: [{ label: '♡ В избранное', kind: 'ghost', onClick: function () { if (R) { R.flats.ensure(); if (!R.fav.has(p.id)) R.fav.toggle(p.id, true); R.flats.update(R.flats.active().id, {}); S.ui.toast('В избранном', 'ok'); } } },
+                { label: '🛒 В корзину', onClick: function () { if (R) { R.flats.ensure(); if (!R.cart.has(p.id)) R.cart.add(p.id, 'market', true); R.flats.update(R.flats.active().id, {}); S.ui.toast('В корзине', 'ok'); } } }] });
+    return m;
+  }
+  function zkSearch() {
+    return '<b class="pz-or">ИЛИ НАЙДИ СВОЙ ПЛАН У ЗАСТРОЙЩИКА</b>' +
+      '<form class="pz-zks" id="pd-zks" role="search">' + ICO.search + '<input id="pd-zkq" type="search" placeholder="ЖК, застройщик или адрес" autocomplete="off" aria-label="ЖК, застройщик или адрес" value="' + esc(st.zkQ || '') + '"></form>' +
+      '<div id="pd-zkres" aria-live="polite">' + zkResults() + '</div>';
+  }
+  function zkResults() {
+    if (!ZK || (st.zkQ || '').trim().length < 2) return '';
+    var r = ZK.search(st.zkQ);
+    if (!r.length) return '<section class="pz-card pz-zkno"><b>Такого ЖК пока нет</b>' +
+      '<label class="pz-link pz-link--left"><input type="file" class="pd-file2" accept="image/*" hidden>Загрузи план — добавим ЖК ›</label></section>';
+    return '<div class="pz-zklist">' + r.map(function (z) {
+      var n = z.layouts.filter(ZK.ready).length;
+      return '<button type="button" class="pz-zkrow" data-zk="' + esc(z.id) + '"><span><b>' + esc(z.name) + '</b><small>' + esc([z.developer, z.city, z.address].join(' · ')) + '</small></span>' +
+        '<em>' + (n ? n + ' в 3D' : 'скоро в 3D') + ' ›</em></button>';
+    }).join('') + '</div>';
+  }
+  /* порядок по макету Вики 28.10: шапка → «Что вы получите» → пример с бюджетом → «Загрузить план» → поиск ЖК, ниже сразу
+     полоса Корзина · Избранное · Бюджет. Ленты ЖК и сноски под поиском в макете нет (ЖК находится поиском, пример PRIDE —
+     в «Загрузить план», дизайн-проект — там же) */
   function viewIdle() {
+    return startHead() + gets() + hero(example()) +
+      '<button type="button" class="pz-btn pz-btn--up" data-act="upload">' + ICO.up + 'Загрузить план</button>' +
+      zkSearch();
+  }
+  /* ── Шаг 1 · Загрузи план (прежний A1): план застройщика / обмерный → загрузка → сканер ── */
+  function viewUpload() {
     return head() + title('Загрузи план — покажем в 3D с мебелью', 'бесплатно · 20 секунд') +
       '<div class="pz-src">' + SOURCES.map(function (s) {
+        /* Алина: тёмная плашка источника — флаг s.dark (стиль .pz-src__i.is-dark в demo-flow.css) */
         return '<button type="button" class="pz-src__i' + (s.dark ? ' is-dark' : '') + (st.source === s.k ? ' is-on' : '') + '" data-src="' + s.k + '">' +
           '<span><b>' + esc(s.t) + '</b><small>' + esc(s.d) + '</small></span><em>' + esc(s.tag) + '</em></button>';
       }).join('') + '</div>' +
       '<label class="pz-btn"><input type="file" id="pd-file" accept="image/*,application/pdf,.dwg" hidden>Загрузить план</label>' +
       '<small class="pz-note pz-c">PNG, JPG, PDF, DWG · до 20 МБ</small>' +
       '<button type="button" class="pz-link" data-act="sample">Взять пример: ЖК PRIDE, 47,3 м²</button>' +
+      /* как у Алины (A1 «Загрузи план»): дизайн-проект — в Мой ремонт */
       '<a class="pz-note pz-c pz-proj" href="my.html#sec-plan">Есть дизайн-проект? Загрузи в Мой ремонт — разложим по всем блокам ›</a>';
+  }
+
+  /* ── ЖК → его планировки (18.2) ── */
+  function viewZk() {
+    var z = ZK && ZK.get(st.zk); if (!z) { st.view = 'idle'; return viewIdle(); }
+    var n = z.layouts.filter(ZK.ready).length;
+    return headNoBar() + '<button type="button" class="pz-link pz-link--left" data-act="again">← К поиску</button>' +
+      title(z.name, [z.city, z.address].join(' · ') + ' · ' + n + ' ' + plural(n, 'планировка', 'планировки', 'планировок') + ' уже в 3D') +
+      '<div class="pz-zklays">' + z.layouts.map(function (l) {
+        var ok = ZK.ready(l);
+        return '<button type="button" class="pz-zklay' + (ok ? '' : ' is-off') + '"' + (ok ? ' data-zl="' + esc(l.id) + '"' : ' disabled') + '>' +
+          '<span class="pz-zklay__img"' + (l.planImg ? ' style="background-image:url(' + esc(l.planImg) + ')"' : '') + '></span>' +
+          '<span class="pz-zklay__t"><b>' + esc(l.type + (l.m2 ? ' · ' + F.area(l.m2) : '')) + '</b>' +
+          '<small>этажи ' + esc(l.floors || '[этажи]') + (l.count ? ' · ' + l.count + ' квартир' : '') + '</small>' +
+          '<em' + (ok ? '' : ' class="is-off"') + '>' + (ok ? '✓ готово в 3D с мебелью' : 'скоро в 3D') + '</em></span>' + (ok ? '<i>›</i>' : '') + '</button>';
+      }).join('') + '</div>' +
+      '<label class="pz-note pz-c pz-zkadd"><input type="file" class="pd-file2" accept="image/*" hidden>Нет твоей планировки? <u>Загрузи план ›</u> — добавим её в ЖК для всех соседей</label>';
+  }
+  /* выбрал планировку → сразу 3D с мебелью, без загрузки, сканера и «Проверь план» (18.2) */
+  function pickLayout(id) {
+    var x = ZK.layout(id); if (!x || !ZK.ready(x.layout)) return;
+    var z = x.zk, l = x.layout, m = ZK.markupOf(l);
+    var rooms = (m.rooms || []).filter(function (r) { return !r.part_of; }).map(function (r) { return { name: r.type === 'гостиная' ? 'Кухня-гостиная' : r.name, m2: r.m2 }; });
+    FLOW.save({ zk: { id: z.id, layout: l.id, name: z.name, type: l.type, m2: l.m2 }, zkFound: true, source: 'developer', accuracy: ACCURACY.developer,
+      state: ZK.FINISH_STATE[z.finish] || null, flat: z.name + ' · ' + F.area(l.m2), rooms: rooms, typical: false, live: null,
+      answers: {}, brief: null, wallVariant: null, layoutHints: null, plan: 0, step: 5 });
+    /* планировка из конвейера zk-admin — своя разметка и расстановка, экран мебели открываем как для своего плана */
+    var own = l.layout !== 'arrange';
+    if (own) FLOW.save({ live: { layout: l.layout, not_placed: l.notPlaced || [], ready: true, flat: z.name + ' · ' + l.type + ' · ' + F.area(l.m2), labeled: null, name: 'zk:' + l.id } });
+    FLOW.save({ backTo: 'zk' });                     /* «← Назад» с экрана мебели вернёт к планировкам этого ЖК */
+    st.placingFrom = 'zk'; st.view = 'placing'; render();
+    setTimeout(function () { location.href = 'arrange.html?v=panel&plan=0&flow=1&anim=1' + (own ? '&live=1' : ''); }, 700);
   }
 
   /* «Плана нет»: площадь и число комнат → типовой план → сразу вопросы */
@@ -93,6 +282,10 @@
   }
 
   function viewError() {
+    if (st.errKind === 'place') return head() + title('Не получилось расставить мебель', flatName()) +
+      '<section class="pz-card"><b>' + esc(st.error) + '</b><p class="pz-note">План и ответы сохранены — попробуй ещё раз.</p></section>' +
+      '<button type="button" class="pz-btn" data-act="retry">Попробовать ещё раз</button>' +
+      '<button type="button" class="pz-link" data-act="to-brief">Назад к вопросам</button>';
     return head() + title('Не получилось разметить', st.fileName || '') +
       '<section class="pz-card"><b>' + esc(st.error) + '</b>' +
       '<p class="pz-note">Подойдёт чёткий план из договора или с сайта застройщика: стены тёмные, комнаты подписаны. ' +
@@ -109,6 +302,12 @@
   function rooms() {
     var base = st.live ? liveRooms() : st.typical ? st.typical.rooms : SAMPLE_ROOMS;
     return base.map(function (r, i) { return st.names && st.names[i] ? Object.assign({}, r, { name: st.names[i] }) : r; });
+  }
+  /* названия из списка «Проверь план» — перед перерисовкой (3D / 2D, «Назад»), чтобы исправленное не терялось */
+  function collectNames() {
+    var ins = root.querySelectorAll('input[data-room]'); if (!ins.length) return;
+    st.names = {};
+    ins.forEach(function (inp) { st.names[+inp.dataset.room] = inp.value.trim(); });
   }
   /* рамка квартиры в долях 0–1000: по найденным комнатам с полем 3% — план этажа, подписи
      и стрелки застройщика вокруг квартиры обрезаем */
@@ -181,13 +380,14 @@
   ];
   /* В1 (TZ-anketa): данные из документов застройщика есть только у примера ЖК PRIDE — «без отделки» */
   function docsState() { return !st.live && !st.typical ? { k: 'concrete_walls', t: 'без отделки' } : null; }
-  /* свёрнуто (Алина 27.10): состояние выбрано — одна строка «Бетон, стены стоят · изменить ›», список по тапу */
+  /* свёрнуто (Алина 27.10): состояние выбрано — одна строка «Бетон, стены стоят · изменить ›», список по тапу.
+     data-need — сюда ведёт подсказка «Заполни пункты выше» (needAnswers) */
   var stateOpen = false;
   function stateBlock() {
     var docs = docsState(), cur = STATES.filter(function (x) { return x.k === st.state; })[0];
-    var head = '<section class="pz-card pz-state"><div class="pz-q__h"><b>Что сейчас в квартире?</b>' + (docs ? '<em class="pz-why">в документах: ' + esc(docs.t) + '</em>' : '') + '</div>';
-    if (cur && !stateOpen) return head + '<button type="button" class="pz-state__i is-on pz-state__one" data-state-open aria-expanded="false"><span><b>' + esc(cur.t) + '</b><small>' + esc(cur.d) + '</small></span><em>изменить ›</em></button></section>';
-    return head +
+    var headHtml = '<section class="pz-card pz-state" data-need="state"><div class="pz-q__h"><b>Что сейчас в квартире?</b>' + (docs ? '<em class="pz-why">в документах: ' + esc(docs.t) + '</em>' : '') + '</div>';
+    if (cur && !stateOpen) return headHtml + '<button type="button" class="pz-state__i is-on pz-state__one" data-state-open aria-expanded="false"><span><b>' + esc(cur.t) + '</b><small>' + esc(cur.d) + '</small></span><em>изменить ›</em></button></section>';
+    return headHtml +
       STATES.map(function (x) {
         return '<button type="button" class="pz-state__i' + (st.state === x.k ? ' is-on' : '') + '" data-state="' + x.k + '" aria-pressed="' + (st.state === x.k) + '"><b>' + esc(x.t) + '</b><small>' + esc(x.d) + '</small></button>';
       }).join('') + '</section>';
@@ -298,10 +498,27 @@
   /* анкета v2 (TZ-anketa-planirovka, 24.10 15:31): 4 группы, 12 вопросов строго по порядку; В1–В3 обязательные */
   function group(t) { return '<b class="pz-group">' + esc(t) + '</b>'; }
   function lifeQ(k, t, hint, opts, multi, sub, k2, opts2) {
-    return '<section class="pz-card pz-q"><div class="pz-q__h pz-q__h--base"><b>' + esc(t) + '</b>' + (hint ? '<small class="pz-note">' + esc(hint) + '</small>' : '') + '</div>' +
+    return '<section class="pz-card pz-q" data-need="' + k + '"><div class="pz-q__h pz-q__h--base"><b>' + esc(t) + '</b>' + (hint ? '<small class="pz-note">' + esc(hint) + '</small>' : '') + '</div>' +
       chips(k, opts, multi) + (sub ? '<small class="pz-rq__sub">' + esc(sub) + '</small>' + chips(k2, opts2) : '') + '</section>';
   }
   function required() { return !!st.state && !!st.rp.purpose && !!st.rp.who; }
+  /* кнопка без ответов не мёртвая (Алина 26.10: «нужно уведомление — заполните пункты выше, не понятно иначе»):
+     всплывает подсказка, экран едет к первому пропущенному вопросу и подсвечивает его */
+  function needAnswers() {
+    var miss = [];
+    if (!st.state) miss.push({ k: 'state', t: 'что сейчас в квартире' });
+    if (!st.rp.purpose) miss.push({ k: 'purpose', t: 'для чего ремонт' });
+    if (!st.rp.who) miss.push({ k: 'who', t: 'кто живёт' });
+    if (!miss.length) return false;
+    S.ui.toast('Заполни пункты выше: ' + miss.map(function (m) { return m.t; }).join(', '));
+    var el = root.querySelector('[data-need="' + miss[0].k + '"]');
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      el.classList.remove('pz-need'); void el.offsetWidth; el.classList.add('pz-need');
+      setTimeout(function () { el.classList.remove('pz-need'); }, 2600);
+    }
+    return true;
+  }
   function viewBrief() {
     var qs = questions(), sk = skipped(), it = st.interior, rp = FLOW.replanOn(), ok = required();
     return head() + title('Вопросы по твоему плану', '12 вопросов · больше половины уже заполнили по плану — проверь') +
@@ -311,7 +528,7 @@
       lifeQ('add', 'Что важно', 'до 3', ['спальня отдельно', 'рабочее место', 'детская', 'гардеробная', 'постирочная', 'больше хранения'], 3) +
       group('Что ставим') +
       /* заполнено по плану — свёрнуто одной карточкой, «проверить ›» раскрывает вопросы */
-      (!st.fitOpen ? '<section class="pz-card pz-q"><div class="pz-q__h"><b>Заполнили по плану</b><button type="button" class="pz-link pz-link--in" data-act="fit-open">развернуть ›</button></div>' +
+      (!st.fitOpen ? '<section class="pz-card pz-q"><div class="pz-q__h"><b>Заполнили по плану</b><button type="button" class="pz-link pz-link--in" data-act="fit-open">изменить ›</button></div>' +
         '<small class="pz-note">' + esc(qs.map(function (q) { return q.t + ' — ' + q.rows.map(function (r, ri) { return answer(q, ri); }).filter(function (v) { return v && v !== 'нет'; }).join(', '); }).join(' · ')) + '</small></section>' :
       qs.map(function (q) {
         return '<section class="pz-card pz-q"><div class="pz-q__h"><b>' + esc(q.t) + '</b><em class="pz-why">в плане: ' + esc(q.why) + '</em></div>' +
@@ -326,11 +543,12 @@
         FLOW.interiorTiles(it) +
         '<small class="pz-note">свой интерьер: загрузи фото или рендер — найдём похожую мебель в Маркете</small>' +
         '<button type="button" class="pz-link pz-link--left' + (it ? '' : ' is-on') + '" data-act="later" aria-pressed="' + !it + '">Выберу позже — расставь по размерам</button></section>' +
-      group('Стены') + replanBlock(rp) +
+      /* блок «Перепланировка и стены» — на своей подложке с заголовком (Алина 24.10) */
+      '<section class="pz-wallsbox"><b class="pz-group">Перепланировка и стены</b>' + replanBlock(rp) + '</section>' +
       (sk.length ? '<div class="pz-skip"><b>Не спрашиваем:</b> ' + esc(sk.join(' · ')) + '</div>' : '') +
       (ok ? '' : '<small class="pz-note pz-c">Ответь на 3 вопроса сверху</small>') +
-      '<button type="button" class="pz-btn" data-act="go"' + (ok ? '' : ' disabled') + '>' + (rp ? 'Показать варианты стен · ' + FLOW.priceTxt() : 'Расставить мебель') + '</button>' +
-      (rp ? '' : '<button type="button" class="pz-link" data-act="skip">Пропустить — расставит SOVE</button>');
+      '<button type="button" class="pz-btn' + (ok ? '' : ' is-wait') + '" data-act="go"' + (ok ? '' : ' aria-disabled="true"') + '>' + (rp ? 'Показать варианты стен · ' + FLOW.priceTxt() : 'Расставить мебель') + '</button>' +
+      (rp ? '' : '<button type="button" class="pz-link" data-act="skip">Пропустить — расставит SOVEAPP</button>');
   }
 
   /* ── В12 «Поменять стены?» — переключатель; дополнительных вопросов под ним нет (анкета v2) ── */
@@ -342,7 +560,7 @@
     }).join('') + '</div>';
   }
   function replanBlock(on) {
-    return '<label class="pz-toggle' + (on ? ' is-on' : '') + '"><span><b>Поменять стены? · ' + FLOW.priceTxt() + '</b><small>кабинет, гардероб, ещё спальня · несущие и мокрые зоны не трогаем</small></span>' +
+    return '<label class="pz-toggle pz-toggle--walls' + (on ? ' is-on' : '') + '"><span><b>Поменять стены? · ' + FLOW.priceTxt() + '</b><small>кабинет, гардероб, ещё спальня · несущие и мокрые зоны не трогаем</small></span>' +
         '<input type="checkbox" data-replan' + (on ? ' checked' : '') + '><i></i></label>';
   }
   function sheet() { commit(); FLOW.save({ replanAnswers: st.rp }); FLOW.replanSheet(function () { go(true); }, function () { go(false); }); }
@@ -352,9 +570,13 @@
       '<div class="pz-prog"><i class="pz-prog__run"></i></div><small class="pz-note">Проверяю проходы, двери и окна…</small>';
   }
   function render() {
-    var V = { reading: viewReading, rooms: viewRooms, brief: viewBrief, error: viewError, placing: viewPlacing, noplan: viewNoplan };
+    var V = { reading: viewReading, rooms: viewRooms, brief: viewBrief, error: viewError, placing: viewPlacing, noplan: viewNoplan, zk: viewZk, upload: viewUpload };
     root.innerHTML = (V[st.view] || viewIdle)();
     if (st.view === 'rooms') mount3d();
+    if (st.view === 'idle') {
+      placeTags(); var hi = root.querySelector('#pd-hero img'); if (hi && !hi.complete) hi.addEventListener('load', placeTags);
+      if (document.fonts && document.fonts.ready) document.fonts.ready.then(placeTags);   /* шрифт догрузился — ширина ценников другая */
+    }
     /* лента «Выбери интерьер» (раздел 14): на A3 — да, на A1, A2, A4 — нет */
     FLOW.interiorStrip({ show: st.view === 'rooms', chosen: !!st.interior, onPick: function (it) { st.interior = it; render(); } });
     bind();
@@ -404,20 +626,49 @@
   }
 
   /* свой план: читаем размер, шлём на разметку, показываем подписанный план */
+  /* «← Назад» с экрана мебели для СВОЕГО плана (Алина и Таня 27.10: «не возвращает назад, так и не прошли по нему»).
+     Файл и разметка жили только в памяти вкладки, и при возврате человек попадал на первый экран — план приходилось
+     загружать и распознавать заново. Теперь разметка и уменьшенная копия картинки (до 1600 px, JPEG) лежат
+     в sessionStorage этой вкладки: «Назад» открывает вопросы с ответами, а «Проверь план» — тот же план */
+  var LIVE_BACK = 'sove.plan.liveBack';
+  function shrinkLive(l) {
+    var im = new Image();
+    im.onload = function () {
+      try {
+        var k = Math.min(1, 1600 / Math.max(im.naturalWidth, im.naturalHeight)), c = document.createElement('canvas');
+        c.width = Math.round(im.naturalWidth * k); c.height = Math.round(im.naturalHeight * k);
+        var g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); g.drawImage(im, 0, 0, c.width, c.height);
+        l.small = c.toDataURL('image/jpeg', 0.82);
+      } catch (e) { /* без копии «Проверь план» после возврата покажет подписанную картинку разметки */ }
+    };
+    im.src = l.src;
+  }
+  function keepLive() {
+    var l = st.live, res = {};
+    Object.keys(l.res).forEach(function (k) { if (k !== 'labeled_png_base64') res[k] = l.res[k]; });   /* картинка с подписями уже лежит в FLOW.live */
+    try { sessionStorage.setItem(LIVE_BACK, JSON.stringify({ res: res, w: l.w, h: l.h, img: l.small || null, file: st.fileName || '' })); return true; }
+    catch (e) { return false; }
+  }
+  function dropLive() { try { sessionStorage.removeItem(LIVE_BACK); } catch (e) {} }
   function startLive(file) {
+    FLOW.save({ zk: null });                         /* свой план — уже не планировка из базы ЖК */
+    st.errKind = null;
     st.fileName = file.name; st.error = null; st.typical = null; st.live = { file: file, src: URL.createObjectURL(file) }; st.geo = null; st.state = null; if (!/replan=1/.test(location.search)) FLOW.setReplan(false);
     st.view = 'reading'; render();
-    var i = 0, tick = setInterval(function () { i = Math.min(i + 1, READ_STAGES.length - 1); setStage(i); }, 1500);
+    var seq = st.seq, i = 0, tick = setInterval(function () { i = Math.min(i + 1, READ_STAGES.length - 1); setStage(i); }, 1500);
     FLOW.imageSize(file).then(function (size) {
       st.live.w = size.w; st.live.h = size.h;
       return FLOW.apiMarkup(file);
     }).then(function (res) {
       clearInterval(tick);
+      if (seq !== st.seq) return;                     /* нажали «Назад», пока читали план */
       st.live.res = res;
       st.live.labeled = 'data:image/png;base64,' + res.labeled_png_base64;
+      shrinkLive(st.live);
       st.view = 'rooms'; render();
     }).catch(function (e) {
       clearInterval(tick);
+      if (seq !== st.seq) return;
       st.error = e.status === 429 ? 'Дневной лимит разметок исчерпан — попробуйте завтра или возьмите пример.'
         : e.status === 415 ? 'Нужна картинка: PNG или JPG. PDF и DWG пока не принимаем.'
         : (e.message || 'сервер не ответил');
@@ -432,21 +683,24 @@
     (res.rooms || []).forEach(function (r) { if (r.seeded !== false && r.box_2d) { if (st.names && st.names[k]) r.label = st.names[k]; k++; } });
     var frame = FLOW.frameFromMarkup(res, live.w, live.h);
     FLOW.apiAuto(frame, FLOW.briefFromAnswers(brief)).then(function (out) {
-      var total = frame.rooms.filter(function (r) { return !r.part_of; }).reduce(function (a, r) { return a + (r.doc_m2 || 0); }, 0);
+      var hosts = frame.rooms.filter(function (r) { return !r.part_of; });
+      var total = hosts.reduce(function (a, r) { return a + (r.doc_m2 || 0); }, 0);
       FLOW.save({ live: {
         layout: out.layout, not_placed: out.not_placed || [], ready: out.ready_for_render,
-        flat: 'Твой план · ' + F.area(total) + ' · ' + frame.rooms.filter(function (r) { return !r.part_of; }).length + ' помещения',
+        flat: 'Твой план · ' + F.area(total) + ' · ' + hosts.length + ' помещения',
         labeled: live.labeled, name: st.fileName } });
       location.href = 'arrange.html?v=panel&flow=1&live=1' + (tail || '');
     }).catch(function (e) {
-      st.error = 'Расстановка не удалась: ' + (e.message || 'сервер не ответил'); st.view = 'error'; render();
+      /* ответы и план на месте: экран ошибки предлагает повторить или вернуться к вопросам */
+      st.error = 'Расстановка не удалась: ' + (e.message || 'сервер не ответил'); st.errKind = 'place'; st.view = 'error'; render();
     });
   }
 
   function startReading() {
     st.view = 'reading'; render();
-    var i = 0;
+    var i = 0, seq = st.seq;
     var tick = setInterval(function () {
+      if (seq !== st.seq) { clearInterval(tick); return; }        /* нажали «Назад» — чтение отменено */
       i++; setStage(i);
       if (i >= READ_STAGES.length) { clearInterval(tick); st.view = 'rooms'; render(); }
     }, 700);
@@ -467,15 +721,34 @@
     var brief = commit(), lay = layoutFromAnswers();
     FLOW.save({ replanAnswers: st.rp, wallVariant: null, layoutHints: lay, plan: lay.plan });
     var tail = (walls ? '&walls=1' : '') + '&anim=1';
+    st.retryWalls = walls; st.placingFrom = 'brief';
+    /* «← Назад» с экрана мебели вернёт к вопросам — и с примером, и со своим планом (keepLive выше).
+       Не удалось сохранить свой план (переполнено хранилище) — как раньше, первый экран */
+    var liveKept = st.live && st.live.res ? keepLive() : (dropLive(), false);
+    FLOW.save({ backTo: st.live && !liveKept ? null : 'brief' });
     if (st.live && st.live.res) { goLive(brief, tail); return; }
     FLOW.save({ live: null });
-    try { sessionStorage.setItem('pd.resume', JSON.stringify({ typical: st.typical, names: st.names, state: st.state, answers: st.answers, rp: st.rp, interior: st.interior, source: st.source })); } catch (e) {}
     st.view = 'placing'; render();
     setTimeout(function () { location.href = 'arrange.html?v=panel&plan=' + lay.plan + '&flow=1' + tail; }, 700);
   }
 
   function bind() {
     var file = document.getElementById('pd-file');
+    root.querySelectorAll('.pd-file2').forEach(function (f2) { f2.addEventListener('change', function () { var f = f2.files && f2.files[0]; if (f) startLive(f); }); });
+    var zf = document.getElementById('pd-zks'), zq = document.getElementById('pd-zkq');
+    function zkBind() {
+      root.querySelectorAll('#pd-zkres [data-zk]').forEach(function (b) { b.addEventListener('click', function () { st.zk = b.dataset.zk; st.view = 'zk'; render(); window.scrollTo(0, 0); }); });
+      root.querySelectorAll('#pd-zkres .pd-file2').forEach(function (f2) { f2.addEventListener('change', function () { var f = f2.files && f2.files[0]; if (f) startLive(f); }); });
+      root.querySelectorAll('#pd-zkres [data-act="noplan"]').forEach(function (b) { b.addEventListener('click', function () { st.source = 'none'; st.view = 'noplan'; render(); }); });
+    }
+    if (zq) zq.addEventListener('input', function () { st.zkQ = zq.value; document.getElementById('pd-zkres').innerHTML = zkResults(); zkBind(); });
+    var tags = heroTags(example());
+    root.querySelectorAll('[data-tag]').forEach(function (b) { b.addEventListener('click', function () { tagSheet(tags[+b.dataset.tag]); }); });
+    if (zf) zf.addEventListener('submit', function (e) { e.preventDefault(); st.zkQ = zq.value; var r = ZK ? ZK.search(st.zkQ) : [];
+      if (r.length === 1) { st.zk = r[0].id; st.view = 'zk'; render(); window.scrollTo(0, 0); return; }
+      document.getElementById('pd-zkres').innerHTML = zkResults(); zkBind(); });
+    zkBind();
+    root.querySelectorAll('[data-zl]').forEach(function (b) { b.addEventListener('click', function () { pickLayout(b.dataset.zl); }); });
     if (file) file.addEventListener('change', function () {
       var f = file.files && file.files[0];
       if (!f) return;
@@ -497,8 +770,12 @@
     root.querySelectorAll('[data-act]').forEach(function (b) {
       b.addEventListener('click', function () {
         var a = b.getAttribute('data-act');
-        if (a === 'sample') { if (!/replan=1/.test(location.search)) FLOW.setReplan(false); st.geo = null; st.live = null; st.typical = null; st.error = null; st.names = null; st.fileName = null; if (st.source === 'none') st.source = 'developer'; st.state = 'concrete_walls'; startReading(); }
-        if (a === 'again') { st.view = 'idle'; st.live = null; st.typical = null; st.error = null; st.names = null; if (st.source === 'none') st.source = 'developer'; render(); }
+        if (a === 'sample' || a === 'again' || a === 'typical') st.errKind = null;
+        if (a === 'sample') { FLOW.save({ zk: null }); if (!/replan=1/.test(location.search)) FLOW.setReplan(false); st.geo = null; st.live = null; st.typical = null; st.error = null; st.names = null; st.fileName = null; if (st.source === 'none') st.source = 'developer'; st.state = 'concrete_walls'; startReading(); }
+        if (a === 'upload') { st.view = 'upload'; render(); window.scrollTo(0, 0); }
+        /* «Другой файл» (ошибка) и «Другой план» («Проверь план») — на шаг загрузки, как у Алины (её A1 = наш 'upload');
+           'idle' у нас — первая страница по макету Вики: туда ведут «← К поиску» и «Назад» без плана */
+        if (a === 'again') { st.view = st.view === 'error' || st.view === 'rooms' ? 'upload' : 'idle'; st.live = null; st.typical = null; st.error = null; st.names = null; if (st.source === 'none') st.source = 'developer'; render(); }
         if (a === 'typical') {
           var m2 = parseFloat(String((document.getElementById('pd-m2') || {}).value || '').replace(',', '.'));
           if (!(m2 >= 15 && m2 <= 300)) { var inp = document.getElementById('pd-m2'); if (inp) { inp.focus(); inp.setCustomValidity('Площадь от 15 до 300 м²'); inp.reportValidity(); } return; }
@@ -507,15 +784,16 @@
           st.view = 'brief'; render();
         }
         if (a === 'ok') {
-          st.names = {};
-          root.querySelectorAll('[data-room]').forEach(function (inp) { st.names[+inp.dataset.room] = inp.value.trim(); });
+          collectNames();
           st.view = 'brief'; render(); window.scrollTo(0, 0);
         }
-        
+        if (a === 'retry') { st.errKind = null; go(st.retryWalls); }
+        if (a === 'to-brief') { st.errKind = null; st.view = 'brief'; render(); window.scrollTo(0, 0); }
+
         if (a === 'later') { st.interior = null; render(); }
         if (a === 'fit-open') { st.fitOpen = true; render(); }
         if (a === 'go') {
-          if (!required()) { S.ui.toast('Ответь на 3 вопроса сверху'); return; }
+          if (needAnswers()) return;
           if (FLOW.replanOn()) sheet(); else go(false);
         }
         if (a === 'skip') {
@@ -525,7 +803,7 @@
       });
     });
     root.querySelectorAll('[data-mode]').forEach(function (b) {
-      b.addEventListener('click', function () { st.mode = b.dataset.mode; render(); });
+      b.addEventListener('click', function () { collectNames(); st.mode = b.dataset.mode; render(); });
     });
     root.querySelectorAll('[data-state-open]').forEach(function (b) { b.addEventListener('click', function () { stateOpen = true; render(); }); });
     root.querySelectorAll('[data-state]').forEach(function (b) {
@@ -564,25 +842,58 @@
   if (saved.state && /replan=1/.test(location.search)) st.state = saved.state;
   if (saved.replanAnswers) st.rp = saved.replanAnswers;
   /* вход «Перепланировка» (?replan=1): переключатель включён; план есть — сразу вопросы (ТЗ, п. 2) */
-  if (new URLSearchParams(location.search).get('replan') === '1') { FLOW.setReplan(true); if (saved.rooms && saved.rooms.length) st.view = 'brief'; }
-  /* «← Назад» идёт по шагам Планировки, а не сразу со страницы (Алина 27.10) */
-  var PREV = { brief: function () { return st.typical ? 'noplan' : 'rooms'; }, rooms: 'idle', noplan: 'idle', error: 'idle' };
-  window.addEventListener('click', function (e) {
+  if (new URLSearchParams(location.search).get('replan') === '1') { FLOW.setReplan(true); if (saved.rooms && saved.rooms.length) { st.view = 'brief'; st.entry = true; } }
+  /* «Подстроить под тебя» с экрана мебели (?tune=1): анкета v2 по квартире из базы ЖК, без сканера; состояние — из «как сдаётся» */
+  if (Q.get('tune') === '1' && saved.zk) { st.state = saved.state || st.state; st.interior = saved.interior || null; st.view = 'brief'; st.entry = true; }
+
+  /* ── «← Назад» по шагам (Алина 26.10: «нет возврата на шаг назад простого»). Шаги блока живут на одной странице,
+     а общая кнопка шапки (demo-flow.js) идёт назад по истории браузера — то есть из блока целиком.
+     Здесь перехватываем её и ведём на предыдущий шаг; с первого экрана и при входе из других экранов — как раньше ── */
+  function backStep() {
+    var v = st.view;
+    if (v === 'upload' || v === 'zk' || v === 'noplan') return function () { st.view = 'idle'; };
+    if (v === 'reading') return function () { st.seq++; st.view = 'upload'; };
+    if (v === 'error') return function () { if (st.errKind) { st.errKind = null; st.view = 'brief'; } else st.view = 'upload'; };
+    if (v === 'rooms') return function () { collectNames(); st.view = 'upload'; };
+    if (v === 'brief' && !st.entry) return function () { st.view = st.typical ? 'noplan' : 'rooms'; };
+    return null;
+  }
+  root.addEventListener('click', function (e) {
     var b = e.target.closest && e.target.closest('[data-pz-back]'); if (!b) return;
-    var p = PREV[st.view]; if (!p) return;
-    e.stopPropagation(); e.preventDefault();
-    st.view = typeof p === 'function' ? p() : p;
-    render(); window.scrollTo(0, 0);
-  }, true);
-  /* вернулись «Назад» из расстановки — снова вопросы, ответы на месте */
-  try {
-    var rs = JSON.parse(sessionStorage.getItem('pd.resume') || 'null');
-    var nav = (performance.getEntriesByType && performance.getEntriesByType('navigation')[0]) || {};
-    if (!rs && /back=1/.test(location.search)) rs = { state: saved.state || 'concrete_walls' };
-    if (rs && (nav.type === 'back_forward' || /back=1/.test(location.search)) && st.view === 'idle') {
-      Object.assign(st, { typical: rs.typical, names: rs.names, state: rs.state, answers: rs.answers || {}, rp: rs.rp || st.rp, interior: rs.interior, source: rs.source || st.source, view: 'brief' });
+    var f = backStep(); if (!f) return;
+    e.stopPropagation(); f(); render(); window.scrollTo(0, 0);
+  });
+  /* вернулись «Назад» с экрана мебели: страница загрузилась заново — открываем шаг, с которого ушли */
+  function restoreBack() {
+    if (saved.backTo === 'zk' && saved.zk && ZK && ZK.get(saved.zk.id)) { st.zk = saved.zk.id; st.view = 'zk'; return; }
+    if (saved.backTo !== 'brief') return;
+    st.state = saved.state || 'concrete_walls'; st.answers = saved.answers || {}; st.interior = saved.interior || null;
+    if (saved.source) st.source = saved.source;        /* источник плана тоже как был (так восстанавливал «Назад» Алины 27.10) */
+    if (saved.typical && saved.rooms) {
+      st.typical = { m2: saved.rooms.reduce(function (a, r) { return a + (r.m2 || 0); }, 0), rooms: saved.rooms.map(function (r) { return { name: r.name, m2: r.m2 }; }) };
+    } else {
+      var lb = null; try { lb = JSON.parse(sessionStorage.getItem(LIVE_BACK) || 'null'); } catch (e) {}
+      if (lb && lb.res) {
+        var lab = saved.live && saved.live.labeled;
+        st.live = { res: lb.res, w: lb.w, h: lb.h, small: lb.img || null, src: lb.img || lab || '', labeled: lab || null };
+        st.fileName = lb.file || st.fileName;
+      }
+      /* названия комнат — только к своему плану, который удалось восстановить, или к примеру: иначе (новая вкладка без sessionStorage)
+         на примере PRIDE оказывались названия своего плана и не совпадали с площадями */
+      if (st.live || !saved.live) (saved.rooms || []).forEach(function (r, i) { (st.names = st.names || {})[i] = r.name; });
     }
-  } catch (e) {}
-  window.addEventListener('pageshow', function (e) { if (e.persisted && st.view === 'placing') { st.view = 'brief'; render(); } });
+    st.view = 'brief';
+  }
+  var nav = (window.performance && performance.getEntriesByType && performance.getEntriesByType('navigation')[0]) || {};
+  /* ?back=1 — явный возврат по ссылке, как в «Назад» Алины 27.10 */
+  if ((nav.type === 'back_forward' || Q.get('back') === '1') && st.view === 'idle' && saved.backTo) restoreBack();
+  /* Алина 27.10 («Назад из расстановки»): из расстановки — всегда на вопросы, даже если их не проходили
+     (в расстановку пришли из Генераций): пример ЖК PRIDE, состояние — сохранённое или «бетон, стены стоят».
+     Свой план, который не удалось сохранить для возврата (saved.live), — как раньше, первый экран */
+  else if (Q.get('back') === '1' && st.view === 'idle' && !saved.backTo && !saved.live) { st.state = saved.state || 'concrete_walls'; st.view = 'brief'; }
+  /* браузер вернул страницу из памяти как была — с экраном «Расставляю мебель»: показываем шаг до него */
+  window.addEventListener('pageshow', function (e) {
+    if (e.persisted && st.view === 'placing') { st.view = st.placingFrom || 'idle'; render(); }
+  });
   render();
 })();

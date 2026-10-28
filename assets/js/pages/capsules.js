@@ -19,7 +19,7 @@
   var pick = S.ui.qs('pick') === '1';
   var returnTo = pick ? (safeReturn(S.ui.qs('returnTo')) || 'scout.html') : null;
   var current = pick ? (S.ui.qs('capsule') || '').toLowerCase() : '';
-  var RETURN_NAMES = { 'scout.html': 'в Скаут', 'adept.html': 'в Адепт', 'track.html': 'в Трек', 'project.html': 'в проект', 'account.html': 'в кабинет' };
+  var RETURN_NAMES = { 'scout.html': 'в расчёт бюджета', 'adept.html': 'в дизайн-проект', 'track.html': 'в управление ремонтом', 'project.html': 'в проект', 'account.html': 'в кабинет' };
   var backLabel = pick ? (RETURN_NAMES[returnTo.split('?')[0]] || 'назад') : '';
 
   if (pick) {
@@ -94,7 +94,7 @@
   function renderGrid() {
     var list = all.filter(function (c) { return !active || c.style === active; });
     if (!list.length) {
-      grid.innerHTML = '<div class="empty" style="grid-column:1/-1"><span class="empty__title">В этом стиле капсул пока нет</span><span class="small muted">Посмотрите остальные — их можно адаптировать под себя в Адепте.</span><button type="button" class="btn btn--ghost btn--sm" data-style="">Показать все капсулы</button></div>';
+      grid.innerHTML = '<div class="empty" style="grid-column:1/-1"><span class="empty__title">В этом стиле капсул пока нет</span><span class="small muted">Посмотрите остальные — их можно адаптировать под себя в дизайн-проекте.</span><button type="button" class="btn btn--ghost btn--sm" data-style="">Показать все капсулы</button></div>';
     } else { grid.innerHTML = list.map(card).join(''); }
     countBox.textContent = active ? ('Показано ' + list.length + ' из ' + all.length) : (all.length + ' ' + plural(all.length, 'капсула', 'капсулы', 'капсул'));
   }

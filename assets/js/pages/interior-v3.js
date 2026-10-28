@@ -66,7 +66,7 @@
   function plural(n, a, b, c) { var m = n % 100, k = n % 10; return m > 10 && m < 20 ? c : k === 1 ? a : k >= 2 && k <= 4 ? b : c; }
   function upload(html, cls) { return '<label class="' + cls + '">' + html + '<input type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic" hidden data-up></label>'; }
   function sub(b) {
-    if (b.type === 'capsule') return 'капсула SOVE · от дизайнера';
+    if (b.type === 'capsule') return 'капсула SOVEAPP · от дизайнера';
     if (b.baseCapsuleId) { var c = KB.capsule(b.baseCapsuleId); return 'своя капсула на основе «' + esc(c ? c.name : '') + '»'; }
     return 'своя капсула · по твоей картинке' + (b.scope === 'room' ? ' · ' + esc(b.room) : '');
   }
@@ -142,7 +142,7 @@
   function errorView() {
     return head() + '<div class="mt-body"><section class="mt-err">' + (st.error.img ? '<img src="' + esc(st.error.img) + '" alt="">' : '') +
       '<b>Не видим интерьер на картинке — попробуй другую</b><small>токены не списаны</small>' + upload('⇪ Загрузить другую', 'mt-btn') +
-      '<a class="mt-a" href="interior.html?v=1">или выбрать капсулу SOVE ›</a></section></div>';
+      '<a class="mt-a" href="interior.html?v=1">или выбрать капсулу SOVEAPP ›</a></section></div>';
   }
   function top(b) {
     return '<div class="mt-top"><span class="mt-top__pic" style="background-image:url(' + esc(b.imageUrl || '') + ')">' + (b.imageUrl ? '' : UI.dnaBar(b.dna)) + '</span>' +
@@ -347,7 +347,7 @@
       rs.push({ room: room, img: src, tokens: RENDER, basis: bs.kind }); if (rerender) board.changed = false;
       board.accuracy = bs.exact ? 'точно' : '≈';
       board.tokensSpent = (board.tokensSpent || 0) + RENDER; persist();
-      R.save('render', { room: room, src: src, mine: true }, { silent: true });
+      R.save('render', { room: room, src: src, mine: true, from: 'interior' }, { silent: true });
       track(rerender ? 'int_rerender' : 'int_render', { room: room, tokens: RENDER }); st.busy = null; render();
     }, 2000);
   }
@@ -367,7 +367,7 @@
           var room = free[i] || rooms()[0], src = c.toDataURL('image/jpeg', .82);
           board.renders = (board.renders || []).filter(function (r) { return r.room !== room; }); board.renders.push({ room: room, img: src, project: true, basis: 'project' });
           board.basis = 'project'; board.accuracy = 'точно';
-          R.save('render', { room: room, src: src, mine: true }, { silent: true });
+          R.save('render', { room: room, src: src, mine: true, from: 'interior' }, { silent: true });
           if (++done === Math.min(imgs.length, free.length || 1)) { persist(); track('int_project_upload', { n: done }); render(); ui.toast('Комнаты из дизайн-проекта · ' + done, 'ok'); }
         };
         im.src = fr.result;
@@ -389,13 +389,13 @@
   function pdf() {
     var b = board, rs = renders().filter(function (r) { return r.img; }), abs = function (u) { return /^(data:|https?:)/.test(u) ? u : location.href.replace(/[^/]*$/, '') + u; };
     var w = window.open('', '_blank'); if (!w) { ui.toast('Разреши всплывающие окна — откроем PDF'); return; }
-    w.document.write('<!doctype html><html lang="ru"><head><meta charset="utf-8"><title>' + esc(b.name) + ' — капсула SOVE</title><style>body{font:12px/1.4 Montserrat,Arial,sans-serif;color:#1E1C1A;margin:28px}h1{font:600 28px "Cormorant Garamond",Georgia,serif;margin:0 0 4px}.s{color:#6B655F;margin:0 0 14px}.dna{display:flex;gap:4px;margin:0 0 16px}.dna i{flex:1;height:28px;border-radius:6px}table{width:100%;border-collapse:collapse;margin:0 0 18px}td{padding:6px 0;border-top:1px solid #E6E1DA}td:last-child{text-align:right;white-space:nowrap}.r{display:grid;grid-template-columns:1fr 1fr;gap:8px}.r img{width:100%;height:150px;object-fit:cover;border-radius:8px}.f{margin-top:18px;font-size:10px;color:#6B655F}</style></head><body>' +
-      '<h1>' + esc(b.name) + '</h1><p class="s">капсула SOVE App · ' + sub(b) + '</p>' +
+    w.document.write('<!doctype html><html lang="ru"><head><meta charset="utf-8"><title>' + esc(b.name) + ' — капсула SOVEAPP</title><style>body{font:12px/1.4 Montserrat,Arial,sans-serif;color:#1E1C1A;margin:28px}h1{font:600 28px "Cormorant Garamond",Georgia,serif;margin:0 0 4px}.s{color:#6B655F;margin:0 0 14px}.dna{display:flex;gap:4px;margin:0 0 16px}.dna i{flex:1;height:28px;border-radius:6px}table{width:100%;border-collapse:collapse;margin:0 0 18px}td{padding:6px 0;border-top:1px solid #E6E1DA}td:last-child{text-align:right;white-space:nowrap}.r{display:grid;grid-template-columns:1fr 1fr;gap:8px}.r img{width:100%;height:150px;object-fit:cover;border-radius:8px}.f{margin-top:18px;font-size:10px;color:#6B655F}</style></head><body>' +
+      '<h1>' + esc(b.name) + '</h1><p class="s">капсула SOVEAPP · ' + sub(b) + '</p>' +
       '<div class="dna">' + b.dna.map(function (c) { return '<i style="background:' + c.hex + '" title="' + esc(c.name) + '"></i>'; }).join('') + '</div>' +
       '<table>' + KB.SLOTS.map(function (s) { var e = b.slots[s.key], it = KB.item(e.sku); return '<tr><td>' + esc(s.name) + '</td><td>' + esc(it.name) + '</td><td>' + F.rub(e.sum) + '</td></tr>'; }).join('') +
       '<tr><td colspan="2"><b>Материалы · ' + LEVEL_T[KB.levelOf(b.slots)] + '</b></td><td><b>≈ ' + F.rub(KB.sum(b.slots)) + '</b></td></tr></table>' +
       '<div class="r">' + rs.map(function (r) { return '<figure style="margin:0"><img src="' + esc(abs(r.img)) + '" alt=""><figcaption>' + esc(r.room) + '</figcaption></figure>'; }).join('') + '</div>' +
-      '<p class="f">SOVE App · платформа выгодного ремонта · ' + new Date().toLocaleDateString('ru-RU') + '</p></body></html>');
+      '<p class="f">SOVEAPP · платформа выгодного ремонта · ' + new Date().toLocaleDateString('ru-RU') + '</p></body></html>');
     w.document.close(); setTimeout(function () { w.print(); }, 600); track('int_pdf', {});
   }
 

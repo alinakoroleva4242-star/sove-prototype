@@ -89,7 +89,7 @@
     (c.forWhom ? '<div class="cap-whom"><span class="eyebrow">Для кого</span><p class="text">' + esc(c.forWhom) + '</p></div>' : '');
   if (soon) {
     infoHtml += '<div class="cap-soon"><span class="h3">Капсула готовится</span>' +
-      '<p class="text">Рендеры уже можно посмотреть. Цена за квадратный метр, товары и расчёт в Скауте появятся, когда соберём комплектацию.</p>' +
+      '<p class="text">Рендеры уже можно посмотреть. Цена за квадратный метр, товары и расчёт бюджета появятся, когда соберём комплектацию.</p>' +
       '<div class="cap-cta"><a class="btn btn--primary btn--lg btn--block" href="capsules.html">Смотреть готовые капсулы</a></div></div>';
   } else {
     infoHtml += '<div class="cap-price"><div class="cap-price__row"><span class="cap-price__from">комплектация от</span><span class="big-num">' + F.rub(c.pricePerM2) + '/м²</span></div>' +
@@ -99,10 +99,10 @@
       '<div class="segmented cap-level" role="group" aria-labelledby="cap-level-label">' +
       '<button type="button" class="is-active" aria-pressed="true">Базовый<small class="num">от ' + F.rub(c.pricePerM2) + '/м²</small></button>' +
       '<button type="button" disabled aria-disabled="true">Премиум<small>данные готовятся</small></button></div></div>' +
-      '<div class="cap-cta"><a class="btn btn--primary btn--lg btn--block" href="scout.html?capsule=' + c.id + '">Рассчитать ремонт в Скауте</a>' +
+      '<div class="cap-cta"><a class="btn btn--primary btn--lg btn--block" href="scout.html?capsule=' + c.id + '">Рассчитать ремонт</a>' +
       (S.repair ? S.repair.saveButton('interior', { capsuleId: c.id, name: c.name, img: c.cover, dna: c.dna || [], productIds: S.repair.capsuleProducts(c.id).map(function (p) { return p.id; }) }, 'Сохранить мудборд в Мой ремонт', 'btn btn--dark btn--block') : '') +
       '<a class="btn btn--ghost btn--block" href="market.html?capsule=' + c.id + '">Все товары капсулы</a>' +
-      '<p class="tiny muted">Скаут посчитает работы по этапам и комплектацию этой капсулы по вашей планировке.</p></div>' +
+      '<p class="tiny muted">Посчитаем работы по этапам и комплектацию этой капсулы по вашей планировке.</p></div>' +
       (linkedProject ? '<div class="cap-inproject"><span class="small">Эта капсула выбрана в проекте «' + esc(linkedProject.name) + '»</span><a class="btn btn--link" href="project.html?id=' + encodeURIComponent(linkedProject.id) + '">Открыть проект</a></div>' : '');
   }
   infoHtml += '</div>';
@@ -124,7 +124,7 @@
   if (!soon) {
     var items = D.products.filter(function (p) { return p.capsules && p.capsules.indexOf(c.id) >= 0; });
     var marketHref = 'market.html?capsule=' + c.id;
-    html += '<section class="wrap" aria-labelledby="cap-goods-title"><div class="cap-block stack stack--8">' +
+    html += '<section class="wrap" id="cap-goods" aria-labelledby="cap-goods-title"><div class="cap-block stack stack--8">' +
       '<div class="cap-block__head"><div class="stack stack--3"><span class="eyebrow">Маркет</span><h2 class="h2" id="cap-goods-title">Товары капсулы</h2>' +
       '<p class="small muted">' + (S.metod.active() ? 'У вас активна подписка METOD — зелёная цена действует для вас.' : 'Зелёная цена — по подписке METOD, зачёркнутая — розница. <a class="link" href="metod.html" style="white-space:nowrap">Что даёт METOD</a>') + '</p></div>' +
       (items.length ? '<a class="btn btn--link" href="' + marketHref + '">Все товары · ' + items.length + '</a>' : '') + '</div>' +
@@ -138,10 +138,10 @@
     var adeptMin = Math.min.apply(null, D.adept.packages.map(function (p) { return p.rate; }));
     var worksMin = Math.min.apply(null, D.scout.states.map(function (s) { return s.rate; }));
     var paths = [
-      { t: 'Примерить на своё фото', d: 'Загрузите фото комнаты или рендер — SOVEAPP AI найдёт похожие предметы в каталоге.', m: 'по фото — ' + F.tokens(D.costs.photo) + ', по рендеру — ' + F.tokens(D.costs.render), href: 'ai.html', a: 'Открыть SOVEAPP AI' },
-      { t: 'Посчитать бюджет', d: 'Скаут разложит работы по этапам и посчитает комплектацию ' + c.code + ' по вашей планировке.', m: 'комплектация от ' + F.rub(c.pricePerM2) + '/м²', href: 'scout.html?capsule=' + c.id, a: 'К расчёту' },
-      { t: 'Дизайн-проект', d: 'Дизайнер адаптирует капсулу под вашу квартиру: планировка, визуализации, чертежи.', m: 'Адепт · от ' + F.rub(adeptMin) + '/м²', href: 'adept.html?capsule=' + c.id, a: 'Об Адепте' },
-      { t: 'Ремонт под ключ', d: 'Команда делает ремонт по капсуле. Этапы, акты и оплаты видны в кабинете.', m: 'Трек · работы от ' + F.rub(worksMin) + '/м²', href: 'track.html?capsule=' + c.id, a: 'О Треке' }
+      { t: 'Примерить на своё фото', d: 'Загрузите фото комнаты или рендер — найдём похожие предметы в каталоге.', m: 'по фото — ' + F.tokens(D.costs.photo) + ', по рендеру — ' + F.tokens(D.costs.render), href: 'ai.html', a: 'Открыть Генерации' },
+      { t: 'Посчитать бюджет', d: 'Разложим работы по этапам и посчитаем комплектацию ' + c.code + ' по вашей планировке.', m: 'комплектация от ' + F.rub(c.pricePerM2) + '/м²', href: 'scout.html?capsule=' + c.id, a: 'К расчёту' },
+      { t: 'Дизайн-проект', d: 'Дизайнер адаптирует капсулу под вашу квартиру: планировка, визуализации, чертежи.', m: 'Дизайн-проект · от ' + F.rub(adeptMin) + '/м²', href: 'adept.html?capsule=' + c.id, a: 'О дизайн-проекте' },
+      { t: 'Ремонт под ключ', d: 'Команда делает ремонт по капсуле. Этапы, акты и оплаты видны в кабинете.', m: 'Управление ремонтом · работы от ' + F.rub(worksMin) + '/м²', href: 'track.html?capsule=' + c.id, a: 'Об управлении ремонтом' }
     ];
     html += '<section class="wrap" aria-labelledby="cap-next-title"><div class="cap-block stack stack--8">' +
       '<div class="cap-block__head"><div class="stack stack--3"><span class="eyebrow">Следующий шаг</span><h2 class="h2" id="cap-next-title">Что дальше</h2></div><p class="small muted">Начать можно с любого шага — капсула ' + esc(c.code) + ' перейдёт вместе с вами.</p></div>' +
