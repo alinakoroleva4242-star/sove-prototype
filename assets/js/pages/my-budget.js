@@ -21,7 +21,7 @@
   function model() {
     var B = window.SOVE_BUDGET, C = B && B.current ? B.current() : null;
     /* до расчёта: если собран Интерьер — показываем, что уже известно (строки ИНТЕРЬЕР), остальное серым и «Досчитать весь бюджет» (Алина 26.10) */
-    if (!C || !C.full) { var it = R.get().interior; return it && it.slots ? partial(it) : { empty: true, plan: !!C }; }
+    if (!C || !C.full) { var it = R.get().interior; if (it && it.slots) return partial(it); var sv = fromSaved(); if (sv) return sv; return { empty: true, plan: !!C }; }
     var f = R.flats.active(), BL = window.SOVE_FLOW && window.SOVE_FLOW.budgetLayers ? window.SOVE_FLOW.budgetLayers() : null;
     C.meta = [f && f.name, C.area ? F.area(C.area) : '', C.P && C.P.rooms ? C.P.rooms.filter(function (r) { return !/сан|ванн|прих|балкон|лодж|корид/i.test(r.name); }).length + ' комн.' : ''].filter(Boolean).join(' · ');
     C.figure = C.full ? C.totals.plan : BL ? BL.total : null;
@@ -29,6 +29,36 @@
     return C;
   }
 
+  /* без Планировки и без расчёта «из Интерьера», но расчёт сохранён кнопкой «Сохранить в Мой ремонт» (rp.budget: works, kitMetod, total, byRooms)
+     или есть rp.scoutParams.byRooms — экран строится из них: та же итоговая цифра, что в полосе (rp.budget.total), категории = Σ byCat по комнатам
+     (нет разбивки — доли расчёта), этапы — 7 этапов расчёта в 5 этапов договора (как fromScout), черновые материалы отдельно не выделяем.
+     «Рассчитать бюджет» остаётся только когда расчёта нет вообще. */
+  function fromSaved() {
+    var B = window.SOVE_BUDGET, SC = S.data && S.data.scout, r = R.get(), b = r.budget && r.budget.total > 0 ? r.budget : null;
+    var br = (b && b.byRooms && b.byRooms.length ? b.byRooms : null) || (r.scoutParams && r.scoutParams.byRooms && r.scoutParams.byRooms.length ? r.scoutParams.byRooms : null);
+    if (!B || !SC || (!b && !br)) return null;
+    var rsum = function (f) { return br ? br.reduce(function (a, x) { return a + (Number(x[f]) || 0); }, 0) : 0; };
+    var total = Math.round(b ? b.total : rsum('total')), works = Math.round(b && typeof b.works === 'number' ? b.works : rsum('works')), kitMetod = Math.round(b && typeof b.kitMetod === 'number' ? b.kitMetod : total - works);
+    if (!(total > 0)) return null;
+    var mk = SC.retailMarkup || 1, kv = {};
+    if (br && br[0] && br[0].byCat) br.forEach(function (x) { Object.keys(x.byCat || {}).forEach(function (k) { kv[k] = (kv[k] || 0) + (Number(x.byCat[k]) || 0); }); });
+    else SC.kitShares.forEach(function (k) { kv[B.kitKey(k[0]) || k[0]] = kitMetod * k[1] / 100; });
+    var known = B.KIT.map(function (k) { return k[0]; });
+    Object.keys(kv).forEach(function (k) { if (known.indexOf(k) < 0) { kv.furniture = (kv.furniture || 0) + kv[k]; delete kv[k]; } });   /* «по картинкам» — в мебель */
+    var kit = B.KIT.map(function (k) { var v = Math.round(kv[k[0]] || 0); return { key: k[0], title: k[1], plan: v, market: Math.round(v * mk), paid: 0, source: 'scout', accuracy: 'примерно' }; });
+    var W = {}; SC.stages.forEach(function (x) { W[x[0]] = works * x[1] / 100; });
+    var stId = (b && b.stateId) || (S.my && S.my.get().stateId), secondary = stId === 'secondary';
+    var wv = { demolition: secondary ? W['Демонтаж'] || 0 : 0, rough: (secondary ? 0 : W['Демонтаж'] || 0) + (W['Стены и перегородки'] || 0), engineering: (W['Водоснабжение и канализация'] || 0) + (W['Электрика, свет, двери'] || 0), prefinish: 0, finish_works: (W['Полы'] || 0) + (W['Потолки'] || 0) + (W['Финальная сдача'] || 0) };
+    var wl = B.WORKS.map(function (w, i) { return { key: w[0], n: i + 1, title: w[1], plan: Math.round(wv[w[0]] || 0), days: w[2], examples: w[3], done: false }; }).filter(function (w) { return w.plan > 0; });
+    var tk = sum(kit, 'plan'), tw = sum(wl, 'plan'), diff = total - tk - tw;
+    if (diff && wl.length) { wl[wl.length - 1].plan += diff; tw += diff; }   /* копейки округления — в последний этап: «Плановый бюджет» = итог полосы */
+    var tm = sum(kit, 'market'), f = R.flats.active(), area = (b && b.area) || rsum('area') || null;
+    var rooms = br ? br.map(function (x) { return { name: x.name, zone: x.zone, zoneName: (B.ZONE_NAME || {})[x.zone] || 'Спальня', area: x.area, works: x.works, kit: x.kit, total: x.total, byCat: x.byCat || {}, typical: !!x.typical }; }) : null;
+    if (rooms && rooms.length) { var rd = total - rooms.reduce(function (a, x) { return a + x.total; }, 0), lr = rooms[rooms.length - 1]; if (rd) { lr.works += rd; lr.total += rd; } }
+    return { saved: true, full: false, type: (b && b.type) || 'base', kit: kit, works: wl, roughMat: { sum: 0, rate: null }, area: area, state: stId || null, savedRooms: rooms,
+      totals: { kit: tk, kitMarket: tm, saving: Math.max(0, tm - tk), works: tw, worksAndRough: tw, plan: tk + tw, paid: 0, perM2: area ? Math.round((tk + tw) / area) : null }, figure: tk + tw,
+      meta: [f && f.name, area ? F.area(area) : '', rooms ? rooms.length + ' ' + plural(rooms.length, 'комната', 'комнаты', 'комнат') : ''].filter(Boolean).join(' · ') };
+  }
   function partial(b) {
     var B = window.SOVE_BUDGET, KB = window.SOVE_KB, whole = !b.scope || b.scope === 'flat';
     var kit = B.KIT.map(function (k) {
@@ -54,7 +84,7 @@
     return R.LINK.market + (k.key === 'appliances' ? '?cat=' + encodeURIComponent('Техника') : '');
   }
 
-  var ui$ = { open: { finish: true } };   /* раскрытые категории */
+  var ui$ = { open: { finish: true }, rooms: {} };   /* раскрытые категории; rooms — раскрытые комнаты блока «По комнатам» */
   window.SOVE_MY_BUDGET = function (root) {
     if (new URLSearchParams(location.search).get('seg') === 'w') setTimeout(function () { var h = root.querySelectorAll('.bg-h')[1]; if (h) h.scrollIntoView({ block: 'start' }); }, 60);   /* &seg=w — сразу к работам */
     /* строка как на рендере «Бюджет» (Алина 25.10, «проще, меньше текста»): круглая миниатюра · название · «оплачено / план» · полоска · % · ›.
@@ -92,6 +122,44 @@
       }).join('') +
         (k.key === 'finish' && k.rooms ? '<div class="bg-rooms">' + k.rooms.map(function (r) { return '<a href="interior.html?v=b&room=' + r.id + '&from=budget"><span>' + esc(r.name) + '</span><span><b>' + rub(r.plan) + '</b><i>›</i></span></a>'; }).join('') + '</div>' : '') +
         '<a class="bg-goods__go" href="' + (hrefOf(k) || 'interior.html?v=b&from=budget') + '">' + (k.source === 'interior' ? 'Заменить в Интерьере ›' : k.source === 'planirovka' ? 'Изменить в Планировке ›' : 'В Маркет ›') + '</a></div>';
+    }
+    /* «По комнатам» (созвон 28.10): те же цифры, что в строках выше, разложенные по комнатам плана в одном стиле (SOVE_BUDGET.byRooms, budget.js).
+       Комнаты — из расчёта (rp.scoutParams.byRooms), иначе из плана квартиры (R.planZones), иначе типовые зоны по площади с пометкой.
+       Суммы — из строк этого экрана (9 категорий + 5 этапов + черновые), поэтому Σ комнат = «Плановый бюджет». «Заменить материалы ›» — в Интерьер с зоной. */
+    function roomsSrc() {
+      var r = R.get(), br = r.scoutParams && r.scoutParams.byRooms;
+      if (br && br.length) return br.map(function (x) { return { name: x.name, zone: x.zone, area: x.area, typical: !!x.typical }; });
+      var pz = R.planZones();
+      if (pz.exact && pz.units && pz.units.length) return pz.units.map(function (u) { return { name: u.name, zone: u.type, area: u.m2 }; });
+      return [];
+    }
+    function roomsBlock(m) {
+      var B = window.SOVE_BUDGET, KB = window.SOVE_KB, T = m.totals; if (!B || !B.byRooms || T.plan === null) return '';
+      var src = m.savedRooms || roomsSrc(), o;
+      if (m.savedRooms) { var sr = m.savedRooms, tt = function (f) { return sr.reduce(function (a, x) { return a + x[f]; }, 0); }; o = { rooms: sr, typical: false, works: tt('works'), kit: tt('kit'), total: tt('total') }; }   /* строки из сохранённого расчёта — как в Расчёте */
+      else o = B.byRooms({ rooms: src, area: m.area, works: T.works || 0, roughMat: (m.roughMat && m.roughMat.sum) || 0, cats: m.kit.map(function (k) { return { key: k.key, title: k.title, sum: k.plan || 0 }; }) });
+      if (!o.rooms.length) return '';
+      var typical = o.typical || src.some(function (x) { return x.typical; });   /* типовые зоны расчёта (плана нет) — та же пометка, что в Расчёте */
+      if (o.total !== T.plan) console.warn('По комнатам: Σ комнат ' + o.total + ' ≠ план ' + T.plan);
+      var seen = {}, titles = {}; m.kit.forEach(function (k) { titles[k.key] = k.title; });
+      function vals(x) {
+        return '<span class="bg-rm__vals"><span class="bg-rm__v"><small>Работы</small><b>' + rub(x.works) + '</b></span><span class="bg-rm__v"><small>Материалы и комплектация</small><b>' + rub(x.kit) + '</b></span><span class="bg-rm__v bg-rm__v--t"><small>Итого</small><b>' + rub(x.total) + '</b></span></span>';
+      }
+      var rows = o.rooms.map(function (x, i) {
+        seen[x.zone] = (seen[x.zone] || 0) + 1; var key = seen[x.zone] === 1 ? x.zone : x.zone + '-' + seen[x.zone];   /* как в R.planZones: первая комната типа — ключ зоны, дальше тип-2 */
+        var open = !!ui$.rooms[i], href = 'interior.html?v=b&from=budget&zone=' + encodeURIComponent(x.zone) + '&room=' + encodeURIComponent(KB && KB.zoneId ? KB.zoneId(key) : key);
+        var cats = Object.keys(x.byCat).filter(function (k) { return x.byCat[k] > 0; }).map(function (k) { return '<div class="bg-rm__c"><span>' + esc(titles[k] || k) + '</span><b>' + rub(x.byCat[k]) + '</b></div>'; }).join('');
+        return '<div class="bg-rm' + (open ? ' is-open' : '') + '">' +
+          '<button type="button" class="bg-rm__r" data-rm="' + i + '" aria-expanded="' + open + '">' +
+            '<span class="bg-rm__n"><b>' + esc(x.name) + '</b><small>' + esc(x.zoneName.toLowerCase()) + ' · ' + F.area(x.area) + '</small></span>' + vals(x) + '<span class="bg-rm__a">' + (open ? '▴' : '▾') + '</span></button>' +
+          (open ? '<div class="bg-rm__cats">' + (cats || '<div class="bg-rm__c"><span>Комплектации в этой комнате нет</span></div>') + '<div class="bg-rm__c bg-rm__c--sum"><span>Комплектация комнаты</span><b>' + rub(x.kit) + '</b></div></div>' : '') +
+          '<div class="bg-rm__foot"><a href="' + href + '">Заменить материалы ›</a></div>' +
+        '</div>';
+      }).join('');
+      var n = o.rooms.length;
+      return '<div class="bg-h"><b>По комнатам</b><small>' + n + ' ' + plural(n, 'комната', 'комнаты', 'комнат') + ' · один стиль</small></div>' +
+        (typical ? '<small class="bg-note bg-note--l">Типовые зоны · загрузите план, чтобы считать точно</small>' : '') +
+        '<div class="bg-list bg-rms">' + rows + '<div class="bg-rm bg-rm--sum"><span class="bg-rm__n"><b>Вся квартира</b><small>' + (m.area ? F.area(m.area) : '') + '</small></span>' + vals(o) + '<span class="bg-rm__a"></span></div></div>';
     }
     /* внизу — карусель Избранного (как «Популярные товары» на рендере): интерьеры квартир, подборки и товары с ♡; «Все ›» — экран Избранного */
     function favRow() {
@@ -136,7 +204,8 @@
         '<div class="bg-h"><b>Работы</b>' + (lock ? '' : '<small>' + rub(T.worksAndRough) + '</small>') + '</div>' +
         (lock ? '<button type="button" class="bg-btn" data-bud="buy">✦ Узнать весь бюджет</button>' :
           '<div class="bg-list">' + m.works.map(function (w) { return row({ th: '<span class="bg-th bg-th--n">' + (w.done ? '✓' : w.n) + '</span>', title: w.title, plan: w.plan, paid: 0, href: 'scout.html?from=budget&stage=' + w.key }); }).join('') +
-            row({ th: '<span class="bg-th bg-th--n">＋</span>', title: 'Черновые материалы', plan: m.roughMat.sum, paid: 0, href: 'scout.html?from=budget' }) + '</div>' +
+            (m.saved && !m.roughMat.sum ? '' : row({ th: '<span class="bg-th bg-th--n">＋</span>', title: 'Черновые материалы', plan: m.roughMat.sum, paid: 0, href: 'scout.html?from=budget' })) + '</div>' +
+          roomsBlock(m) +
           '<button type="button" class="bg-btn" data-xls>Скачать смету · Excel</button>') +
         favRow() + '</div>';
     }
@@ -170,6 +239,7 @@
     root.addEventListener('click', function (e) {
       var b = e.target.closest('button, a'); if (!b || !root.contains(b)) return;
       if (b.hasAttribute('data-fin')) { var fk = b.getAttribute('data-fin'); ui$.open[fk] = !ui$.open[fk]; draw(); return; }
+      if (b.hasAttribute('data-rm')) { var rk = b.getAttribute('data-rm'); ui$.rooms[rk] = !ui$.rooms[rk]; draw(); return; }
       if (b.hasAttribute('data-xls')) { xls(model()); return; }
       if (b.hasAttribute('data-bud') && b.tagName === 'A') e.preventDefault();
       if (b.hasAttribute('data-bud-type')) setTimeout(draw, 0);   /* сам переключатель — demo-flow (setBudgetType), здесь — перерисовка */

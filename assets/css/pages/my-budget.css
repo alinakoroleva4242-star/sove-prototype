@@ -59,3 +59,19 @@ a.bg-btn { display: flex; align-items: center; justify-content: center; text-dec
 .bg-card b.bg-card__s { font-size: 13px; }
 .bg-btn--a { display: flex; align-items: center; justify-content: center; text-decoration: none; } .bg-note { margin-top: -6px; font-size: 11px; color: var(--bg-mute); text-align: center; }
 .bg-r .is-lock { color: #B9AC9C; } a.bg-r[data-bud="buy"], .bg-r:has(.is-lock) { opacity: .7; }
+
+/* «По комнатам» (созвон 28.10): строка на комнату — Работы · Материалы и комплектация · Итого; тап — категории комплектации; «Заменить материалы ›» — в Интерьер с зоной */
+.bg-rm + .bg-rm { border-top: 1px solid #EFEAE3; }
+.bg-rm__r, .bg-rm--sum { display: grid; grid-template-columns: minmax(0, 1fr) 16px; grid-template-areas: 'n a' 'v v'; gap: 8px 10px; align-items: center; width: 100%; padding: 12px 12px 8px; border: 0; background: none; text-align: left; color: var(--bg-ink); font: inherit; cursor: pointer; }
+.bg-rm--sum { cursor: default; padding-bottom: 12px; border-top: 1px solid var(--bg-ink); }
+.bg-rm__n { grid-area: n; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.bg-rm__n b { font-size: 13px; overflow-wrap: anywhere; } .bg-rm__n small { font-size: 11px; color: var(--bg-mute); }
+.bg-rm__a { grid-area: a; font-size: 12px; color: #B9AC9C; } .bg-rm.is-open .bg-rm__a { color: var(--bg-acc); }
+.bg-rm__vals { grid-area: v; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; min-width: 0; align-items: end; }
+.bg-rm__v { display: flex; flex-direction: column; justify-content: flex-end; gap: 2px; min-width: 0; }
+.bg-rm__v small { font-size: 10px; line-height: 1.2; color: var(--bg-mute); } .bg-rm__v b { font-size: 12px; white-space: nowrap; } .bg-rm__v--t b { color: var(--bg-acc); }
+.bg-rm__cats { display: flex; flex-direction: column; margin: 0 12px 4px; padding: 4px 0; border-radius: 10px; background: #FBFAF7; }
+.bg-rm__c { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; padding: 5px 10px; font-size: 12px; } .bg-rm__c b { white-space: nowrap; }
+.bg-rm__c--sum { border-top: 1px solid #EFEAE3; font-weight: 700; }
+.bg-rm__foot { display: flex; justify-content: flex-end; padding: 0 12px 10px; } .bg-rm__foot a { font-size: 12px; font-weight: 700; color: var(--bg-acc); text-decoration: none; }
+.bg-note--l { text-align: left; margin-top: -4px; }

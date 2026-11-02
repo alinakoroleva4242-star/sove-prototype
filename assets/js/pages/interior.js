@@ -39,18 +39,30 @@
     try { var a = JSON.parse(localStorage.getItem('sove.events') || '[]'); a.push(ev); localStorage.setItem('sove.events', JSON.stringify(a.slice(-500))); } catch (e) {}
   }
   function balance() { return S.auth.isIn() ? S.tokens.balance() : S.data.gift.tokens; }
-  /* списание: 0 — только событие; > 0 — вход, резерв, (commit сразу или после работы), событие int_charge. Возвращает id операции или null */
-  function charge(action, cost, label, later) {
+  /* списание: 0 — только событие; > 0 — вход, затем СНАЧАЛА пакет зон / бонус подписки (созвон 28.10: зона из пакета один раз, замены и
+     обновления в оплаченной зоне включены), иначе резерв токенов (commit сразу или после работы), событие int_charge. Возвращает id операции или null.
+     zones — зоны действия; не переданы — текущая зона экрана (доска комнаты в Материалах, комната в Визуализациях) */
+  function flatId() { var f = R.flats.active(); return f ? f.id : null; }
+  function ctxZone() { if (!board) return null; var zs = boardZones(); return st.mode === 'materials' ? (zs.indexOf(st.zf) >= 0 ? st.zf : zs[0]) : mainZone(); }
+  function charge(action, cost, label, later, zones) {
     R.flats.ensure();   /* у каждого списания — flatId */
     if (!cost) { track('int_charge', { action: action, tokens: 0 }); return 'free'; }
     if (!S.auth.isIn()) { location.href = 'auth.html?returnTo=' + encodeURIComponent(location.pathname.split('/').pop() + location.search); return null; }
+    var zs = [].concat(zones || ctxZone() || []).filter(Boolean);
+    var pk = zs.length && S.tokens.consume ? S.tokens.consume(action, { zones: zs, flatId: flatId(), reason: label }) : null;
+    if (pk) { track('int_charge', { action: action, tokens: 0, package: pk, zones: zs }); return pk; }
     var op = S.tokens.reserve(cost, label, 'interior');
-    if (!op) { R.toast('Не хватает токенов · нужно ' + F.tokens(cost), { label: 'Пополнить', href: 'tokens.html?returnTo=' + encodeURIComponent('interior.html' + location.search) }); return null; }
+    if (!op) { R.toast('Не хватает токенов · нужно ' + F.tokens(cost), { label: 'Пакеты и токены', href: 'tokens.html?returnTo=' + encodeURIComponent('interior.html' + location.search) }); return null; }
     if (!later) S.tokens.commit(op);
     track('int_charge', { action: action, tokens: cost });
     return op;
   }
   function refund(op, why) { if (op && op !== 'free') { S.tokens.refund(op, why); track('int_refund', { op: op }); } }
+  /* покрыто ли действие пакетом для зон (для подписей кнопок) и подпись цены: «включено в пакет» вместо «+5 токенов» */
+  function covered(action, zones) { var zs = [].concat(zones || ctxZone() || []).filter(Boolean); return !!(S.auth.isIn() && S.tokens.canCover && zs.length && S.tokens.canCover(action, { zones: zs, flatId: flatId() })); }
+  function priceTag(action, cost, zones) { return covered(action, zones) ? 'включено в пакет' : TOK(cost); }
+  /* шапка Интерьера: при активном пакете — «1 зона» / «2 зоны из 3» / «Вся квартира», иначе токены */
+  function chipText() { return (S.auth.isIn() && S.tokens.packageChip && S.tokens.packageChip()) || F.tokens(balance()); }
 
   /* ── квартира: зоны и площади (план → точно; иначе м² квартиры или 47 м² примера — примерно) ── */
   function planInfo() { return R.planZones(); }
@@ -92,13 +104,19 @@
     board.level = KB.levelOf(board.slots); board.ts = Date.now(); board.img = board.imageUrl;
     board.materialsSum = zoneTotal('flat'); board.rooms = boardZones().map(function (z) { return KB.zone(z).name; });
     board.productIds = KB.SLOTS.map(function (s) { return UI.product(KB.item(board.slots[s.key].sku)).id; });
-    var f = R.flats.ensure(), r = R.get(f.id); r.interior = board; R.flats.update(f.id, {});
+    /* r.interior — аксессор (repair.js): доска без id — новый интерьер квартиры, с id — та же; капсула текущего интерьера — капсула квартиры и расчёта */
+    var f = R.flats.ensure(), r = R.get(f.id); r.interior = board; R.flats.update(f.id, board.capsuleId ? { capsuleId: board.capsuleId } : {});
   }
 
   /* ── состояние ── */
   var pending = ss('sove.int.pending');
   var board = pending ? null : passport();
   var st = { view: V0 || (board || pending ? 'b' : 'a'), mode: MODE0, zf: null, pins: {}, open: {}, vmore: {}, angleOf: {}, pick: null, angles: 1, hl: Q.get('hl'), sel: null, busy: null, gen: {}, error: null };
+  /* из Бюджета «Заменить материалы ›» приходит room=<ключ комнаты плана> или zone=<тип зоны>: открываем доску сразу на этой комнате */
+  (function () {
+    var rq = Q.get('room'), zq = Q.get('zone'); if (!rq && !zq || !board) return;
+    try { var zs = boardZones(), hit = zs.filter(function (z) { return z === rq || z === zq || (zq && KB.zoneType(z) === zq); })[0]; if (hit) { st.zf = hit; st.vz = hit; } } catch (e) {}
+  })();
   if (st.view === 'b' && !board && !pending) st.view = 'a';
 
   /* ── рендеры ── */
@@ -140,7 +158,7 @@
   function head() {
     var back = FROM_BUDGET ? '<a class="pz-back" href="my.html?v=budget">← Бюджет</a>' : FROM_MY ? '<a class="pz-back" href="my.html?v=center">← Мой ремонт</a>' : '<a class="pz-back" href="sove-ai.html">← Генерации</a>';
     return '<header class="pz-head int-head"><div class="pz-head__top">' + back +
-      '<a class="pz-tok" href="tokens.html?returnTo=' + encodeURIComponent('interior.html' + location.search) + '">' + esc(F.tokens(balance())) + '</a></div>' +
+      '<a class="pz-tok" href="tokens.html?returnTo=' + encodeURIComponent('interior.html' + location.search) + '">' + esc(chipText()) + '</a></div>' +
       '<h1 class="pz-head__t">Интерьер</h1></header>';
   }
 
@@ -159,7 +177,7 @@
         '<div class="ah__b"><div class="hc__b-h"><small>МУДБОРД · 12 МАТЕРИАЛОВ · ДНК</small><span class="hc__dots">' + KB.DNA.map(function (x) { return '<i style="background:' + x.hex + '"></i>'; }).join('') + '</span></div>' +
           '<div class="ah__row">' + HERO_TILES.map(function (t) { return '<span style="left:' + t[1] + 'px;top:' + t[2] + 'px">' + UI.sampleTile({ photo: SW + t[0] + '.jpg' }, t[3], t[4], { thickness: 3, rot: t[5], radius: 3 }) + '</span>'; }).join('') + '</div>' +
           '<small class="ah__cap">реальные образцы с ценами · База / Премиум · любой можно заменить, и рендер обновится</small></div></div>' +
-      '<div class="mt-row"><small class="mt-cap-l">КАПСУЛЫ SOVEAPP · ' + (S.metod.active() ? 'БЕСПЛАТНО С METOD' : TOK(P.capsulePaid).toUpperCase() + ' · С METOD БЕСПЛАТНО') + '</small><a class="mt-a" href="capsules.html">все ' + KB.CAPSULES.length + ' ›</a></div>' +
+      '<div class="mt-row"><small class="mt-cap-l">КАПСУЛЫ SOVEAPP · ' + (S.metod.active() ? 'БЕСПЛАТНО С METOD' : covered('capsule', allZones().slice(0, 1)) ? 'ВКЛЮЧЕНО В ПАКЕТ' : TOK(P.capsulePaid).toUpperCase() + ' · С METOD БЕСПЛАТНО') + '</small><a class="mt-a" href="capsules.html">все ' + KB.CAPSULES.length + ' ›</a></div>' +
       UI.capsuleStrip(KB.CAPSULES) +
       '<label class="up up--line"><input type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic" hidden data-up><span class="up__ic">⇪</span>' +
         '<span class="up__t"><b>Или свой рендер, фото, Pinterest</b><small>разберём ДНК и соберём материалы · от ' + F.tokens(P.ownRoom) + '</small></span><span class="up__a">›</span></label>' +
@@ -169,7 +187,8 @@
 
   /* ════════ B · Готово (TZ-interior-final: две плитки «Материалы / Визуализации», комнаты добавляются «＋») ════════ */
   function capHead() {
-    var b = board, zs = boardZones(), pl = planInfo();
+    var b = board, zs = boardZones(), pl = planInfo(), ints = R.interiors.list(), cur = ints.filter(function (x) { return x.current; })[0] || { n: 1 };
+    var nOf = ints.length > 1 ? cur.n + ' из ' + ints.length + ' · ' : '';   /* несколько интерьеров у объекта (созвон 28.10): «1 из 2 · Сменить» */
     var sub = (b.type === 'capsule' ? 'капсула SOVEAPP' : 'своя капсула') + ' · ' + String(pl.area).replace('.', ',') + ' м²';   /* коротко, в одну строку (чистка 26.10) */
     var nR = zs.filter(function (z) { return rendersOf(z).length; }).length, nS = KB.slotsFor(zs).length, cover = (zs.map(function (z) { return rendersOf(z)[0]; }).filter(Boolean)[0] || {}).img || MOCK[zs[0]] || IMG + 'k2-kitchen.jpg';
     /* картинка плитки «Материалы» — живая доска (образцы выбранных материалов), «Визуализации» до генерации — обещание ✦ */
@@ -179,7 +198,7 @@
       return '<button type="button" class="it' + (st.mode === m ? ' is-on' : '') + '" data-mode="' + m + '" aria-pressed="' + (st.mode === m) + '">' + pic + '<span class="it__t"><b>' + t + '</b><small>' + small + '</small></span></button>';
     };
     return '<div class="ch"><span class="ch__pic" style="background-image:url(' + esc(b.imageUrl || '') + ')"></span>' +
-      '<span class="ch__t"><b class="ch__n">' + esc(b.name || b.style) + '</b><small>' + sub + '</small></span><button type="button" class="ch__x" data-change>Сменить</button></div>' +
+      '<span class="ch__t"><b class="ch__n">' + esc(b.name || b.style) + '</b><small>' + sub + '</small></span><button type="button" class="ch__x" data-change' + (nOf ? ' aria-label="Интерьер ' + cur.n + ' из ' + ints.length + ' — сменить или переключиться"' : '') + '>' + nOf + 'Сменить</button></div>' +
       '<div class="its">' + tile('materials', SW + 'marble.jpg', 'Материалы', zs.length + ' ' + UI.roomsWord(zs.length) + ' · ' + nS + ' ' + plural(nS, 'образец', 'образца', 'образцов')) +
         tile('visuals', nR ? cover : '', 'Визуализации', nR ? nR + ' ' + UI.roomsWord(nR) + ' · в твоих материалах' : 'ещё не сгенерированы') + '</div>';
   }
@@ -201,8 +220,8 @@
     var pill = function (key, name) { var on = filter ? st.zf === key : true; return filter ? '<button type="button" class="zr__z is-in' + (on ? ' is-on' : '') + '" data-zf="' + key + '" aria-pressed="' + on + '">' + esc(name) + '</button>' : '<span class="zr__z is-on">' + esc(name) + '</span>'; };
     return '<div class="zr" role="group" aria-label="' + esc(title) + '">' +
       zs.map(function (z) { return pill(z, roomLabel(z)); }).join('') +
-      todo.map(function (z) { return '<button type="button" class="zr__z" data-add="' + z + '">＋ ' + esc(roomLabel(z)) + ' <small>' + TOK(per) + '</small></button>'; }).join('') +
-      (todo.length > 1 ? '<button type="button" class="zr__z zr__z--all" data-add="all" title="' + esc(sub) + '">＋ Вся квартира <small>' + TOK(per * todo.length) + '</small></button>' : '') + '</div>';
+      todo.map(function (z) { return '<button type="button" class="zr__z" data-add="' + z + '">＋ ' + esc(roomLabel(z)) + ' <small>' + priceTag('roomMaterials', per, z) + '</small></button>'; }).join('') +
+      (todo.length > 1 ? '<button type="button" class="zr__z zr__z--all" data-add="all" title="' + esc(sub) + '">＋ Вся квартира <small>' + priceTag('roomMaterials', per * todo.length, todo) + '</small></button>' : '') + '</div>';
   }
   /* ── Экран 3 · Материалы: доска всех добавленных комнат · ДНК · «＋» · список по комнатам ── */
   function materialsView() {
@@ -253,8 +272,8 @@
   /* «＋ Санузел · +10 токенов» и «＋ Вся квартира» — недобавленные комнаты (материалы + визуализация) */
   function plusPills() {
     var todo = todoZones(), per = P.roomMaterials + P.roomRender; if (!todo.length) return '';
-    return todo.map(function (z) { return '<button type="button" class="zr__z" data-add="' + z + '">＋ ' + esc(roomLabel(z)) + ' <small>' + TOK(per) + '</small></button>'; }).join('') +
-      (todo.length > 1 ? '<button type="button" class="zr__z zr__z--all" data-add="all">＋ Вся квартира <small>' + TOK(per * todo.length) + '</small></button>' : '');
+    return todo.map(function (z) { return '<button type="button" class="zr__z" data-add="' + z + '">＋ ' + esc(roomLabel(z)) + ' <small>' + priceTag('roomVisual', per, z) + '</small></button>'; }).join('') +
+      (todo.length > 1 ? '<button type="button" class="zr__z zr__z--all" data-add="all">＋ Вся квартира <small>' + priceTag('roomVisual', per * todo.length, todo) + '</small></button>' : '');
   }
   /* пилюли комнат под картинкой: готовые — переключают, устаревшие — с точкой, несгенерированные — «✦ Спальня +5 токенов» */
   function vizPills(zs, done, cur) {
@@ -262,7 +281,7 @@
     return '<div class="zr">' + zs.map(function (z) {
       var isDone = done.indexOf(z) >= 0, bad = rendersOf(z).some(isStale);
       return isDone ? '<button type="button" class="zr__z is-in' + (z === cur ? ' is-on' : '') + '" data-vcur="' + z + '" aria-pressed="' + (z === cur) + '">' + esc(KB.zone(z).name) + (bad ? '<i class="zr__dot" aria-label="нужно обновить"></i>' : '') + '</button>'
-        : '<button type="button" class="zr__z" data-gen-one="' + z + '">✦ ' + esc(KB.zone(z).name) + ' <small>' + TOK(P.roomRender) + '</small></button>';
+        : '<button type="button" class="zr__z" data-gen-one="' + z + '">✦ ' + esc(KB.zone(z).name) + ' <small>' + priceTag('render', P.roomRender, z) + '</small></button>';
     }).join('') + plusPills() + '</div>';
   }
   /* кадр комнаты из галереи капсулы (или типовой) — для примера до генерации и проявки */
@@ -278,14 +297,14 @@
     return '<div class="vp vp--s">' + promo + '<i class="vp__star">✦</i><span class="vp__ex" style="background-image:url(' + esc(capsuleImg(z0)) + ')"><small class="vp__exl">пример</small>' +
       '<span class="vp__ext"><b>Здесь будет ' + esc(pick.length === 1 ? (YOUR[KB.zoneType(z0)] || 'твоя комната') : 'твоя квартира') + '</b><small>из этих материалов · в ' + a + ' ' + plural(a, 'ракурсе', 'ракурсах', 'ракурсах') + '</small></span></span></div>' +
       /* что делать — одной строкой и главная кнопка сразу под примером (Алина 26.10: «и что мне делать?») */
-      '<button type="button" class="vg" data-gen' + (pick.length ? '' : ' disabled') + '><i>✦</i><span><b>Сгенерировать</b><small>' + pick.length + ' ' + UI.roomsWord(pick.length) + ' × ' + a + ' ' + plural(a, 'ракурс', 'ракурса', 'ракурсов') + '</small></span><b>' + TOK(cost) + '</b></button>' +
+      '<button type="button" class="vg" data-gen' + (pick.length ? '' : ' disabled') + '><i>✦</i><span><b>Сгенерировать</b><small>' + pick.length + ' ' + UI.roomsWord(pick.length) + ' × ' + a + ' ' + plural(a, 'ракурс', 'ракурса', 'ракурсов') + '</small></span><b>' + priceTag('render', cost, pick) + '</b></button>' +
       '<small class="mt-cap">отметь комнаты и число ракурсов ниже · ≈ 2 минуты · спишем только за готовые · у тебя ' + F.tokens(balance()) + '</small>' +
       (zs.length > 1 || todoZones().length ? '<div class="zr">' + zs.map(function (z) {
         var on = pick.indexOf(z) >= 0;
         return '<button type="button" class="zr__z is-in' + (on ? ' is-on' : '') + '" data-pick-room="' + z + '" aria-pressed="' + on + '">' + (on ? '✓ ' : '') + esc(roomLabel(z)) + '</button>';
       }).join('') + plusPills() + '</div>' : '') +
       '<div class="va"><small class="ad__l">РАКУРСОВ НА КОМНАТУ</small><div class="va__seg" role="group" aria-label="Ракурсов на комнату">' + [1, 2, 3].map(function (n) {
-        return '<button type="button" data-angles="' + n + '" aria-pressed="' + (a === n) + '"><b>' + n + '</b><small>' + TOK(n * P.roomRender) + '</small></button>';
+        return '<button type="button" data-angles="' + n + '" aria-pressed="' + (a === n) + '"><b>' + n + '</b><small>' + (covered('render', pick) ? 'включено' : TOK(n * P.roomRender)) + '</small></button>';
       }).join('') + '</div></div>' +
       '';
   }
@@ -301,14 +320,14 @@
     var items = mats.slice(0, 2).concat(objs, mats.slice(2)), open = !!st.vmore[z], shown = open ? items : items.slice(0, 3);
     return '<div class="vz"><div class="vz__h"><b>' + esc(KB.zone(z).name) + '</b><small>ракурс ' + (cur + 1) + ' из ' + n + '</small></div>' +
       (busy ? devImg(z, r.img) : '<div class="vz__wrap"><button type="button" class="vz__img" data-view="' + z + '" aria-label="Открыть на весь экран"><img src="' + esc(r.img) + '" alt="' + esc(KB.zone(z).name) + '"></button>' +
-        (st.pins[z] ? pins(z) : '') + (stale ? '<button type="button" class="vz__tag" data-rerender="' + z + '">! ' + esc(staleText(r)) + ' · обновить ' + TOK(P.rerender) + '</button>' : '') +
+        (st.pins[z] ? pins(z) : '') + (stale ? '<button type="button" class="vz__tag" data-rerender="' + z + '">! ' + esc(staleText(r)) + ' · обновить ' + (covered('rerender', z) ? '· включено' : TOK(P.rerender)) + '</button>' : '') +
         '<button type="button" class="vz__pinbtn' + (st.pins[z] ? ' is-on' : '') + '" data-pins="' + z + '" aria-pressed="' + !!st.pins[z] + '">' + (st.pins[z] ? '✕ Скрыть' : '⇄ Заменить на фото') + '</button>' +
         /* сохранить в Мой ремонт и скачать — два тихих круга в правом верхнем углу картинки (Алина 26.10: «не красиво» строкой) */
         /* «Мой ремонт» — своя кнопка со значком вкладки Мой ремонт (Алина 26.10: Мой ремонт и Избранное — разные места, ♡ здесь не годится) */
         '<span class="vz__corner">' + (r.saved ? '<a class="vz__my is-on" href="my.html">✓ В Моём ремонте</a>' : '<button type="button" class="vz__my" data-save-viz="' + z + '">' + MY_IC + 'В Мой ремонт</button>') +
         '<a class="vz__ic" href="' + esc(r.img) + '" download="' + esc(KB.zone(z).name + ' — ракурс ' + (cur + 1)) + '.jpg" aria-label="Скачать визуализацию" title="Скачать">' + DL_IC + '</a></span></div>') +
       '<div class="vz__bar">' + rs.map(function (x, i) { return '<button type="button" class="vz__t' + (i === cur ? ' is-on' : '') + '" data-ang="' + z + ':' + i + '" style="background-image:url(' + esc(x.img) + ')" aria-label="Ракурс ' + (i + 1) + '"></button>'; }).join('') +
-        (n < 3 ? '<button type="button" class="vz__t vz__t--more" data-ang-add="' + z + '"><b>✦</b><small>' + TOK(P.angle) + '</small></button>' : '') +
+        (n < 3 ? '<button type="button" class="vz__t vz__t--more" data-ang-add="' + z + '"><b>✦</b><small>' + (covered('angle', z) ? 'включено' : TOK(P.angle)) + '</small></button>' : '') +
         '</div>' +
       vizPills(zs, done, z) +
       '<section class="on"><div class="on__h"><b>На этой визуализации</b><small>' + items.length + ' ' + plural(items.length, 'позиция', 'позиции', 'позиций') + '</small></div>' +
@@ -402,7 +421,7 @@
   function addRooms(zones, ctx, asked) {
     if (!asked && needPlan({ kind: 'add', zones: zones, ctx: ctx })) return;
     var per = ctx === 'visuals' ? P.roomMaterials + P.roomRender : P.roomMaterials, cost = per * zones.length;
-    if (!charge(ctx === 'visuals' ? 'roomVisual' : 'roomMaterials', cost, (zones.length > 1 ? 'Вся квартира' : KB.zone(zones[0]).name) + (ctx === 'visuals' ? ' · материалы и визуализация' : ' · материалы'))) return;
+    if (!charge(ctx === 'visuals' ? 'roomVisual' : 'roomMaterials', cost, (zones.length > 1 ? 'Вся квартира' : KB.zone(zones[0]).name) + (ctx === 'visuals' ? ' · материалы и визуализация' : ' · материалы'), false, zones)) return;
     zones.forEach(function (z) { if (board.zones.indexOf(z) < 0) board.zones.push(z); });
     if (allZones().every(function (z) { return board.zones.indexOf(z) >= 0; })) { board.scope = 'flat'; board.zones = []; }
     board.tokensSpent = (board.tokensSpent || 0) + cost; persist(); track('int_add_room', { zones: zones, ctx: ctx, tokens: cost });
@@ -416,7 +435,7 @@
   function generate(zones, angles, asked, paid) {
     if (!zones.length) return;
     if (!asked && needPlan({ kind: 'gen', zones: zones, angles: angles })) return;
-    var cost = zones.length * angles * P.roomRender, op = paid ? 'paid' : charge('render', cost, 'Визуализации · ' + zones.length + ' ' + UI.roomsWord(zones.length) + ' × ' + angles, true);
+    var cost = zones.length * angles * P.roomRender, op = paid ? 'paid' : charge('render', cost, 'Визуализации · ' + zones.length + ' ' + UI.roomsWord(zones.length) + ' × ' + angles, true, zones);
     if (!op) return;
     zones.forEach(function (z) { st.gen[z] = true; });
     var c = KB.capsule(board.capsuleId || board.baseCapsuleId || KB.nearestCapsule(board.dna).id), i = 0;
@@ -424,13 +443,13 @@
     (function next() {
       if (i >= zones.length) { if (op !== 'paid' && op !== 'free') S.tokens.commit(op); board.tokensSpent = (board.tokensSpent || 0) + (paid ? 0 : cost); persist(); track('int_generate', { zones: zones, angles: angles, tokens: cost }); return render(); }
       var z = zones[i++];
-      setTimeout(function () {
-        var rm = c && c.rooms.filter(function (x) { return x.zone === KB.zoneType(z); })[0], srcs = rm ? rm.angles : [MOCK[KB.zoneType(z)]], snap = snapshot();
+      (S.genLive ? S.genLive.frame(z, c && c.id, board) : new Promise(function (ok) { setTimeout(ok, 1200); })).then(function (live) {   /* кадр ИИ (один на комнату) или пример капсулы */
+        var rm = c && c.rooms.filter(function (x) { return x.zone === KB.zoneType(z); })[0], srcs = live ? [live] : rm ? rm.angles : [MOCK[KB.zoneType(z)]], snap = snapshot();
         board.renders = board.renders.filter(function (r) { return r.zone !== z; });
-        for (var k = 0; k < angles; k++) board.renders.push({ zone: z, room: KB.zone(z).name, angle: k, img: srcs[k % srcs.length] || MOCK[KB.zoneType(z)], skus: snap });
+        for (var k = 0; k < (live ? 1 : angles); k++) board.renders.push({ zone: z, room: KB.zone(z).name, angle: k, img: srcs[k % srcs.length] || MOCK[KB.zoneType(z)], skus: snap });
         delete st.gen[z]; persist(); R.save('render', { room: KB.zone(z).name, src: srcs[0] || MOCK[KB.zoneType(z)], mine: true, from: 'interior' }, { silent: true });
         render(); next();
-      }, 1200);
+      });
     })();
   }
   /* «Подключить дизайнера» — одна строка-ссылка в самом низу Визуализаций (Алина 25.10): без подписи и уровней; «Дальше: стоимость работ» в Интерьере нет;
@@ -530,19 +549,17 @@
     var common = { scope: bs.scope, zones: bs.scope === 'flat' ? [] : zones, basis: bs.basis, accuracy: pl.exact || bs.basis === 'measure' ? 'точно' : '≈', objects: {}, objectDelta: 0, decor: [] };
     if (pick.kind === 'capsule') {
       var c = KB.capsule(pick.id), lv = c.full ? 'premium' : 'base';
-      if (!charge(pick.change ? 'changeCapsule' : 'capsule', capsuleCost(c), 'Капсула ' + c.name)) return;
-      var prev = board ? JSON.parse(JSON.stringify(board)) : null;
+      if (!charge(pick.change ? 'changeCapsule' : 'capsule', capsuleCost(c), 'Капсула ' + c.name, false, zones)) return;   /* капсула с одной комнатой = зона из пакета, если он есть */
+      /* новая доска без id — НОВЫЙ интерьер квартиры (R.interiors): круг заново, материалы под эту капсулу, визуализаций нет; прежний остаётся со своими */
       board = Object.assign({ type: 'capsule', source: 'capsule', capsuleId: c.id, name: c.name, imageUrl: c.cover, dna: c.dna, style: c.style, slots: scaleSlots(KB.fromCapsule(c.id, lv), pl.area), tokensSpent: 0, boardGeneratedAt: Date.now() }, common);
       board.renders = [];   /* визуализации — только по кнопке «✦ Сгенерировать» (TZ-interior-final, 0.4) */
       addBasisRenders(bs);
-      persist(); track('int_capsule_pick', { capsule: c.id, scope: bs.scope, basis: bs.basis });
-      st.open = {}; st.pick = null;
-      goB('materials');
-      if (prev && pick.change) R.toast('Интерьер сменили · ' + c.name, { label: 'Отменить', onClick: function () { board = normalize(prev); persist(); render(); track('int_undo', { what: 'change' }); } });
+      persist(); track('int_capsule_pick', { capsule: c.id, scope: bs.scope, basis: bs.basis, change: !!pick.change });
+      resetView(); goB('materials'); createdToast();
       return;
     }
     var cost = bs.scope === 'rooms' && zones.length === 1 ? P.ownRoom : P.ownFlat;
-    var op = charge(cost === P.ownRoom ? 'ownRoom' : 'ownFlat', cost, 'Своя капсула · ' + (bs.scope === 'flat' ? 'вся квартира' : zones.map(function (z) { return KB.zone(z).name; }).join(', ')), true);
+    var op = charge(cost === P.ownRoom ? 'ownRoom' : 'ownFlat', cost, 'Своя капсула · ' + (bs.scope === 'flat' ? 'вся квартира' : zones.map(function (z) { return KB.zone(z).name; }).join(', ')), true, zones);
     if (!op) return;
     pending = { img: pick.img, room: pick.room, op: op, cost: cost, bs: { scope: bs.scope, zones: zones, basis: bs.basis, files: bs.files }, t0: Date.now() };
     ss('sove.int.pending', pending); board = null; st.error = null; goB('materials'); analyze();
@@ -557,7 +574,7 @@
   }
   function analyze() {
     var p = pending; if (!p) return;
-    KB.analyzeInterior(p.img).then(function (a) {
+    (S.genLive ? S.genLive.analyze(p.img) : KB.analyzeInterior(p.img)).then(function (a) {   /* gen-live.js: разбор ИИ на сервере, при ошибке — заглушка */
       if (p.op !== 'free') S.tokens.commit(p.op);
       var pl = planInfo(), slots = scaleSlots(KB.complete(a.dna, a.found, a.level || 'premium'), pl.area);
       board = { type: 'own', source: 'photo', imageUrl: p.img, dna: a.dna, style: a.style, name: cap(a.style), scope: p.bs.scope, zones: p.bs.scope === 'flat' ? [] : p.bs.zones,
@@ -565,8 +582,8 @@
       var z = KB.zoneOf(p.room); if (boardZones().indexOf(z) < 0) z = boardZones()[0];
       board.renders.push({ zone: z, room: KB.zone(z).name, angle: 0, img: p.img, photo: true, skus: snapshot() });
       addBasisRenders(p.bs);
-      persist(); pending = null; ss('sove.int.pending', null);
-      track('int_board_ready', { ms: Date.now() - p.t0 }); render();
+      persist(); pending = null; ss('sove.int.pending', null); resetView();
+      track('int_board_ready', { ms: Date.now() - p.t0 }); render(); createdToast();
     }).catch(function () {
       refund(p.op, 'не видим интерьер на картинке');
       st.error = { img: p.img }; pending = null; ss('sove.int.pending', null); render();
@@ -595,9 +612,10 @@
     document.body.classList.add('int-swap'); if (tile) tile.classList.add('is-top'); if (onRender && ctx) ctx.classList.add('is-top');
     var back = sheet('sw', 'Замена материала', ''); back.classList.add('mt-back--sw');
     var mz = mainZone(), rs = rendersOf(mz);
+    var swZone = ctxZone(), swFree = covered('materialSwap', swZone);   /* замена в оплаченной зоне — включена в пакет: цену в шторке не показываем */
     back.firstChild.innerHTML = '<i class="ss-grip"></i>' + (onRender
-      ? UI.renderSwapSheet(slot, { slots: board.slots, dna: board.dna, price: P.rerender, angles: rs.length, angle: st.angle })
-      : UI.swapSheet(slot, { slots: board.slots, dna: board.dna, exact: planInfo().exact, price: P.materialSwap }));
+      ? UI.renderSwapSheet(slot, { slots: board.slots, dna: board.dna, price: swFree ? 0 : P.rerender, angles: rs.length, angle: st.angle })
+      : UI.swapSheet(slot, { slots: board.slots, dna: board.dna, exact: planInfo().exact, price: swFree ? 0 : P.materialSwap }));
     var close0 = back.close; back.close = function () { close0(); document.body.classList.remove('int-swap'); st.sel = null; render(); };
     back.addEventListener('click', function (e) {
       if (e.target.closest('[data-sw-all]')) { back.close(); return openSwap(slot, 'all'); }
@@ -605,7 +623,7 @@
       var a = e.target.closest('[data-angle]'); if (a) { st.angle = +a.getAttribute('data-angle'); back.close(); return; }
       var b = e.target.closest('[data-pick]'); if (!b) return;
       var sku = b.getAttribute('data-pick'); if (board.slots[slot].sku === sku) return back.close();
-      var op = charge('materialSwap', P.materialSwap, 'Замена материала · ' + KB.slot(slot).name); if (!op) return;
+      var op = charge('materialSwap', P.materialSwap, 'Замена материала · ' + KB.slot(slot).name, false, [swZone]); if (!op) return;
       var t = swapTo(slot, sku); t.op = op; back.close(); swapToast(t);
     });
   }
@@ -643,12 +661,12 @@
     if (ctx) { window.scrollTo(0, ctx.getBoundingClientRect().top + window.scrollY - 8); ctx.classList.add('is-top'); }
     document.body.classList.add('int-swap'); if (pill) pill.classList.add('is-top');
     var back = sheet('sw', 'Замена предмета', ''); back.classList.add('mt-back--sw');
-    back.firstChild.innerHTML = '<i class="ss-grip"></i>' + UI.objectSwapSheet(kind, { options: o.options, current: o.product.id, place: placeOf(kind), price: P.objectSwap });
+    back.firstChild.innerHTML = '<i class="ss-grip"></i>' + UI.objectSwapSheet(kind, { options: o.options, current: o.product.id, place: placeOf(kind), price: covered('objectSwap', mz) ? 0 : P.objectSwap });
     var close0 = back.close; back.close = function () { close0(); document.body.classList.remove('int-swap'); st.sel = null; render(); };
     back.addEventListener('click', function (e) {
       var b = e.target.closest('[data-pick-obj]'); if (!b) return;
       var id = +b.getAttribute('data-pick-obj'); if (id === o.product.id) return back.close();
-      var op = charge('objectSwap', P.objectSwap, 'Замена предмета · ' + kind); if (!op) return;
+      var op = charge('objectSwap', P.objectSwap, 'Замена предмета · ' + kind, false, [mz]); if (!op) return;
       var np = o.options.filter(function (p) { return p.id === id; })[0], prevId = board.objects[kind], prevDelta = board.objectDelta, d = np.metod - o.product.metod;
       board.objects[kind] = id; board.objectDelta = (board.objectDelta || 0) + d;
       var rr = rendersOf(mz); rr.forEach(function (x) { x.objStale = OBJ_SHORT[kind] || kind; });
@@ -659,11 +677,27 @@
     });
   }
 
-  /* ── шторка 1 · сменить интерьер ── */
+  /* ── несколько интерьеров у объекта (созвон 28.10, схема v2): список — R.interiors, текущий — board ── */
+  /* новый интерьер — круг заново: состояние экрана (фильтр зон, открытые списки, ракурсы) с прежнего не переносим */
+  function resetView() { st.open = {}; st.pick = null; st.sel = null; st.zf = null; st.vz = null; st.vcur = null; st.angleOf = {}; st.vmore = {}; st.pins = {}; st.loadZ = null; st.error = null; }
+  function curSummary() { return R.interiors.list().filter(function (x) { return x.current; })[0] || null; }
+  /* тост после сборки при нескольких интерьерах: «Интерьер «К4 · …» создан · прежний сохранён — Переключить» (шторка «Сменить» со списком) */
+  function createdToast() { var c = curSummary(); if (c && R.interiors.list().length > 1) R.toast('Интерьер «' + c.title + '» создан · прежний сохранён', { label: 'Переключить', onClick: openChange }); }
+  /* «Переключиться»: текущим становится другой интерьер квартиры — его материалы и визуализации; прежний не стирается */
+  function switchTo(id) {
+    if (board && board.id === id) return;
+    var it = R.interiors.setCurrent(id); if (!it) return;
+    board = passport(); pending = null; ss('sove.int.pending', null); resetView();
+    track('int_switch', { to: id });
+    if (board) goB(st.mode); else { st.view = 'a'; render(); }
+    var c = curSummary(); if (c) R.toast('Текущий интерьер · ' + c.title);
+  }
+
+  /* ── шторка 1 · сменить интерьер: «Переключиться» на другой из списка или «Новый интерьер» (капсула / свой рендер) ── */
   function openChange() {
-    var changes = KB.SLOTS.filter(function (s) { return board.slots[s.key].source === 'user'; }).length + Object.keys(board.objects || {}).length;
-    var back = sheet('ss sw', 'Сменить интерьер', UI.changeInteriorSheet({ caps: KB.CAPSULES, currentId: board.capsuleId || board.baseCapsuleId, current: board.name, changes: changes, ownPrice: P.ownRoom }));
+    var back = sheet('ss sw', 'Сменить интерьер', UI.changeInteriorSheet({ caps: KB.CAPSULES, currentId: board.capsuleId || board.baseCapsuleId, current: board.name, list: R.interiors.list(), ownPrice: P.ownRoom }));
     back.addEventListener('click', function (e) {
+      var sw = e.target.closest('[data-switch]'); if (sw) { back.close(); return switchTo(sw.getAttribute('data-switch')); }
       var c = e.target.closest('[data-capsule]'); if (!c) return;
       back.close(); var keep = { basis: board.basis, file: null, files: [], scope: board.scope, picked: boardZones() };
       track('int_change', { to: c.getAttribute('data-capsule') });
@@ -675,18 +709,20 @@
   /* ── рендеры: новый · ракурс · обновить (по 5 токенов, черновик). Сам рендер не перегенерируется — только по кнопке ── */
   function makeRender(zone, kind) {
     var price = kind === 'angle' ? P.angle : kind === 're' ? P.rerender : P.render;
-    var op = charge(kind === 'angle' ? 'angle' : kind === 're' ? 'rerender' : 'render', price, (kind === 'angle' ? 'Ракурс · ' : kind === 're' ? 'Обновить рендер · ' : 'Рендер · ') + KB.zone(zone).name); if (!op) return false;
+    var op = charge(kind === 'angle' ? 'angle' : kind === 're' ? 'rerender' : 'render', price, (kind === 'angle' ? 'Ракурс · ' : kind === 're' ? 'Обновить рендер · ' : 'Рендер · ') + KB.zone(zone).name, false, [zone]); if (!op) return false;
     st.busy = zone; st.vz = zone; render();
-    setTimeout(function () {
-      var c = KB.capsule(board.capsuleId || board.baseCapsuleId || KB.nearestCapsule(board.dna).id), rm = c && c.rooms.filter(function (x) { return x.zone === KB.zoneType(zone); })[0];
-      var srcs = rm ? rm.angles : [MOCK[KB.zoneType(zone)]], rs = rendersOf(zone), snap = snapshot();
+    /* gen-live.js: «обновить» — замена на текущем кадре (предмет или материал), новый кадр и ракурс — кадр комнаты; null — как раньше, пример */
+    var c = KB.capsule(board.capsuleId || board.baseCapsuleId || KB.nearestCapsule(board.dna).id), cur0 = rendersOf(zone)[Math.min(st.angleOf[zone] || 0, Math.max(0, rendersOf(zone).length - 1))];
+    (!S.genLive ? new Promise(function (ok) { setTimeout(ok, 1500); }) : kind === 're' ? S.genLive.redo(cur0, staleSlots(cur0)[0]) : S.genLive.frame(zone, c && c.id, board)).then(function (live) {
+      var rm = c && c.rooms.filter(function (x) { return x.zone === KB.zoneType(zone); })[0];
+      var srcs = live && kind !== 're' ? [live] : rm ? rm.angles : [MOCK[KB.zoneType(zone)]], rs = rendersOf(zone), snap = snapshot();
       if (kind === 'angle') board.renders.push({ zone: zone, room: KB.zone(zone).name, angle: rs.length, img: srcs[rs.length % srcs.length] || MOCK[KB.zoneType(zone)], skus: snap });
-      else if (kind === 're') rs.forEach(function (r) { r.skus = snap; delete r.objStale; r.example = false; r.photo = false; });
+      else if (kind === 're') rs.forEach(function (r) { r.skus = snap; delete r.objStale; r.example = false; r.photo = false; if (live && r === cur0) r.img = live; });
       else { board.renders = board.renders.filter(function (r) { return r.zone !== zone; }); board.renders.push({ zone: zone, room: KB.zone(zone).name, angle: 0, img: srcs[0] || MOCK[KB.zoneType(zone)], skus: snap }); }
       board.tokensSpent = (board.tokensSpent || 0) + price; persist();
       R.save('render', { room: KB.zone(zone).name, src: (srcs[0] || MOCK[KB.zoneType(zone)]), mine: true, from: 'interior' }, { silent: true });
       track('int_render', { zone: zone, kind: kind, tokens: price }); st.busy = null; if (kind === 'angle') st.angleOf[zone] = rs.length; render();
-    }, 1500);
+    });
     return true;
   }
   /* «↓ Скачать капсулу PDF»: ДНК, 12 материалов, комнаты; брендинг только в полях */

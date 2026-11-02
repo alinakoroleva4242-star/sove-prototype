@@ -73,7 +73,8 @@
     o = o || {};
     if (!geo || !geo.rooms || !geo.rooms.length || !(+geo.px_per_m > 0)) return null;
     var h = +o.h > 1.8 ? +o.h : 2.8, ppmGeo = +geo.px_per_m, hosts = geo.rooms.filter(function (r) { return !r.part_of; });
-    function parts(r) { return geo.rooms.filter(function (n) { return n.part_of && n.part_of === r.name; }); }
+    /* ниши комнаты: по id хозяина (part_id), если он есть, — две «Спальни» не делят ниши; иначе по имени, как раньше */
+    function parts(r) { return geo.rooms.filter(function (n) { return n.part_of && (n.part_id && r.id ? n.part_id === r.id : n.part_of === r.name); }); }
     /* масштаб: сервер его не отдаёт, и демо берёт план шириной 9 м. Подписанные площади комнат читает
        зрение прямо с плана — по ним и сверяем: если масштаб плана расходится больше чем на 4 %, берём их */
     var est = hosts.map(function (r) {
@@ -90,7 +91,8 @@
       /* рамка разошлась с подписью больше чем на 20 % (зрение ошиблось с границей) — периметр подгоняем
          к подписанной площади, сохраняя пропорции комнаты: периметр растёт как корень из площади */
       if (label > 0 && drawn > 0 && Math.abs(drawn / label - 1) > 0.2) { perM = perM * Math.sqrt(label / drawn); fixed = true; }
-      return { name: r.name, type: r.type || '', kind: kind(r), m2: r1(m2), area_drawn: r2(drawn), per_m: r2(perM), per_drawn: r2(per / ppm), fixed: fixed,
+      /* id комнаты рамки (у своего плана) — чертёж по стенам с картинки связывает с ним двери: две спальни не путаются */
+      return { id: r.id || null, name: r.name, type: r.type || '', kind: kind(r), m2: r1(m2), area_drawn: r2(drawn), per_m: r2(perM), per_drawn: r2(per / ppm), fixed: fixed,
         openings_m2: 0, doors_m: 0, box: r.box, parts: ps.map(function (n) { return n.box; }) };
     });
     function roomBy(t) {

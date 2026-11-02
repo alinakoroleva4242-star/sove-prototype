@@ -127,4 +127,32 @@
   };
   /* суммы уровней для переключателя: вся доска на База / на Премиум */
   KB.levelSum = function (level) { return KB.SLOTS.reduce(function (a, s) { return a + KB.mainFor(s.key, level).sum; }, 0); };
+  KB.rules = RULES;   /* список правил наружу: правило 7 (ниже) дописывается в конец, kb.check перебирает тот же массив */
+})();
+
+/* 7 · «Сочетание есть в эталонных концепциях» (созвон 28.10.2026: мудборды дизайнеров из закрытого TG-канала — входные данные
+   по правилам сочетания). Эталоны — kb/concepts.js (window.SOVE_CONCEPTS: n, title, dna[{hex,name}]); без него правило молча пропускается.
+   Вызов напрямую: SOVE_KB.conceptMatch(['#e8dcd0', '#7a2e3a', …]) → {ok:true, concept:n, title, dE} при среднем ΔE ≤ 15
+   (порог правила 6 «в тон основы»; ΔE — CIE76, как у правил 1 и 6) по ближайшим парам цветов доски и концепции, иначе {ok:false, concept, title, dE}.
+   Правило лежит последним в общем списке (SOVE_KB.rules, 7 штук); при проверке товара в слоте (kb.check → (item, slot, ctx)) оно
+   возвращает null и ничью проверку не меняет — его вход не товар, а ДНК доски целиком. */
+(function () {
+  var KB = window.SOVE_KB; if (!KB || !KB.rules || KB.rules.length !== 6) return;
+  var LIMIT = 15;
+  function hexes(dna) { return (dna || []).map(function (c) { return typeof c === 'string' ? c : c && c.hex; }).filter(function (h) { return /^#?[0-9a-f]{6}$/i.test(String(h || '')); }); }
+  function conceptMatch(dna) {
+    if (!Array.isArray(dna)) return null;                                   /* вызов из kb.check (item, slot, ctx) — не наш вход */
+    var list = window.SOVE_CONCEPTS, hs = hexes(dna);
+    if (!list || !list.length || !hs.length) return { ok: false };
+    var best = null;
+    list.forEach(function (c) {
+      var cs = hexes(c.dna); if (!cs.length) return;
+      var d = hs.reduce(function (a, h) { return a + Math.min.apply(null, cs.map(function (x) { return KB.deltaE(h, x); })); }, 0) / hs.length;
+      if (!best || d < best.dE) best = { concept: c.n, title: c.title, dE: Math.round(d * 10) / 10 };
+    });
+    if (!best) return { ok: false };
+    return { ok: best.dE <= LIMIT, concept: best.concept, title: best.title, dE: best.dE };
+  }
+  KB.rules.push(conceptMatch);
+  KB.conceptMatch = conceptMatch;
 })();

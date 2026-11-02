@@ -17,6 +17,8 @@
 .pg__thumb.is-active { border-color: var(--ink); outline: 1px solid var(--ink); outline-offset: -2px; }
 @media (min-width: 960px) {
   .pg { grid-template-columns: 80px minmax(0, 1fr); gap: var(--s4); }
+  /* одно фото без миниатюр (товар живого каталога без капсулы) — фото на всю колонку, а не в колонку миниатюр 80 px */
+  .pg:not(:has(.pg__thumbs)) { grid-template-columns: minmax(0, 1fr); }
   .pg__thumbs { flex-direction: column; order: -1; }
   .pg__thumb { width: 80px; height: 80px; }
 }
@@ -108,3 +110,35 @@
 .price2__save { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 12px; color: var(--graphite); padding-top: 8px; border-top: 1px solid var(--line); }
 .price2__save i { font-style: normal; color: var(--green); font-weight: 600; }
 .product-fit { margin-top: 12px; }
+
+/* ---------- метка уровня над названием (стиль .pc-tier — site.css) ---------- */
+.product-eyebrow { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 8px; min-width: 0; }
+.product-eyebrow .eyebrow { min-width: 0; }
+
+/* ---------- «Где купить»: выбор продавца (склады DECARO, поставщики) ---------- */
+.pbuy { border: 0; margin: 0; padding: 0; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.pbuy__h { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; width: 100%; padding: 0 0 2px; font-size: 15px; font-weight: 600; color: var(--ink); }
+.pbuy__h small { font-size: 12px; font-weight: 500; color: var(--graphite); }
+.pbuy__opt { position: relative; display: grid; grid-template-columns: 20px minmax(0, 1fr) auto; align-items: center; gap: 12px; min-height: 64px; padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--r-sm, 12px); background: var(--white); cursor: pointer; transition: border-color .15s ease, background-color .15s ease; }
+.pbuy__opt:hover { border-color: var(--line-2, #d8cec5); }
+.pbuy__opt.is-on { border-color: var(--accent); background: var(--accent-soft); }
+.pbuy__opt input { position: absolute; opacity: 0; width: 1px; height: 1px; pointer-events: none; }
+.pbuy__opt:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+.pbuy__dot { width: 20px; height: 20px; border-radius: 50%; border: 1.5px solid var(--line-2, #d8cec5); background: var(--white); display: inline-flex; align-items: center; justify-content: center; }
+.pbuy__opt.is-on .pbuy__dot { border-color: var(--accent); }
+.pbuy__opt.is-on .pbuy__dot::after { content: ''; width: 10px; height: 10px; border-radius: 50%; background: var(--accent); }
+.pbuy__b { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.pbuy__b b { font-size: 14px; font-weight: 600; color: var(--ink); overflow-wrap: anywhere; }
+.pbuy__b small { font-size: 12px; line-height: 1.35; color: var(--graphite); }
+.pbuy__p { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; text-align: right; }
+.pbuy__p b { font-size: 15px; font-weight: 700; color: var(--ink); white-space: nowrap; }
+.pbuy__p small { font-size: 11px; font-weight: 600; white-space: nowrap; }
+
+/* ---------- кнопка «В корзину» ---------- */
+.product-buy { display: flex; flex-direction: column; gap: 6px; }
+.product-buy__btn { gap: 10px; }
+.product-buy__btn svg { flex: none; }
+.product-buy__btn.is-on { background: var(--green); border-color: var(--green); }
+.product-buy__btn.is-on:hover { background: var(--green); border-color: var(--green); filter: brightness(.95); }
+.product-buy__note { font-size: 13px; color: var(--graphite); text-align: center; }
+.product-buy + .product-fit { margin-top: 0; }

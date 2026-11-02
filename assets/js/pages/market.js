@@ -19,10 +19,11 @@
   /* акции партнёров идут первыми: это платное продвижение, помечено на карточке */
   function byDiscount(a, b) { return promoRank(a) - promoRank(b) || b.discount - a.discount || b.metod - a.metod || a.id - b.id; }
   var SORTS = {
-    /* «Вперемешку» — по умолчанию (Таня и Алина 27.10): «по скидке» первыми шли одни светильники одного бренда.
-       Внутри раздела порядок тот же, что «по скидке», а разделы и бренды идут по кругу — см. mixed() */
-    mix: byDiscount,
-    discount: byDiscount,
+    /* «Выгодные» — по умолчанию (Таня и Алина 30.10: слово «Вперемешку» убрать, сразу самые большие скидки,
+       но товары разные). Сервер (sort=best) ставит первыми лучшие товары разных брендов, каждый следующий
+       товар бренда — как будто со скидкой на 10 пунктов меньше. На общей витрине разделы идут по кругу — mixed().
+       В образце data.js — скидка по убыванию, при равной скидке дешевле; бренды чередует brandMix */
+    best: function (a, b) { return promoRank(a) - promoRank(b) || b.discount - a.discount || a.metod - b.metod || a.id - b.id; },
     price_asc: function (a, b) { return a.metod - b.metod || a.id - b.id; },
     price_desc: function (a, b) { return b.metod - a.metod || a.id - b.id; }
   };
@@ -32,7 +33,23 @@
   var TICK = '<svg width="12" height="10" viewBox="0 0 12 10" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M1 5l3.5 3.5L11 1"/></svg>';
 
   var PAGE = 16;
-  var st = { shown: PAGE, page: 1, q: '', cats: [], sub: '', capsule: '', min: null, max: null, discount: 0, sort: 'mix', promo: false };
+  var st = { shown: PAGE, page: 1, q: '', cats: [], sub: '', capsule: '', min: null, max: null, discount: 0, sort: 'best', promo: false, pcat: '', brand: '', sale: false };
+
+  /* ---------- категории таблицы партнёров (Алина 29.10: фильтры — по схеме таблицы, как в партнёрском блоке ботов) ----------
+     assets/js/partner-cats.js собирает tools/gen_partner_cats.py. Категория таблицы → раздел каталога API,
+     подкатегория → подтип (ptype) раздела, если такой подтип у каталога есть; иначе подкатегорию не показываем. */
+  var PARTNERS = window.SOVE_PARTNERS || null;
+  var P_API = { otdelka: 'Отделка', svet: 'Освещение', rozetki: 'Розетки и выключатели', santehnika: 'Сантехника',
+                tehnika: 'Техника', mebel: 'Мебель покупная', dveri: 'Двери и перегородки', dekor: 'Декор' };
+  /* подкатегория таблицы → подтип каталога, когда названия не совпадают (у каталога «Панели» — все стеновые) */
+  var P_PTYPE = { 'bambukovye-paneli': 'Панели' };
+  function efold(s) { return String(s || '').toLowerCase().replace(/ё/g, 'е').trim(); }
+  /* «Мебель покупная» → «Мебель»: в фильтре, чипе и заголовке — названия таблицы */
+  function catTitle(api) {
+    if (!PARTNERS) return api;
+    for (var k in P_API) if (P_API[k] === api) { var c = PARTNERS.cat(k); return c ? c.title : api; }
+    return api;
+  }
   var loaded = false, demoError = S.ui.qs('demo') === 'error', loadError = false;
   var sheet = null; /* открытое окно фильтров на телефоне */
 
@@ -47,8 +64,13 @@
     st.capsule = CAPS.some(function (c) { return c.id === cap; }) ? cap : '';
     var d = parseInt(u.get('discount'), 10);
     st.discount = DISCOUNTS.indexOf(d) >= 0 ? d : 0;
-    st.sort = SORTS[u.get('sort')] ? u.get('sort') : 'mix';
+    /* старые ссылки ?sort=discount и ?sort=mix («Каталог со скидками» на metod.html) — это «Выгодные» */
+    st.sort = SORTS[u.get('sort')] ? u.get('sort') : 'best';
     st.promo = u.get('promo') === '1';
+    var pc = (u.get('pcat') || '').trim();
+    st.pcat = st.promo && (pc === 'all' || pc === 'other' || (PARTNERS && PARTNERS.cat(pc))) ? pc : '';
+    st.brand = (u.get('brand') || '').trim().slice(0, 80);
+    st.sale = u.get('sale') === '1';
     st.min = toInt(u.get('min')); st.max = toInt(u.get('max'));
     if (st.min && st.max && st.min > st.max) { st.min = st.max = null; }
   }
@@ -60,26 +82,30 @@
     if (st.capsule) u.set('capsule', st.capsule);
     if (st.discount) u.set('discount', String(st.discount));
     if (st.promo) u.set('promo', '1');
+    if (st.promo && st.pcat) u.set('pcat', st.pcat);
+    if (st.brand) u.set('brand', st.brand);
+    if (st.sale) u.set('sale', '1');
     if (st.min && !priceBad()) u.set('min', String(st.min));
     if (st.max && !priceBad()) u.set('max', String(st.max));
-    if (st.sort !== 'mix') u.set('sort', st.sort);
+    if (st.sort !== 'best') u.set('sort', st.sort);
     var s = u.toString();
     return s ? '?' + s : '';
   }
   function here() { return 'market.html' + query(); }
   function writeURL() {
-    try { history.replaceState(null, '', location.pathname + query()); } catch (e) { /* file:// — без синхронизации */ }
+    /* state сохраняем: по нему «назад» из категории акций возвращает к плиткам (см. openPcat) */
+    try { history.replaceState(history.state, '', location.pathname + query()); } catch (e) { /* file:// — без синхронизации */ }
     /* кнопка «Войти» в шапке должна вернуть на этот же набор фильтров */
     var login = document.querySelector('.header__cab[href^="auth.html"]');
     if (login) login.setAttribute('href', 'auth.html?returnTo=' + encodeURIComponent(here()));
   }
   function priceBad() { return st.min && st.max && st.min > st.max; }
-  function filtersOn() { return st.cats.length + (st.capsule ? 1 : 0) + (st.promo ? 1 : 0) + (st.discount ? 1 : 0) + (((st.min || st.max) && !priceBad()) ? 1 : 0); }
+  function filtersOn() { return st.cats.length + (st.capsule ? 1 : 0) + (st.promo ? 1 : 0) + (st.discount ? 1 : 0) + (st.brand ? 1 : 0) + (st.sale ? 1 : 0) + (((st.min || st.max) && !priceBad()) ? 1 : 0); }
   function plural(n, forms) { var a = Math.abs(n) % 100, b = a % 10; return (a > 10 && a < 20) ? forms[2] : b === 1 ? forms[0] : (b >= 2 && b <= 4) ? forms[1] : forms[2]; }
   function goods(n) { return F.num(n) + ' ' + plural(n, ['товар', 'товара', 'товаров']); }
   function capCode() { var c = st.capsule ? D.capsule(st.capsule) : null; return c ? c.code : ''; }
 
-  /* ---------- «Вперемешку» ---------- */
+  /* ---------- «Выгодные» на общей витрине: разделы по кругу ---------- */
   /* по кругу: первый из каждого ряда, потом второй и т. д. */
   function rotate(lists) {
     var out = [], i = 0, more = true;
@@ -96,9 +122,9 @@
     items.forEach(function (p) { var k = p.brand || ''; if (!by[k]) { by[k] = []; order.push(k); } by[k].push(p); });
     return rotate(order.map(function (k) { return by[k]; }));
   }
-  /* круг по разделам — только общая витрина. Выбрал раздел, фильтр или ищет — выбор уже сузил сам: тогда «вперемешку» —
-     обычный порядок каталога (в нём бренды и так идут вразнобой), без восьми запросов и пустых подразделов */
-  function mixed() { return st.sort === 'mix' && !st.q && !st.sub && !st.capsule && !st.promo && !st.cats.length && !st.discount && !st.min && !st.max; }
+  /* круг по разделам — только общая витрина. Выбрал раздел, фильтр или ищет — выбор уже сузил сам: тогда «Выгодные»
+     идут одним запросом (сервер сам чередует бренды), без восьми запросов и пустых подразделов */
+  function mixed() { return st.sort === 'best' && !st.q && !st.sub && !st.capsule && !st.promo && !st.brand && !st.sale && !st.cats.length && !st.discount && !st.min && !st.max; }
   /* разделы витрины по кругу: свет, мебель, обои, керамогранит… (у живого каталога обои и керамогранит — подразделы Отделки) */
   var MIX = [['Освещение'], ['Мебель покупная'], ['Отделка', 'Обои'], ['Отделка', 'Керамогранит'], ['Сантехника'], ['Декор'],
              ['Отделка', 'Напольные покрытия'], ['Техника']];
@@ -165,16 +191,18 @@
   /* ---------- источник: живой каталог ---------- */
   var facetsCache = {}, subsCache = {};
   function liveParams() {
-    /* «вперемешку» сервер не знает: каждый ряд он отдаёт «по скидке», перемешиваем на странице */
-    var p = { q: st.q || undefined, sort: st.sort === 'mix' ? undefined : st.sort, page_size: PAGE };
+    /* sort=best сервер, ещё не знающий «Выгодных», понимает как обычный порядок — витрина не ломается */
+    var p = { q: st.q || undefined, sort: st.sort, page_size: PAGE };
     if (st.sub) p.ptype = st.sub;
     if (st.capsule) p.capsule_id = capCode();
     if (st.discount) p.discount_min = st.discount;
+    else if (st.sale) p.discount_min = 1;             /* из баннера акции: только товары со скидкой */
+    if (st.brand) p.brand = st.brand;
     if (!priceBad()) { if (st.min) p.price_min = st.min; if (st.max) p.price_max = st.max; }
     return p;
   }
-  /* «Вперемешку» в живом каталоге: по запросу на ряд (раздел или подраздел), в каждом ряду бренды чередуются,
-     ряды идут по кругу. Только общая витрина без фильтров (mixed()) — восемь рядов MIX */
+  /* «Выгодные» на общей витрине живого каталога: по запросу на ряд (раздел или подраздел), в каждом ряду бренды
+     чередуются, ряды идут по кругу. Только общая витрина без фильтров (mixed()) — восемь рядов MIX */
   function mixSlots() { return Promise.resolve(MIX); }
   /* ряд не ответил за 9 с (холодный кэш каталога) — витрина показывается без него, а не падает целиком */
   function slotSearch(p) {
@@ -189,8 +217,8 @@
       var per = Math.ceil(PAGE * page / slots.length) + 4;     /* с запасом: часть уйдёт на чередование брендов */
       return Promise.all(slots.map(function (sl) {
         var p = liveParams(); p.category = sl[0]; if (sl[1]) p.ptype = sl[1];
-        /* внутри ряда — обычный порядок каталога: «по скидке» наверху ряда стоит один бренд (восемь LIGHTSTAR подряд) */
-        delete p.sort;
+        /* внутри ряда — «Выгодные»: лучшие товары разных брендов («по скидке» ставил наверх восемь LIGHTSTAR подряд) */
+        p.sort = 'best';
         p.page_size = per; p.page = 1;
         return slotSearch(p);
       })).then(function (rs) {
@@ -212,9 +240,114 @@
       });
     });
   }
+  /* «Акции партнёров» (Таня 29.10): сначала плитки категорий таблицы партнёров, внутри — баннеры брендов,
+     тап по баннеру → товары бренда со скидкой.
+     Бренды: кураторские акции реестра (/marketplace/brand-promos) + бренды каталога со скидкой от 10 %,
+     по каждой категории не больше PROMO_PER_CAT (самые большие скидки). Меньше 20 товаров — не показываем:
+     почти всегда совпадение имени с чужим брендом (ASKON в каталоге — программы для инженеров) — тупик.
+     DECARO СПБ / DECARO МСК / Decaro — один баннер «DECARO» (SOVE_PARTNERS.canon), «Дивная Ива» и DIVNAYA IVA —
+     один партнёр таблицы, баннер один. Та же выборка — в tools/gen_partner_cats.py (banner_keys): по ней качаются логотипы. */
+  var PROMO_PER_CAT = 20, promoCache = null;
+  function normBrand(b) { return String(b || '').toUpperCase().replace(/Ё/g, 'Е').replace(/[^A-ZА-Я0-9]+/g, ''); }
+  function canonBrand(b) { return PARTNERS ? PARTNERS.canon(b) : String(b || '').trim(); }
+  function pctLabel(s) { var m = /(\d+)/.exec(String(s || '')); return m ? '−' + m[1] + ' %' : ''; }
+  function promoBanners() {
+    if (promoCache) return promoCache;
+    promoCache = Promise.all([S.catalog.brandPromos().catch(function () { return []; }), S.catalog.brands()]).then(function (r) {
+      var promos = r[0], brands = r[1], byKey = {}, order = [];
+      brands.forEach(function (b) {
+        var raw = String(b.brand || '').trim(), name = canonBrand(raw), k = normBrand(name); if (!k) return;
+        var alias = normBrand(raw) !== k, x = byKey[k];
+        if (!x) { x = byKey[k] = { brand: name, key: k, count: b.count || 0, max: b.max_discount || 0, merged: alias }; order.push(x); return; }
+        /* склейка вариантов одного бренда (DECARO СПБ + DECARO + Decaro): товары суммируем, скидка — наибольшая.
+           Прочие совпадения по норме — как раньше: первый (самый крупный) вариант */
+        if (alias || x.merged) { x.count += b.count || 0; x.max = Math.max(x.max, b.max_discount || 0); x.merged = true; }
+      });
+      function tbl(x) { return PARTNERS ? PARTNERS.brand(x.brand) : null; }
+      function catKey(x, text) { var t = tbl(x); return (t && t.cat) || (PARTNERS && PARTNERS.catOf(text)) || 'other'; }
+      function one(x) { return PARTNERS ? PARTNERS.key(x.brand) : x.key; }
+      var out = [], seen = {}, per = {};
+      function push(x, cat, label, until, curated) {
+        var t = tbl(x);
+        seen[one(x)] = 1; per[cat] = (per[cat] || 0) + 1;
+        out.push({ brand: x.brand, label: label, until: until || '', cat: cat, count: x.count, max: x.max, logo: (t && t.logo) || '', curated: curated });
+      }
+      promos.forEach(function (p) {
+        var x = byKey[normBrand(canonBrand(p.brand))];
+        if (!x || seen[one(x)] || x.count < 20) return;
+        push(x, catKey(x, p.category), pctLabel(p.discount_label) || (x.max ? 'до −' + x.max + ' %' : ''), p.deadline, true);
+      });
+      order.filter(function (x) { return x.max >= 10 && x.count >= 20; })
+        .sort(function (a, b) { return b.max - a.max || b.count - a.count; })
+        .forEach(function (x) {
+          var cat = catKey(x, '');
+          if (seen[one(x)] || (per[cat] || 0) >= PROMO_PER_CAT) return;
+          push(x, cat, 'до −' + x.max + ' %', '', false);
+        });
+      return out;
+    }).catch(function (e) { promoCache = null; throw e; });
+    return promoCache;
+  }
+  /* группы по категориям таблицы — в её порядке; бренды без категории — в конце, «Другое» */
+  function promoGroups(list) {
+    var by = {}, out = [];
+    list.forEach(function (x) { (by[x.cat] = by[x.cat] || []).push(x); });
+    (PARTNERS ? PARTNERS.cats : []).forEach(function (c) { if (by[c.key]) out.push({ key: c.key, title: c.title, items: by[c.key] }); });
+    Object.keys(by).forEach(function (k) { if (!out.some(function (g) { return g.key === k; })) out.push({ key: k, title: k === 'other' ? 'Другое' : k, items: by[k] }); });
+    out.forEach(function (g) { g.max = Math.max.apply(null, g.items.map(function (x) { return x.max || 0; })); });
+    return out;
+  }
+  function brandsWord(n) { return F.num(n) + ' ' + plural(n, ['бренд', 'бренда', 'брендов']); }
+  var PC_ICON = {
+    otdelka: '<rect x="4" y="4" width="7" height="7" rx="1.2"/><rect x="13" y="4" width="7" height="7" rx="1.2"/><rect x="4" y="13" width="7" height="7" rx="1.2"/><rect x="13" y="13" width="7" height="7" rx="1.2"/>',
+    svet: '<path d="M12 3v5"/><path d="M5.5 15a6.5 6.5 0 0 1 13 0z"/><path d="M10 18.5a2 2 0 0 0 4 0"/>',
+    rozetki: '<rect x="4" y="4" width="16" height="16" rx="3.5"/><circle cx="12" cy="12" r="4.6"/><path d="M10.4 12h.01M13.6 12h.01" stroke-width="2.2"/>',
+    santehnika: '<path d="M4 10h8.5a4.5 4.5 0 0 1 4.5 4.5"/><path d="M8 10V6.5M5 6.5h6"/><path d="M17 21a2 2 0 0 1-2-2c0-1.3 2-3.5 2-3.5s2 2.2 2 3.5a2 2 0 0 1-2 2z"/>',
+    tehnika: '<rect x="4" y="3" width="16" height="18" rx="2.5"/><path d="M4 8h16"/><rect x="7.5" y="11" width="9" height="7" rx="1.2"/><path d="M8 5.5h.01M11 5.5h.01" stroke-width="2"/>',
+    mebel: '<path d="M5.5 11V8.5a3 3 0 0 1 3-3h7a3 3 0 0 1 3 3V11"/><path d="M3 13.5a2 2 0 0 1 4 0V15h10v-1.5a2 2 0 0 1 4 0V18H3z"/><path d="M5 18v2M19 18v2"/>',
+    dveri: '<path d="M6.5 21V4.2a1.2 1.2 0 0 1 1.2-1.2h8.6a1.2 1.2 0 0 1 1.2 1.2V21"/><path d="M4 21h16"/><path d="M14.5 12.5h.01" stroke-width="2.2"/>',
+    dekor: '<path d="M9.5 3h5M10.5 3v3.2C7.6 7.6 6.5 10 6.5 13c0 4.2 2.4 8 5.5 8s5.5-3.8 5.5-8c0-3-1.1-5.4-4-6.8V3"/>',
+    other: '<path d="M3.5 12.5V4.5a1 1 0 0 1 1-1h8l8 8-9 9z"/><circle cx="8" cy="8" r="1.4"/>',
+    all: '<circle cx="7" cy="7" r="2.6"/><circle cx="17" cy="17" r="2.6"/><path d="M19 5 5 19"/>'
+  };
+  function pcIcon(key) { return '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (PC_ICON[key] || PC_ICON.other) + '</svg>'; }
+  function pcatHref(key) { return 'market.html?promo=1&pcat=' + encodeURIComponent(key); }
+  function pcatTileHTML(g) {
+    return '<a class="mk-pcat" data-pc="' + F.esc(g.key) + '" data-pcat="' + F.esc(g.key) + '" href="' + pcatHref(g.key) + '">' +
+      '<span class="mk-pcat__ic">' + pcIcon(g.key) + '</span>' +
+      (g.max ? '<span class="mk-pcat__off">до −' + g.max + ' %</span>' : '') +
+      '<span class="mk-pcat__text"><b class="mk-pcat__name">' + F.esc(g.title) + '</b>' +
+      '<span class="mk-pcat__meta">' + brandsWord(g.items.length) + '</span></span></a>';
+  }
+  function bannerHTML(x) {
+    var letter = (x.brand.replace(/[^A-Za-zА-Яа-яЁё0-9]/g, '')[0] || '•').toUpperCase();
+    return '<a class="mk-bnr" data-pc="' + F.esc(x.cat) + '" href="market.html?brand=' + encodeURIComponent(x.brand) + '&sale=1" aria-label="' + F.esc(x.brand) + ': скидка ' + F.esc(x.label) + ', ' + F.esc(goods(x.count)) + '">' +
+      '<span class="mk-bnr__logo" aria-hidden="true">' + (x.logo
+        ? '<img src="' + F.esc(x.logo) + '" alt="" loading="lazy" decoding="async">'
+        : '<span class="mk-bnr__letter">' + F.esc(letter) + '</span>') + '</span>' +
+      '<span class="mk-bnr__off">' + F.esc(x.label) + '</span>' +
+      '<b class="mk-bnr__name">' + F.esc(x.brand) + '</b>' +
+      '<span class="mk-bnr__meta">' + F.esc(goods(x.count)) + (x.until ? ' · до ' + F.esc(x.until) : '') + '</span>' +
+      '</a>';
+  }
+  /* выбор категории акций — отдельный шаг истории: «Назад» браузера возвращает к плиткам */
+  function openPcat(key) {
+    if (key === st.pcat) return;
+    var from = st.pcat;
+    st.pcat = key;
+    try { if (key && !from) history.pushState({ mkPcat: 1 }, '', location.pathname + query()); } catch (e) { /* file:// */ }
+    apply();
+    var top = (tabsEl || listEl).getBoundingClientRect().top + window.scrollY - 70;
+    if (window.scrollY > top) window.scrollTo({ top: Math.max(0, top) });
+  }
+  function closePcat() {
+    if (history.state && history.state.mkPcat) { history.back(); return; }
+    st.pcat = ''; apply();
+  }
   var liveSrc = {
     query: function (page) {
-      if (st.promo) {
+      if (st.promo) return promoBanners().then(function (list) { return { total: list.length, items: [], banners: list, from: 0, more: false }; });
+      if (false) {
         return S.catalog.deals(48).then(function (items) {
           if (st.sort !== 'discount') items = items.slice().sort(SORTS[st.sort]);
           return { total: items.length, items: items.slice(0, page * PAGE), from: items.length ? Math.min.apply(null, items.map(function (p) { return p.metod; })) : 0, more: page * PAGE < items.length };
@@ -234,8 +367,8 @@
         var items = [], total = 0, seen = {};
         rs.forEach(function (r) { total += r.total; r.items.forEach(function (p) { if (!seen[p.id]) { seen[p.id] = 1; items.push(p); } }); });
         if (capDisc) { items = items.filter(function (p) { return p.discount >= st.discount; }); total = items.length; }
-        /* несколько разделов «вперемешку» — по кругу, как на витрине; иначе общая сортировка */
-        if (rs.length > 1 && st.sort === 'mix' && !capDisc) { var seen2 = {}; items = rotate(rs.map(function (r) { return brandMix(r.items); })).filter(function (p) { if (seen2[p.id]) return false; seen2[p.id] = 1; return true; }); }
+        /* несколько разделов в «Выгодных» — по кругу, как на витрине; иначе общая сортировка */
+        if (rs.length > 1 && st.sort === 'best' && !capDisc) { var seen2 = {}; items = rotate(rs.map(function (r) { return brandMix(r.items); })).filter(function (p) { if (seen2[p.id]) return false; seen2[p.id] = 1; return true; }); }
         else if (rs.length > 1 || capDisc) items.sort(SORTS[st.sort]);
         items = items.slice(0, page * PAGE);
         var from = items.length ? Math.min.apply(null, items.map(function (p) { return p.metod; })) : 0;
@@ -246,7 +379,9 @@
       var key = capCode() || '*';
       var f = facetsCache[key] || (facetsCache[key] = S.catalog.facets(st.capsule ? { capsule_id: capCode() } : {}));
       return f.then(function (d) {
-        return (d.category || []).map(function (x) { return { name: x.value, count: x.count }; }).filter(function (c) { return c.count || st.cats.indexOf(c.name) >= 0; });
+        var flat = (d.category || []).map(function (x) { return { name: x.value, count: x.count }; });
+        if (PARTNERS) return partnerTree(flat);
+        return flat.filter(function (c) { return c.count || st.cats.indexOf(c.name) >= 0; });
       });
     },
     countWith: function () { return 1; },
@@ -259,6 +394,51 @@
     more: function () { return []; }
   };
   var src = LIVE ? liveSrc : localSrc;
+
+  /* дерево «Категория»: категории таблицы партнёров (её порядок) со счётчиками разделов каталога,
+     внутри — подкатегории таблицы, у которых в каталоге есть подтип с товарами (/marketplace/subtypes) */
+  var subsReady = {};    /* раздел API → [{label, count}] — когда подтипы пришли */
+  function partnerTree(flat) {
+    var counts = {}, used = {}, out = [];
+    flat.forEach(function (x) { counts[x.name] = x.count; });
+    PARTNERS.cats.forEach(function (c) {
+      var api = P_API[c.key]; if (!api || used[api]) return;
+      used[api] = 1;
+      if (!counts[api] && st.cats.indexOf(api) < 0) return;
+      out.push({ name: api, title: c.title, key: c.key, count: counts[api] || 0, subs: treeSubs(c, api) });
+    });
+    /* раздел каталога, которого нет в таблице, не теряем — в конце списка, как есть */
+    flat.forEach(function (x) { if (!used[x.name] && (x.count || st.cats.indexOf(x.name) >= 0)) out.push({ name: x.name, title: x.name, count: x.count, subs: [] }); });
+    return out;
+  }
+  function treeSubs(c, api) {
+    var have = subsReady[api]; if (!have) return [];
+    var by = {}, seen = {}, out = [];
+    have.forEach(function (x) { by[efold(x.label)] = x; });
+    c.subs.forEach(function (s) {
+      var x = by[efold(P_PTYPE[s.key] || s.title)];
+      if (!x || !x.count || seen[x.label]) return;
+      seen[x.label] = 1;
+      out.push({ name: x.label, count: x.count });
+    });
+    return out;
+  }
+  /* подтипы грузим только когда открыли фильтры (не нагружаем боевой API на каждый показ страницы) и только
+     для категорий, где в таблице больше одной подкатегории: у «Освещения» одна — «Свет», это сама категория */
+  var treeAsked = false;
+  function loadTreeSubs() {
+    if (treeAsked || !LIVE || !PARTNERS) return;
+    treeAsked = true;
+    PARTNERS.cats.forEach(function (c) {
+      var api = P_API[c.key]; if (!api || c.subs.length < 2 || subsReady[api]) return;
+      var p = subsCache[api] || (subsCache[api] = S.catalog.subtypes(api));
+      p.then(function (items) {
+        subsReady[api] = items || [];
+        catList.forEach(function (x) { if (x.name === api && x.key) x.subs = treeSubs(PARTNERS.cat(x.key), api); });
+        syncPanel(deskPanel); if (sheet) syncPanel(sheet.el);
+      }, function () { subsCache[api] = null; treeAsked = false; /* не ответил — попробуем при следующем открытии */ });
+    });
+  }
 
   /* ---------- панель фильтров (одна разметка для колонки и для окна на телефоне) ---------- */
   var catList = [];   /* [{name, count}] — заполняется источником */
@@ -277,7 +457,28 @@
       group('Скидка', '<div class="mf__chips">' + DISCOUNTS.map(function (d) { return '<button type="button" class="chip" data-discount="' + d + '" aria-pressed="false">от ' + d + ' %</button>'; }).join('') + '</div>', '-disc') +
       '</div>';
   }
+  /* раскрыта ли категория в дереве: тап по стрелке — запоминаем; иначе раскрыта выбранная */
+  var openCats = {};
+  function catOpen(c) { return openCats[c.name] != null ? openCats[c.name] : st.cats.indexOf(c.name) >= 0; }
+  var CHEV = '<svg width="12" height="8" viewBox="0 0 12 8" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M1 1.5l5 5 5-5"/></svg>';
+  function treeHTML(pre) {
+    /* у строк без подкатегорий — пустое место под стрелку, чтобы счётчики стояли в одну колонку */
+    var anyExp = catList.some(function (c) { return c.subs && c.subs.length; });
+    return catList.map(function (c, i) {
+      var on = st.cats.indexOf(c.name) >= 0, off = !c.count && !on, subs = c.subs || [], open = subs.length && catOpen(c);
+      var id = pre + '-cat-' + i;
+      return '<div class="mf__node' + (open ? ' is-open' : '') + '">' +
+        '<div class="mf__row"><label class="check mf__check' + (off ? ' is-off' : '') + '" for="' + id + '"><input type="checkbox" id="' + id + '" data-cat="' + F.esc(c.name) + '"' + (on ? ' checked' : '') + (off ? ' disabled' : '') + '><span class="check__box">' + TICK + '</span><span class="check__label">' + F.esc(c.title || c.name) + '</span><span class="check__count" data-count>' + F.num(c.count) + '</span></label>' +
+        (subs.length ? '<button type="button" class="mf__exp" data-pexp="' + F.esc(c.name) + '" aria-expanded="' + !!open + '" aria-controls="' + id + '-subs" aria-label="' + (open ? 'Свернуть' : 'Подкатегории') + ': ' + F.esc(c.title || c.name) + '">' + CHEV + '</button>' : (anyExp ? '<span class="mf__exp mf__exp--none" aria-hidden="true"></span>' : '')) + '</div>' +
+        (subs.length ? '<div class="mf__subs" id="' + id + '-subs" role="group" aria-label="Подкатегории: ' + F.esc(c.title || c.name) + '"' + (open ? '' : ' hidden') + '>' + subs.map(function (s) {
+          var act = on && st.sub === s.name;
+          return '<button type="button" class="mf__sub' + (act ? ' is-active' : '') + '" data-psub="' + F.esc(s.name) + '" data-pcat="' + F.esc(c.name) + '" aria-pressed="' + act + '">' + F.esc(s.name) + ' <i>' + F.num(s.count) + '</i></button>';
+        }).join('') + '</div>' : '') +
+        '</div>';
+    }).join('');
+  }
   function catsHTML(pre) {
+    if (PARTNERS && LIVE) return treeHTML(pre);
     return catList.map(function (c, i) {
       var on = st.cats.indexOf(c.name) >= 0, off = !c.count && !on;
       return '<label class="check mf__check' + (off ? ' is-off' : '') + '" for="' + pre + '-cat-' + i + '"><input type="checkbox" id="' + pre + '-cat-' + i + '" data-cat="' + F.esc(c.name) + '"' + (on ? ' checked' : '') + (off ? ' disabled' : '') + '><span class="check__box">' + TICK + '</span><span class="check__label">' + F.esc(c.name) + '</span><span class="check__count" data-count>' + F.num(c.count) + '</span></label>';
@@ -294,7 +495,8 @@
     if (!root) return;
     arrange(root);
     var pre = root === deskPanel ? 'mf-d' : 'mf-m';
-    var catG = root.querySelector('[data-kind="cat"]'); if (catG) catG.hidden = !!st.sub;
+    /* в дереве партнёров подкатегория видна внутри «Категории» — группу не прячем */
+    var catG = root.querySelector('[data-kind="cat"]'); if (catG) catG.hidden = !!st.sub && !(PARTNERS && LIVE);
     var box = root.querySelector('[data-cats]'); if (box) box.innerHTML = catsHTML(pre);
     root.querySelectorAll('[data-discount]').forEach(function (b) { var d = Number(b.getAttribute('data-discount')), n = src.countWith({ discount: d }); b.disabled = !n && st.discount !== d; b.classList.toggle('is-off', !n && st.discount !== d); });
     root.querySelectorAll('[data-capsule]').forEach(function (b) { var id = b.getAttribute('data-capsule'), n = src.countWith({ capsule: id }); b.disabled = !n && st.capsule !== id; b.classList.toggle('is-off', !n && st.capsule !== id); });
@@ -314,11 +516,32 @@
       var cap = e.target.closest('[data-capsule]'), disc = e.target.closest('[data-discount]');
       if (cap) { var id = cap.getAttribute('data-capsule'); st.capsule = st.capsule === id ? '' : id; st.sub = ''; apply(); }
       if (disc) { var d = Number(disc.getAttribute('data-discount')); st.discount = st.discount === d ? 0 : d; apply(); }
+      /* дерево категорий: стрелка раскрывает подкатегории, подкатегория — раздел + подтип каталога (?category=&sub=) */
+      var exp = e.target.closest('[data-pexp]');
+      if (exp) {
+        var nm = exp.getAttribute('data-pexp'), node = exp.closest('.mf__node'), c = catList.filter(function (x) { return x.name === nm; })[0];
+        if (!c) return;
+        openCats[nm] = !catOpen(c);
+        var box = node && node.querySelector('.mf__subs');
+        if (box) box.hidden = !openCats[nm];
+        if (node) node.classList.toggle('is-open', openCats[nm]);
+        exp.setAttribute('aria-expanded', String(openCats[nm]));
+        exp.setAttribute('aria-label', (openCats[nm] ? 'Свернуть' : 'Подкатегории') + ': ' + (c.title || c.name));
+        return;
+      }
+      var ps = e.target.closest('[data-psub]');
+      if (ps) {
+        var sub = ps.getAttribute('data-psub'), pc = ps.getAttribute('data-pcat');
+        if (st.sub === sub && st.cats.length === 1 && st.cats[0] === pc) st.sub = '';
+        else { st.cats = [pc]; st.sub = sub; openCats[pc] = true; }
+        apply();
+      }
     });
     root.addEventListener('change', function (e) {
       var inp = e.target.closest('[data-cat]'); if (!inp) return;
       var cat = inp.getAttribute('data-cat'), i = st.cats.indexOf(cat);
       if (inp.checked && i < 0) st.cats.push(cat); if (!inp.checked && i >= 0) st.cats.splice(i, 1);
+      if (inp.checked) delete openCats[cat];   /* выбрал категорию — подкатегории раскрываются сами */
       st.sub = '';
       apply();
     });
@@ -348,8 +571,8 @@
   if (tabsEl) tabsEl.addEventListener('click', function (e) {
     var b = e.target.closest('[data-tab]'); if (!b) return;
     var want = b.getAttribute('data-tab') === 'promo';
-    if (want === st.promo) return;
-    st.promo = want; apply();
+    if (want === st.promo) { if (want && st.pcat) closePcat(); return; }   /* повторный тап по «Акциям» — к плиткам */
+    st.promo = want; st.pcat = ''; apply();
   });
   var subsReq = 0;
   function renderSubs() {
@@ -369,11 +592,22 @@
     }).catch(function () { subsEl.hidden = true; });
   }
   if (subsEl) subsEl.addEventListener('click', function (e) { var b = e.target.closest('[data-sub]'); if (!b) return; var v = b.getAttribute('data-sub'); st.sub = st.sub === v ? '' : v; apply(); });
-  function heroName() { return st.sub || (st.cats.length === 1 ? st.cats[0] : '') || (st.capsule ? 'Интерьер ' + capCode() : '') || (st.promo ? 'Акции партнёров' : ''); }
+  function pcatName() { if (st.pcat === 'all') return 'Все акции'; if (st.pcat === 'other') return 'Другое'; var c = PARTNERS && PARTNERS.cat(st.pcat); return c ? c.title : ''; }
+  function heroName() {
+    if (st.promo) return st.pcat ? 'Акции: ' + pcatName() : 'Акции партнёров';
+    return st.sub || (st.cats.length === 1 ? catTitle(st.cats[0]) : '') || (st.capsule ? 'Интерьер ' + capCode() : '') || (st.brand ? st.brand + (st.sale ? ' · акция' : '') : '');
+  }
   function renderHero(res) {
     var name = heroName();
     document.title = (name || 'Каталог') + ' — SOVEAPP';
-    if (!loaded || !res) { heroEl.textContent = 'Загружаем каталог…'; moreEl.hidden = true; return; }
+    if (!loaded || !res) { heroEl.textContent = st.q ? 'Ищем среди миллиона товаров…' : 'Загружаем каталог…'; moreEl.hidden = true; return; }
+    if (res.banners) {
+      var gs = promoGroups(res.banners), g = st.pcat && st.pcat !== 'all' ? gs.filter(function (x) { return x.key === st.pcat; })[0] : null;
+      heroEl.innerHTML = g ? '<b>' + F.esc(g.title) + '</b> · ' + brandsWord(g.items.length) + ' со скидкой'
+        : '<b>' + (st.pcat === 'all' ? 'Все акции' : 'Акции партнёров') + '</b> · ' + brandsWord(res.banners.length) +
+          (st.pcat ? '' : ' в ' + F.num(gs.length) + ' ' + plural(gs.length, ['разделе', 'разделах', 'разделах']));
+      moreEl.hidden = true; return;
+    }
     if (!res.total) { heroEl.textContent = name ? F.esc(name) : 'Каталог'; }
     else { heroEl.innerHTML = (name ? '<b>' + F.esc(name) + '</b> · ' : '') + goods(res.total) + (name && res.from ? ' · от ' + F.rub(res.from) : ''); }
     /* когда в разделе мало товаров, страница не должна заканчиваться пустотой */
@@ -388,10 +622,12 @@
     function chip(kind, value, text) { chips.push('<button type="button" class="chip" data-drop="' + kind + '" data-value="' + F.esc(value) + '" aria-label="Убрать фильтр: ' + F.esc(text) + '">' + F.esc(text) + ' <span aria-hidden="true">×</span></button>'); }
     if (st.q) chip('q', '', '«' + st.q + '»');
     if (st.capsule) chip('capsule', '', 'Капсула ' + capCode());
-    st.cats.forEach(function (c) { chip('cat', c, c); });
+    st.cats.forEach(function (c) { chip('cat', c, catTitle(c)); });
     if (st.sub) chip('sub', '', st.sub);
     if (st.min || st.max) chip('price', '', st.min && st.max ? F.num(st.min) + ' – ' + F.rub(st.max) : st.min ? 'от ' + F.rub(st.min) : 'до ' + F.rub(st.max));
     if (st.discount) chip('discount', '', 'скидка от ' + st.discount + ' %');
+    if (st.brand) chip('brand', '', st.brand);
+    if (st.sale && !st.discount) chip('sale', '', 'только со скидкой');
     renderSubs();
     activeEl.hidden = !chips.length;
     activeEl.innerHTML = chips.join('') + (chips.length > 1 ? '<button type="button" class="btn btn--link" data-drop="all">Сбросить всё</button>' : '');
@@ -400,7 +636,7 @@
     openBtn.setAttribute('aria-label', n ? 'Фильтры, выбрано: ' + n : 'Фильтры');
     if (resetDesk) resetDesk.hidden = !n;
   }
-  function reset(keepSearch) { st.cats = []; st.sub = ''; st.capsule = ''; st.min = st.max = null; st.discount = 0; if (!keepSearch) { st.q = ''; qInput.value = ''; } apply(); }
+  function reset(keepSearch) { st.cats = []; st.sub = ''; st.capsule = ''; st.min = st.max = null; st.discount = 0; st.brand = ''; st.sale = false; if (!keepSearch) { st.q = ''; qInput.value = ''; } apply(); }
   activeEl.addEventListener('click', function (e) {
     var b = e.target.closest('[data-drop]'); if (!b) return;
     var kind = b.getAttribute('data-drop'), v = b.getAttribute('data-value');
@@ -411,6 +647,8 @@
     if (kind === 'cat') { st.cats = st.cats.filter(function (c) { return c !== v; }); st.sub = ''; }
     if (kind === 'price') st.min = st.max = null;
     if (kind === 'discount') st.discount = 0;
+    if (kind === 'brand') st.brand = '';
+    if (kind === 'sale') st.sale = false;
     apply();
   });
   if (resetDesk) resetDesk.addEventListener('click', function () { reset(true); });
@@ -423,6 +661,36 @@
       (S.repair ? '<button type="button" class="product-card__fav product-card__cart rp-ic--cart' + (S.repair.cart.has(p.id) ? ' is-on' : '') + '" data-rp-cart="' + p.id + '" data-src="market" aria-label="В корзину: ' + F.esc(p.name) + '"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M3 4h2l2.5 11h10l2-7H7"/><circle cx="9" cy="19" r="1.5"/><circle cx="17" cy="19" r="1.5"/></svg></button>' : '') + '</div>';
   }
   function setCount(html) { countEl.innerHTML = html; countMobEl.innerHTML = html; }
+  /* «Акции партнёров»: без выбора — плитки категорий (+ «Все»); выбрана — баннеры брендов этой категории */
+  var PROMO_NOTE = 'Цену METOD поставщик даёт по промокоду из подписки.';
+  function renderPromos(list) {
+    var n = list.length, gs = promoGroups(list);
+    setCount('Акции партнёров: <b>' + F.num(n) + '</b>');
+    if (!n) {
+      listEl.innerHTML = '<div class="empty"><span class="empty__title">Акций сейчас нет</span><p class="text">Загляните позже или посмотрите весь каталог.</p>' +
+        '<div class="row"><button type="button" class="btn btn--dark" data-tab-all>Все товары</button></div></div>';
+      return;
+    }
+    var g = st.pcat && st.pcat !== 'all' ? gs.filter(function (x) { return x.key === st.pcat; })[0] : null;
+    if (st.pcat && st.pcat !== 'all' && !g) { st.pcat = ''; writeURL(); }   /* в категории акций больше нет — к плиткам */
+    if (!st.pcat) {
+      var all = { key: 'all', title: 'Все акции', items: list, max: Math.max.apply(null, gs.map(function (x) { return x.max; })) };
+      listEl.innerHTML = '<div class="mk-pz">' +
+        '<div class="mk-pcats">' + [all].concat(gs).map(pcatTileHTML).join('') + '</div>' +
+        '<p class="mk-promos__note">Выберите раздел — покажем бренды партнёров со скидкой. ' + PROMO_NOTE + '</p></div>';
+      return;
+    }
+    var back = '<div class="mk-pz__head"><button type="button" class="mk-pz__back" data-pback><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>Все разделы</button>' +
+      '<span class="mk-pz__title" data-pc="' + F.esc(g ? g.key : 'all') + '"><span class="mk-pz__ic">' + pcIcon(g ? g.key : 'all') + '</span>' + F.esc(g ? g.title : 'Все акции') + '</span></div>';
+    var body = g
+      ? '<div class="mk-bnrs">' + g.items.map(bannerHTML).join('') + '</div>'
+      : gs.map(function (x) {
+          return '<section class="mk-pz__sec" aria-label="' + F.esc(x.title) + '"><h2 class="mk-pz__h"><a href="' + pcatHref(x.key) + '" data-pcat="' + F.esc(x.key) + '">' + F.esc(x.title) + '</a> <i>' + brandsWord(x.items.length) + '</i></h2>' +
+            '<div class="mk-bnrs">' + x.items.map(bannerHTML).join('') + '</div></section>';
+        }).join('');
+    listEl.innerHTML = '<div class="mk-pz">' + back + body +
+      '<p class="mk-promos__note">Нажмите на бренд — покажем его товары со скидкой. ' + PROMO_NOTE + '</p></div>';
+  }
   var last = null;   /* последний ответ источника */
   function renderList() {
     if (!loaded) return;
@@ -434,6 +702,7 @@
       return;
     }
     var res = last || { total: 0, items: [], more: false }, n = res.total;
+    if (res.banners) { renderPromos(res.banners); return; }
     setCount(plural(n, ['Найден', 'Найдено', 'Найдено']) + ' <b>' + goods(n) + '</b>');
     if (!n) {
       var why = st.q ? 'По запросу «' + F.esc(st.q) + '»' + (filtersOn() ? ' с выбранными фильтрами' : '') + ' товаров нет.' : 'С таким набором фильтров товаров нет.';
@@ -458,6 +727,10 @@
     });
   }
   listEl.addEventListener('click', function (e) {
+    if (e.target.closest('[data-tab-all]')) { st.promo = false; st.pcat = ''; apply(); return; }
+    var pcl = e.target.closest('[data-pcat]');
+    if (pcl && !e.metaKey && !e.ctrlKey && !e.shiftKey) { e.preventDefault(); openPcat(pcl.getAttribute('data-pcat')); return; }
+    if (e.target.closest('[data-pback]')) { closePcat(); return; }
     if (e.target.closest('[data-more]')) { st.page += 1; load(true); return; }
     if (e.target.closest('[data-reset-all]')) return reset();
     if (e.target.closest('[data-retry]')) { demoError = false; loadError = false; apply(); return; }
@@ -474,7 +747,7 @@
     if (!S.repair) S.ui.toast(on ? 'Добавили в избранное' : 'Убрали из избранного', on ? 'ok' : undefined);
   });
   var skeletonHTML = listEl.innerHTML;
-  function showSkeleton() { listEl.setAttribute('aria-busy', 'true'); listEl.innerHTML = skeletonHTML; setCount('Загружаем каталог…'); }
+  function showSkeleton() { listEl.setAttribute('aria-busy', 'true'); listEl.innerHTML = skeletonHTML; setCount(st.q ? 'Ищем среди миллиона товаров…' : 'Загружаем каталог…'); }
 
   /* ---------- METOD в шапке страницы ---------- */
   function renderMetod() {
@@ -490,12 +763,17 @@
     if (!append) { loaded = false; showSkeleton(); renderHero(null); }
     else { var btn = listEl.querySelector('[data-more]'); if (btn) { btn.disabled = true; btn.textContent = 'Загружаем…'; } }
     if (demoError) { loaded = true; listEl.setAttribute('aria-busy', 'false'); renderList(); return; }
+    var slow = setTimeout(function () {
+      if (my === reqId && !loaded && st.q) setCount('Ищем среди миллиона товаров — первый поиск по новому слову занимает до минуты…');
+    }, 4000);
     src.query(st.page).then(function (res) {
+      clearTimeout(slow);
       if (my !== reqId) return;
       last = res; loaded = true; loadError = false;
       listEl.setAttribute('aria-busy', 'false');
       renderList(); renderHero(res);
     }).catch(function () {
+      clearTimeout(slow);
       if (my !== reqId) return;
       loaded = true; loadError = true; listEl.setAttribute('aria-busy', 'false'); renderList(); renderHero(null);
     });
@@ -521,7 +799,7 @@
   qInput.addEventListener('input', function () { qClear.hidden = !qInput.value; clearTimeout(qTimer); qTimer = setTimeout(function () { st.q = qInput.value.trim().slice(0, 80); apply(); }, LIVE ? 350 : 160); });
   qClear.addEventListener('click', function () { qInput.value = ''; st.q = ''; apply(); qInput.focus(); });
   $('market-search').addEventListener('submit', function (e) { e.preventDefault(); clearTimeout(qTimer); st.q = qInput.value.trim().slice(0, 80); apply(); qInput.blur(); });
-  sortEl.addEventListener('change', function () { st.sort = SORTS[sortEl.value] ? sortEl.value : 'mix'; apply(); });
+  sortEl.addEventListener('change', function () { st.sort = SORTS[sortEl.value] ? sortEl.value : 'best'; apply(); });
 
   /* фильтры на телефоне — в окне */
   openBtn.addEventListener('click', function () {
@@ -530,11 +808,12 @@
       onClose: function () { sheet = null; } });
     sheet.el.classList.add('market-sheet');
     bindPanel(sheet.el); syncPanel(sheet.el); renderList();
+    loadTreeSubs();
     var first = sheet.el.querySelector('.modal__close'); if (first) first.focus();
   });
 
   /* окошки фильтров: открыто одно, закрываются кликом мимо и клавишей Esc */
-  deskPanel.addEventListener('toggle', function (e) { if (e.target.open) deskPanel.querySelectorAll('details[open]').forEach(function (d) { if (d !== e.target) d.open = false; }); }, true);
+  deskPanel.addEventListener('toggle', function (e) { if (e.target.open) { loadTreeSubs(); deskPanel.querySelectorAll('details[open]').forEach(function (d) { if (d !== e.target) d.open = false; }); } }, true);
   document.addEventListener('click', function (e) { if (!e.target.closest('.mfd')) deskPanel.querySelectorAll('details[open]').forEach(function (d) { d.open = false; }); });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape') deskPanel.querySelectorAll('details[open]').forEach(function (d) { d.open = false; d.querySelector('summary').focus(); }); });
 

@@ -114,52 +114,77 @@
         '<a class="mr-tile mr-tile--s" href="' + href('orders') + '"><span class="mr-tile__ic">' + ic('box', 22) + (wait.length ? '<i>' + wait.length + '</i>' : '') + '</span><b>Заказы</b><span>' + (wait.length ? cnt(wait.length, ['ждёт решения', 'ждут решения', 'ждут решения']) : active.length ? cnt(active.length, ['активный', 'активных', 'активных']) : 'Пока нет') + '</span></a></div>';
   }
 
-  /* ---------- анкета объекта: по одному вопросу на экран ---------- */
+  /* ---------- анкета объекта: по одному вопросу на экран. «+ Добавить объект» = НОВАЯ квартира «Моего ремонта» (R.flats.add, сразу активная);
+     схема объекта v2 (созвон 28.10): имя, город, ЖК, м², комнаты, санузлы, состояние, уровень бюджета, интерьер. Без repair.js — прежняя анкета O.object ---------- */
+  var STATES = [['concrete_free', 'Бетон', 'без стен и стяжки'], ['concrete_walls', 'Бетон, стены', 'перегородки есть, отделки нет'], ['whitebox', 'White box', 'стяжка и штукатурка есть'], ['finished', 'С отделкой', 'переделаем под интерьер']];
   function viewNew() {
-    var q = { city: '', complex: '', area: '', rooms: null, bathrooms: null, tier: null, capsule: null }, i = 0;
-    var STEPS = ['city', 'complex', 'area', 'rooms', 'bathrooms', 'tier', 'capsule'];
-    var Q = { city: ['В каком городе квартира?', 'Покажем товары только тех поставщиков, которые доставляют сюда'], complex: ['Жилой комплекс или адрес', 'Можно пропустить — адрес подставится в доставку позже'], area: ['Какая площадь?', 'Общая площадь квартиры в м² — от неё считается бюджет'], rooms: ['Сколько комнат?', 'Без кухни и санузлов'], bathrooms: ['Сколько санузлов?', 'Ванная и туалет вместе считаются одним'], tier: ['Какой уровень бюджета?', 'От этого зависит подбор товаров: «База» или «Премиум»'], capsule: ['Выберите интерьер', 'Капсула — стиль и ДНК проекта. Можно выбрать позже, после загрузки плана'] };
-    function can() { var k = STEPS[i]; return k === 'city' ? q.city.trim().length > 1 : k === 'area' ? Number(q.area.replace(',', '.')) > 0 : k === 'rooms' ? q.rooms !== null : k === 'bathrooms' ? q.bathrooms !== null : k === 'tier' ? !!q.tier : true; }
+    var R = S.repair, n = R ? R.flats.list().length : 0;
+    var q = { name: '', city: '', complex: '', area: '', rooms: null, bathrooms: null, state: null, tier: null, capsule: null }, i = 0;
+    var STEPS = ['name', 'city', 'complex', 'area', 'rooms', 'bathrooms', 'state', 'tier', 'capsule'];
+    var Q = { name: ['Как назвать объект?', n ? 'У вас уже ' + cnt(n, ['объект', 'объекта', 'объектов']) + ' — новый будет отдельной квартирой со своим планом, бюджетом и корзиной' : 'Например «Квартира на Лесной» или «Дом». Можно пропустить'], city: ['В каком городе квартира?', 'Покажем товары только тех поставщиков, которые доставляют сюда'], complex: ['Жилой комплекс или адрес', 'Можно пропустить — адрес подставится в доставку позже'], area: ['Какая площадь?', 'Общая площадь квартиры в м² — от неё считается бюджет'], rooms: ['Сколько комнат?', 'Без кухни и санузлов'], bathrooms: ['Сколько санузлов?', 'Ванная и туалет вместе считаются одним'], state: ['В каком состоянии квартира?', 'От этого зависит объём работ в расчёте бюджета'], tier: ['Какой уровень бюджета?', 'От этого зависит подбор товаров: «База» или «Премиум»'], capsule: ['Выберите интерьер', 'Капсула — стиль и ДНК проекта. Можно выбрать позже, после загрузки плана'] };
+    function can() { var k = STEPS[i]; return k === 'city' ? q.city.trim().length > 1 : k === 'area' ? Number(q.area.replace(',', '.')) > 0 : k === 'rooms' ? q.rooms !== null : k === 'bathrooms' ? q.bathrooms !== null : k === 'state' ? !!q.state : k === 'tier' ? !!q.tier : true; }
     function finish() {
-      O.object.set({ city: q.city.trim(), complex: q.complex.trim() || null, area: Number(q.area.replace(',', '.')), rooms: q.rooms, bathrooms: q.bathrooms, tier: q.tier });
-      if (q.capsule) S.my.set({ capsuleId: q.capsule, total: null, works: null, kitMetod: null, kitRetail: null });
-      ui.toast('Квартира добавлена', 'ok'); go('home');
+      var area = Number(q.area.replace(',', '.'));
+      if (R) R.flats.add({ name: q.name.trim() || undefined, city: q.city.trim(), jk: q.complex.trim(), m2: area, rooms: q.rooms, baths: q.bathrooms, state: q.state, budgetType: q.tier, capsuleId: q.capsule || null });
+      else O.object.set({ city: q.city.trim(), complex: q.complex.trim() || null, area: area, rooms: q.rooms, bathrooms: q.bathrooms, tier: q.tier, state: q.state });
+      /* расчёт зеркалит новую квартиру (repair.js → S.my: площадь, состояние, уровень, капсула); старый итог расчёта к новой квартире не относится */
+      S.my.set({ capsuleId: q.capsule || null, total: null, works: null, kitMetod: null, kitRetail: null });
+      ui.toast(q.name.trim() ? 'Объект «' + q.name.trim() + '» добавлен' : 'Квартира добавлена', 'ok'); go(n ? 'object' : 'home');
     }
     function paintQ() {
       var k = STEPS[i], body = '';
-      if (k === 'city') body = '<div class="field"><label for="q-in">Город</label><input class="input" id="q-in" value="' + esc(q.city) + '" placeholder="Город" autofocus></div><div class="q-chips">' + ['Москва', 'Санкт-Петербург', 'Казань', 'Екатеринбург', 'Новосибирск', 'Краснодар', 'Сочи'].map(function (c) { return '<button type="button" class="q-chip' + (q.city === c ? ' is-on' : '') + '" data-v="' + c + '">' + c + '</button>'; }).join('') + '</div>';
+      if (k === 'name') body = '<div class="field"><label for="q-in">Название</label><input class="input" id="q-in" value="' + esc(q.name) + '" placeholder="' + (n ? 'Квартира ' + (n + 1) : 'Моя квартира') + '" autofocus></div>';
+      else if (k === 'city') body = '<div class="field"><label for="q-in">Город</label><input class="input" id="q-in" value="' + esc(q.city) + '" placeholder="Город" autofocus></div><div class="q-chips">' + ['Москва', 'Санкт-Петербург', 'Казань', 'Екатеринбург', 'Новосибирск', 'Краснодар', 'Сочи'].map(function (c) { return '<button type="button" class="q-chip' + (q.city === c ? ' is-on' : '') + '" data-v="' + c + '">' + c + '</button>'; }).join('') + '</div>';
       else if (k === 'complex') body = '<div class="field"><label for="q-in">ЖК или адрес</label><input class="input" id="q-in" value="' + esc(q.complex) + '" placeholder="напр. ЖК PRIDE, корпус 2" autofocus></div>';
       else if (k === 'area') body = '<div class="field"><label for="q-in">Площадь, м²</label><input class="input" id="q-in" inputmode="decimal" value="' + esc(q.area) + '" placeholder="напр. 47,3" autofocus></div>';
       else if (k === 'rooms') body = '<div class="q-chips">' + [[0, 'Студия'], [1, '1'], [2, '2'], [3, '3'], [4, '4+']].map(function (x) { return '<button type="button" class="q-chip q-big' + (q.rooms === x[0] ? ' is-on' : '') + '" data-v="' + x[0] + '">' + x[1] + '</button>'; }).join('') + '</div>';
       else if (k === 'bathrooms') body = '<div class="q-chips">' + [[1, '1'], [2, '2'], [3, '3+']].map(function (x) { return '<button type="button" class="q-chip q-big' + (q.bathrooms === x[0] ? ' is-on' : '') + '" data-v="' + x[0] + '">' + x[1] + '</button>'; }).join('') + '</div>';
+      else if (k === 'state') body = '<div class="stack stack--2">' + STATES.map(function (x) { return '<button type="button" class="q-opt' + (q.state === x[0] ? ' is-on' : '') + '" data-v="' + x[0] + '"><span class="grow"><b>' + x[1] + '</b><small>' + x[2] + '</small></span>' + (q.state === x[0] ? ic('check', 20) : '') + '</button>'; }).join('') + '</div>';
       else if (k === 'tier') body = '<div class="stack stack--2">' + [['base', 'База', 'Проверенные бренды по разумной цене'], ['premium', 'Премиум', 'Дизайнерские коллекции и редкие материалы']].map(function (x) { return '<button type="button" class="q-opt' + (q.tier === x[0] ? ' is-on' : '') + '" data-v="' + x[0] + '"><span class="grow"><b>' + x[1] + '</b><small>' + x[2] + '</small></span>' + (q.tier === x[0] ? ic('check', 20) : '') + '</button>'; }).join('') + '</div>';
       else body = '<div class="stack stack--2">' + D.capsules.filter(function (c) { return !c.soon; }).map(function (c) { return '<button type="button" class="q-opt' + (q.capsule === c.id ? ' is-on' : '') + '" data-v="' + c.id + '"><img src="' + c.cover + '" alt=""><span class="grow"><b>' + esc(c.code) + ' · ' + esc(c.name) + '</b><small>' + esc(c.style) + ' · от ' + F.rub(c.pricePerM2) + '/м²</small></span></button>'; }).join('') + '</div>';
       root.innerHTML = '<div class="q-top"><span>' + (i ? '← Назад' : 'Мой ремонт') + '</span><span>Шаг ' + (i + 1) + ' из ' + STEPS.length + '</span></div><div class="my-bar"><i style="width:' + Math.round((i + 1) / STEPS.length * 100) + '%"></i></div>' +
         '<h1 class="h1">' + Q[k][0] + '</h1><p class="text muted">' + Q[k][1] + '</p>' + body +
         '<button type="button" class="btn btn--primary btn--block" id="q-next"' + (can() ? '' : ' disabled') + '>' + (k === 'capsule' ? (q.capsule ? 'Создать объект с интерьером' : 'Создать объект') : 'Далее →') + '</button>' +
-        (k === 'complex' ? '<button type="button" class="btn btn--link" id="q-skip">Пропустить</button>' : '');
+        (k === 'complex' || k === 'name' ? '<button type="button" class="btn btn--link" id="q-skip">Пропустить</button>' : '');
       var inp = root.querySelector('#q-in'); if (inp) { inp.addEventListener('input', function () { q[k] = inp.value; root.querySelector('#q-next').disabled = !can(); }); inp.addEventListener('keydown', function (e) { if (e.key === 'Enter' && can()) next(); }); }
       root.querySelectorAll('[data-v]').forEach(function (b) { b.addEventListener('click', function () { var v = b.getAttribute('data-v'); q[k] = (k === 'rooms' || k === 'bathrooms') ? Number(v) : (k === 'capsule' && q.capsule === v ? null : v); paintQ(); }); });
       root.querySelector('.q-top span').addEventListener('click', function () { if (i) { i--; paintQ(); } else history.back(); });
       root.querySelector('#q-next').addEventListener('click', next);
-      var sk = root.querySelector('#q-skip'); if (sk) sk.addEventListener('click', function () { q.complex = ''; next(); });
+      var sk = root.querySelector('#q-skip'); if (sk) sk.addEventListener('click', function () { q[k] = ''; next(); });
       window.scrollTo(0, 0);
     }
     function next() { if (!can()) return; if (i === STEPS.length - 1) return finish(); i++; paintQ(); }
     paintQ();
   }
 
-  /* ---------- объект ---------- */
+  /* ---------- объект = активная квартира «Моего ремонта» (созвон 28.10): данные, файлы, переключатель «Мои объекты» ---------- */
+  function flatsSwitch(R) {
+    var list = R.flats.list(), act = R.flats.active() || {};
+    return '<span class="my-sec">Мои объекты</span><div class="card--my"><div class="rp-pick">' + list.map(function (f) {
+      var on = f.id === act.id, line = R.flatLine(f) || 'адрес и площадь не указаны';
+      return '<div class="rp-pick__b ob-flat' + (on ? ' is-on' : '') + '"><b>' + esc(f.name) + (f.isDraft ? ' <span class="tier">черновик</span>' : '') + (on ? ' ✓' : '') + '</b><span>' + esc(line) + (on ? ' · сейчас открыта' : '') + '</span>' +
+        (on ? '' : '<button type="button" class="btn btn--ghost btn--small" data-flat-on="' + esc(f.id) + '">Сделать активной</button>') + '</div>';
+    }).join('') + '</div><a class="btn btn--ghost btn--block" href="' + href('new') + '">+ Добавить объект</a><span class="small muted">Активная квартира — та, с которой идёт работа: план, интерьер, бюджет, корзина и избранное хранятся по каждой отдельно.</span></div>';
+  }
   function viewObject() {
-    var ob = O.object.get() || {}, m = S.my.get(), c = m.capsuleId && D.capsule(m.capsuleId), nd = O.object.nextDoc(), bk = O.object.budgetKind(), lvl = O.object.level();
-    var docs = ob.documents || [];
+    var R = S.repair, fl = R && R.flats.active();
+    if (R && !fl) {
+      root.innerHTML = head('Объект') + '<div class="my-empty">' + ic('home', 36) + '<span class="my-empty__t">Объекта пока нет</span><p class="text">Квартира появится сама при первом действии — плане, интерьере, расчёте или товаре. Или добавьте её сейчас: ЖК, площадь, комнаты, состояние.</p><a class="btn btn--primary" href="' + href('new') + '">+ Добавить объект</a></div>';
+      return;
+    }
+    /* интерьер объекта — интерьер активной квартиры (R.get().interior), иначе её капсула; без repair.js — капсула расчёта */
+    var ob = O.object.get() || {}, m = S.my.get(), it = fl && R.get(fl.id).interior, c = (it && it.capsuleId && D.capsule(it.capsuleId)) || (fl && fl.capsuleId && D.capsule(fl.capsuleId)) || (!R && m.capsuleId && D.capsule(m.capsuleId)), nd = O.object.nextDoc(), bk = O.object.budgetKind(), lvl = O.object.level();
+    var docs = ob.documents || [], ST = (R && R.STATE) || {};
+    var title = fl ? fl.name : O.object.title(), line = fl ? (R.flatLine(fl) || O.object.title()) : '';
     root.innerHTML = head('Объект') +
       '<div class="ob-level"><span class="eyebrow">Уровень готовности</span><span class="ob-level__t">' + esc(O.object.levelLabel()) + '</span><div class="my-bar"><i style="width:' + { none: 0, developer_plan: 33, measured_plan: 66, design_project: 100 }[lvl] + '%"></i></div>' +
         '<span class="ob-level__l"><b>Комплектация:</b> ' + bk[0] + '</span><span class="ob-level__l"><b>Работы:</b> ' + bk[1] + '</span>' +
         (nd ? '<button type="button" class="btn btn--primary" data-up="' + nd.kind + '">' + ic('up', 18) + ' Загрузить: ' + O.DOC_LABEL[nd.kind].toLowerCase() + '</button><span class="small" style="color:var(--accent-ink)">' + nd.text + '</span>' : '<span class="small green">Все документы загружены — бюджет комплектации фактический</span>') + '</div>' +
-      '<span class="my-sec">Квартира</span><div class="card--my"><div class="row row--between"><span class="h4">' + esc(O.object.title()) + '</span><button type="button" class="btn btn--ghost btn--small" id="ob-edit">Изменить</button></div>' +
-        '<div class="ob-facts">' + [['Город', ob.city], ['ЖК / адрес', ob.complex], ['Площадь', (ob.area || m.area) ? F.area(ob.area || m.area) : null], ['Комнаты', ob.rooms === 0 ? 'студия' : ob.rooms], ['Санузлы', ob.bathrooms], ['Бюджет', ob.tier === 'premium' ? 'Премиум' : ob.tier === 'base' ? 'База' : null]].map(function (x) { return '<div class="ob-fact"><small>' + x[0] + '</small>' + (x[1] != null && x[1] !== '' ? '<b>' + esc(x[1]) + '</b>' : '<i>не указано</i>') + '</div>'; }).join('') + '</div>' +
+      '<span class="my-sec">Квартира</span><div class="card--my"><div class="row row--between"><span class="h4">' + esc(title) + (ob.isDraft ? ' <span class="tier">черновик</span>' : '') + '</span><button type="button" class="btn btn--ghost btn--small" id="ob-edit">Изменить</button></div>' +
+        (line && line !== title ? '<span class="small muted">' + esc(line) + '</span>' : '') +
+        '<div class="ob-facts">' + [['Город', ob.city], ['ЖК / адрес', ob.complex], ['Площадь', (ob.area || m.area) ? F.area(ob.area || m.area) : null], ['Комнаты', ob.rooms === 0 ? 'студия' : ob.rooms], ['Санузлы', ob.bathrooms], ['Состояние', ob.state ? (ST[ob.state] || ob.state) : null], ['Бюджет', ob.tier === 'premium' ? 'Премиум' : ob.tier === 'base' ? 'База' : null], ['Точность', ob.accuracy || null]].map(function (x) { return '<div class="ob-fact"><small>' + x[0] + '</small>' + (x[1] != null && x[1] !== '' ? '<b>' + esc(x[1]) + '</b>' : '<i>не указано</i>') + '</div>'; }).join('') + '</div>' +
         (!ob.city ? '<span class="small" style="color:#a0392a">Без города расчёт не делается — добавьте его</span>' : '') + '</div>' +
+      (R ? flatsSwitch(R) : '') +
       '<span class="my-sec">Файлы</span>' + O.DOC_KINDS.map(function (k) {
         var list = docs.filter(function (d) { return d.kind === k; });
         return '<div class="card--my"><div class="row row--between"><div><span class="h4">' + O.DOC_LABEL[k] + '</span><div class="small muted">' + (list.length ? list.length + ' файл(ов), последний — текущая версия' : 'не загружен') + '</div></div><button type="button" class="btn btn--ghost btn--small" data-up="' + k + '">' + (list.length ? 'Новая версия' : 'Загрузить') + '</button></div>' +
@@ -170,22 +195,31 @@
       '<div class="my-more">' + [['visual', 'Визуал'], ['budget', 'Бюджет'], ['basket', 'Корзина']].map(function (x) { return '<a href="' + href(x[0]) + '">' + x[1] + '</a>'; }).join('') + '</div>' +
       '<input type="file" id="ob-file" accept="image/*,application/pdf" hidden>';
     var kind = null, file = root.querySelector('#ob-file');
-    root.querySelectorAll('[data-up]').forEach(function (b) { b.addEventListener('click', function () { kind = b.getAttribute('data-up'); file.click(); }); });
+    /* загрузка основы — общее окно «Основа квартиры» (одно на все входы, созвон 28.10); без модуля — прежний выбор файла */
+    root.querySelectorAll('[data-up]').forEach(function (b) { b.addEventListener('click', function () { kind = b.getAttribute('data-up'); if (S.planUpload && S.planUpload.open) { S.planUpload.open({ entry: 'my', level: kind, onDone: function () { viewObject(); } }); return; } file.click(); }); });
     file.addEventListener('change', function () { var f = file.files && file.files[0]; if (!f || !kind) return; O.object.addDoc(kind, f.name, f.size); ui.toast('Файл сохранён: ' + O.DOC_LABEL[kind].toLowerCase(), 'ok'); viewObject(); });
     root.querySelectorAll('[data-del]').forEach(function (b) { b.addEventListener('click', function () { ui.confirm({ title: 'Удалить файл?', text: 'Версия будет удалена из объекта.', ok: 'Удалить', onOk: function () { O.object.removeDoc(b.getAttribute('data-del')); viewObject(); } }); }); });
     root.querySelector('#ob-edit').addEventListener('click', editObject);
+    /* «Сделать активной»: все экраны читают активную квартиру — полоска сверху и полоса Корзина · Избранное · Бюджет перерисуются по 'sove:repair' */
+    root.querySelectorAll('[data-flat-on]').forEach(function (b) { b.addEventListener('click', function () { var f = R.flats.get(b.getAttribute('data-flat-on')); if (!f) return; R.flats.setActive(f.id); ui.toast('Открыта «' + f.name + '»', 'ok'); }); });
   }
+  /* смена активной квартиры с другого экрана (Профиль, полоска) — экран объекта перерисовывается; открытое окно не трогаем */
+  if (view === 'object') window.addEventListener('sove:repair', function () { if (!document.querySelector('.modal-back') && document.body.contains(root)) viewObject(); });
   function editObject() {
-    var ob = O.object.get() || {}, m = S.my.get();
+    var ob = O.object.get() || {}, m = S.my.get(), R = S.repair;
     var f = function (id, label, val, ph) { return '<div class="field"><label for="' + id + '">' + label + '</label><input class="input" id="' + id + '" value="' + esc(val == null ? '' : val) + '" placeholder="' + ph + '"></div>'; };
-    var md = ui.modal({ title: 'Данные квартиры', html: f('e-city', 'Город', ob.city, 'Москва') + f('e-complex', 'ЖК или адрес', ob.complex, 'ЖК PRIDE, корпус 2') + f('e-area', 'Площадь, м²', ob.area || m.area, '47,3') + f('e-rooms', 'Комнаты', ob.rooms, '2') + f('e-bath', 'Санузлы', ob.bathrooms, '1') +
+    var md = ui.modal({ title: 'Данные квартиры', html: (R ? f('e-name', 'Название', ob.name, 'Моя квартира') : '') + f('e-city', 'Город', ob.city, 'Москва') + f('e-complex', 'ЖК или адрес', ob.complex, 'ЖК PRIDE, корпус 2') + f('e-area', 'Площадь, м²', ob.area || m.area, '47,3') + f('e-rooms', 'Комнаты', ob.rooms, '2') + f('e-bath', 'Санузлы', ob.bathrooms, '1') +
+      '<div class="field"><label>Состояние</label><div class="q-chips">' + STATES.map(function (x) { return '<button type="button" class="q-chip' + (ob.state === x[0] ? ' is-on' : '') + '" data-state="' + x[0] + '">' + x[1] + '</button>'; }).join('') + '</div></div>' +
       '<div class="field"><label>Тип бюджета</label><div class="q-chips">' + [['base', 'База'], ['premium', 'Премиум']].map(function (x) { return '<button type="button" class="q-chip' + (ob.tier === x[0] ? ' is-on' : '') + '" data-tier="' + x[0] + '">' + x[1] + '</button>'; }).join('') + '</div></div>',
       actions: [{ label: 'Сохранить', kind: 'primary', close: false, onClick: function (ev, api) {
-        var el = api.el, g = function (id) { return el.querySelector('#' + id).value.trim(); }, on = el.querySelector('.q-chip.is-on');
-        O.object.set({ city: g('e-city') || null, complex: g('e-complex') || null, area: Number(g('e-area').replace(',', '.')) || null, rooms: g('e-rooms') === '' ? null : Number(g('e-rooms')), bathrooms: g('e-bath') === '' ? null : Number(g('e-bath')), tier: on ? on.getAttribute('data-tier') : ob.tier || null });
+        var el = api.el, g = function (id) { var i = el.querySelector('#' + id); return i ? i.value.trim() : ''; }, on = el.querySelector('[data-tier].is-on'), sn = el.querySelector('[data-state].is-on');
+        var patch = { city: g('e-city') || null, complex: g('e-complex') || null, area: Number(g('e-area').replace(',', '.')) || null, rooms: g('e-rooms') === '' ? null : Number(g('e-rooms')), bathrooms: g('e-bath') === '' ? null : Number(g('e-bath')), tier: on ? on.getAttribute('data-tier') : ob.tier || null, state: sn ? sn.getAttribute('data-state') : ob.state || null };
+        if (R) patch.name = g('e-name') || ob.name || 'Моя квартира';
+        O.object.set(patch);   /* → R.flats.touch активной квартиры; расчёт (S.my) зеркалит площадь, состояние и уровень */
         api.close(); viewObject(); ui.toast('Сохранено', 'ok');
       } }, { label: 'Отмена', kind: 'link' }] });
     md.el.querySelectorAll('[data-tier]').forEach(function (b) { b.addEventListener('click', function () { md.el.querySelectorAll('[data-tier]').forEach(function (x) { x.classList.toggle('is-on', x === b); }); }); });
+    md.el.querySelectorAll('[data-state]').forEach(function (b) { b.addEventListener('click', function () { md.el.querySelectorAll('[data-state]').forEach(function (x) { x.classList.toggle('is-on', x === b); }); }); });
   }
 
   /* ---------- визуал и планировки ---------- */
@@ -233,14 +267,16 @@
 
   /* ---------- корзина (макет 03): по поставщикам или категориям, галочка на поставщике и на позиции, выгода, итого ---------- */
   function viewBasket() {
+    /* товары корзины квартиры (Маркет, лента, Интерьер), добавленные до зеркалирования, — в корзину оплаты один раз */
+    try { var R0 = S.repair; if (R0 && R0.cart) R0.cart.rows().forEach(function (r) { if (!O.basket.has(r.productId)) O.basket.add(r.productId, r.source === 'budget' ? 'budget' : 'catalog', r.qty, r.seller || undefined); }); } catch (e) {}
     var mode = O.mode(), groups = O.basket.groups(mode), t = O.basket.totals(mode), by = ui.qs('g') || 'brand';
     if (!groups.length) { root.innerHTML = head('Корзина') + '<div class="my-empty">' + ic('cart', 32) + '<p class="text">Корзина пуста — перенесите позиции из бюджета, генерации или ленты</p><a class="btn btn--primary" href="' + href('budget') + '">В бюджет</a></div>'; return; }
     var address = O.object.title();
     var shown = by === 'section'
-      ? O.SECTIONS.map(function (s) { var rows = O.basket.rows().filter(function (r) { return r.section === s.key; }); return { title: s.label, rows: rows, total: rows.reduce(function (a, r) { return a + O.priceFor(r.product, mode) * r.qty; }, 0) }; }).filter(function (g) { return g.rows.length; })
-      : groups.map(function (g) { return { title: g.brand, rows: g.rows, total: g.total, scenarioLabel: g.scenarioLabel, steps: g.steps, brand: g.brand }; });
+      ? O.SECTIONS.map(function (s) { var rows = O.basket.rows().filter(function (r) { return r.section === s.key; }); return { title: s.label, rows: rows, total: rows.reduce(function (a, r) { return a + O.priceFor(r.product, mode, r) * r.qty; }, 0) }; }).filter(function (g) { return g.rows.length; })
+      : groups.map(function (g) { return { title: g.brand, rows: g.rows, total: g.total, scenarioLabel: g.scenarioLabel, steps: g.steps, brand: g.brand, seller: g.seller }; });
     function row(r) {
-      var p = r.product, unit = O.priceFor(p, mode);
+      var p = r.product, unit = O.priceFor(p, mode, r);
       return '<div class="mr-ci' + (r.payLater ? ' is-later' : '') + '"><label class="mr-chk"><input type="checkbox" data-later="' + r.id + '"' + (r.payLater ? '' : ' checked') + ' aria-label="Оплатить сейчас"><i>' + ic('check', 12) + '</i></label>' +
         '<img class="mr-ci__pic" src="' + p.img + '" alt="" loading="lazy"><div class="mr-ci__b"><a href="product.html?id=' + p.id + '">' + esc(p.name) + '</a><span>' + esc(p.brand === 'на заказ' ? O.supplierOf(p) : p.brand) + '</span><strong>' + F.rub(unit * r.qty) + (r.qty > 1 ? ' <small>' + r.qty + ' × ' + F.rub(unit) + '</small>' : '') + '</strong></div>' +
         '<div class="mr-ci__r"><span class="qty"><button type="button" data-q="' + r.id + '" data-d="-1" aria-label="Меньше">−</button><b>' + r.qty + '</b><button type="button" data-q="' + r.id + '" data-d="1" aria-label="Больше">+</button></span><button type="button" class="mr-ci__rm" data-rm="' + r.id + '" aria-label="Убрать">' + ic('trash', 16) + '</button></div></div>';
@@ -249,7 +285,7 @@
       '<div class="mr-seg"><a class="' + (by === 'brand' ? 'is-on' : '') + '" href="' + href('basket') + '">По поставщикам</a><a class="' + (by === 'section' ? 'is-on' : '') + '" href="' + href('basket', '&g=section') + '">По категориям</a></div>' +
       shown.map(function (g, i) {
         var allNow = g.rows.every(function (r) { return !r.payLater; });
-        return '<div class="mr-grp"><div class="mr-grp__h"><label class="mr-chk"><input type="checkbox" data-gall="' + i + '"' + (allNow ? ' checked' : '') + ' aria-label="Оплатить всё: ' + esc(g.title) + '"><i>' + ic('check', 12) + '</i></label><button type="button" class="mr-grp__t" data-g="' + i + '"><b>' + esc(g.title) + '</b><small>' + cnt(g.rows.length, ['товар', 'товара', 'товаров']) + '</small>' + ic('chevd', 16) + '</button></div>' + (g.brand ? zoneLine(g.brand) : '') + '<div class="mr-grp__b" id="grp-' + i + '">' + g.rows.map(row).join('') + '</div></div>';
+        return '<div class="mr-grp"><div class="mr-grp__h"><label class="mr-chk"><input type="checkbox" data-gall="' + i + '"' + (allNow ? ' checked' : '') + ' aria-label="Оплатить всё: ' + esc(g.title) + '"><i>' + ic('check', 12) + '</i></label><button type="button" class="mr-grp__t" data-g="' + i + '"><b>' + esc(g.title) + '</b><small>' + cnt(g.rows.length, ['товар', 'товара', 'товаров']) + '</small>' + ic('chevd', 16) + '</button></div>' + (g.seller ? sellerLine(g.seller) : g.brand ? zoneLine(g.brand) : '') + '<div class="mr-grp__b" id="grp-' + i + '">' + g.rows.map(row).join('') + '</div></div>';
       }).join('') +
       (t.rrp > t.metod ? '<a class="mr-gain mr-gain--flat" href="metod.html">' + ic('crown', 18) + '<div class="grow"><b>Ваша выгода с подпиской SOVEAPP</b><span>Закрытые цены поставщиков <i class="mr-info" aria-label="Цены по подписке ниже розничных">i</i></span></div><b class="mr-gain__v">− ' + F.rub(t.rrp - t.metod) + '</b></a>' : '') +
       '<div class="mr-total"><div><span>Итого<small>' + cnt(t.count, ['товар', 'товара', 'товаров']) + (t.later ? ' · отложено ' + F.rub(t.later) : '') + '</small></span></div><b>' + F.rub(t.payNow) + (mode === 'metod' && t.rrp > t.metod ? '<s>' + F.rub(t.rrp) + '</s>' : '') + '</b></div>' +
@@ -273,6 +309,13 @@
 
   /* зона доставки поставщика под шапкой группы корзины: «доставляет / не доставляет в ваш город» */
   function zoneLine(brand) { var l = S.pext && S.pext.delivery ? S.pext.delivery.line(brand) : ''; return l ? '<div class="small muted" style="padding:0 14px 10px;display:flex;gap:6px;align-items:center">' + ic('truck', 14) + '<span>Доставка: ' + l + '</span></div>' : ''; }
+  /* продавец группы (товар с выбором продавца — склады DECARO, «Поставщик 2»): склад и доставка; зона из кабинета партнёра — если отмечена */
+  function sellerText(s) {
+    var zl = S.pext && S.pext.delivery ? S.pext.delivery.line(s.name) : '';
+    var d = String(s.delivery || '').trim().replace(/^доставка:?\s*/i, '');
+    return [s.city ? 'Склад: ' + esc(s.city) : '', zl ? 'доставка: ' + zl : d ? 'доставка: ' + esc(d) : ''].filter(Boolean).join(' · ');
+  }
+  function sellerLine(s) { var t = sellerText(s); return t ? '<div class="small muted mr-grp__seller" style="padding:0 14px 10px;display:flex;gap:6px;align-items:center">' + ic('truck', 14) + '<span>' + t.charAt(0).toUpperCase() + t.slice(1) + '</span></div>' : ''; }
 
   /* ---------- заказы: строки товар · поставщик · дата · сумма · статус ---------- */
   function orderRow(o) {
@@ -319,7 +362,7 @@
     var prepay = o.payment.prepaymentPct != null && o.payment.prepaymentPct > 0 && o.payment.prepaymentPct < 100 ? ' · предоплата ' + o.payment.prepaymentPct + ' %, остаток после «' + esc(O.statusLabel(o.scenario, o.payment.balanceAt)) + '»' : '';
     var ph = phaseOf(o);
     root.innerHTML = head('Заказ №' + onum(o), null, '<button type="button" class="mw-bar__b" id="o-more" aria-label="Ещё">' + ic('dots', 20) + '</button>') +
-      '<div class="mr-sup"><button type="button" class="mr-sup__h" id="o-items"><span class="mr-sup__pic">' + (f0.img ? '<img src="' + f0.img + '" alt="">' : ic('box', 20)) + '</span><span class="mr-sup__b"><b>' + esc(o.brand) + '</b><span>' + cnt(o.items.length, ['товар', 'товара', 'товаров']) + ' · ' + F.rub(o.total) + '</span><span>' + esc(delivery) + '</span>' + (o.fields.eta ? '<strong>' + esc(o.fields.eta) + '</strong>' : '') + '</span>' + ic('chev', 18) + '</button>' +
+      '<div class="mr-sup"><button type="button" class="mr-sup__h" id="o-items"><span class="mr-sup__pic">' + (f0.img ? '<img src="' + f0.img + '" alt="">' : ic('box', 20)) + '</span><span class="mr-sup__b"><b>' + esc(o.brand) + '</b><span>' + cnt(o.items.length, ['товар', 'товара', 'товаров']) + ' · ' + F.rub(o.total) + '</span><span>' + esc(delivery) + '</span>' + (o.seller && sellerText(o.seller) ? '<span class="mr-sup__seller">' + (function (t) { return t.charAt(0).toUpperCase() + t.slice(1); })(sellerText(o.seller)) + '</span>' : '') + (o.fields.eta ? '<strong>' + esc(o.fields.eta) + '</strong>' : '') + '</span>' + ic('chev', 18) + '</button>' +
         '<div class="mr-sup__items" id="o-items-b" hidden>' + o.items.map(function (it) { var p = D.product(it.productId); return productRow(p || { id: null, name: it.name, brand: it.brand, img: it.img, metod: it.unitPrice, retail: it.unitPrice }, { qty: it.qty, tier: false }); }).join('') + '<div class="mr-total mr-total--in"><div><span>Итого<small>цена зафиксирована при оформлении</small></span></div><b>' + F.rub(o.total) + '</b></div></div></div>' +
       (bad ? '<div class="mr-status mr-status--bad"><div class="mr-status__row"><span class="mr-status__ic">!</span><div><b>' + esc(o.statusLabel) + '</b><span>' + esc((o.history.filter(function (h) { return h.status === o.status; }).pop() || {}).reason || '') + '</span></div></div></div>' : stepsHtml(o)) +
       (main ? '<button type="button" class="btn btn--primary btn--lg btn--block" data-act="' + main.status + '">' + esc(main.label) + ' ✓</button>' : '') +
@@ -412,16 +455,10 @@
   }
 
   /* ---------- лента ---------- */
+  /* лента METOD переехала на свой экран feed.html (созвон 28.10): старые ссылки my.html?v=feed ведут туда, раздел — в ?t= */
   function viewFeed() {
-    var sec = ui.qs('s') || 'all', promo = Object.keys(D.promo || {}).map(function (id) { return D.product(id); }).filter(Boolean);
-    var deals = D.products.filter(function (p) { return p.discount >= 15 && (sec === 'all' || O.sectionFor(p) === sec); }).slice(0, S.metod.active() ? 12 : 4);
-    root.innerHTML = head('Лента') + '<div class="chips">' + [{ key: 'all', label: 'Все' }].concat(O.SECTIONS.filter(function (s) { return s.key !== 'other'; })).map(function (s) { return '<a class="q-chip' + (sec === s.key ? ' is-on' : '') + '" href="' + href('feed', '&s=' + s.key) + '">' + s.label + '</a>'; }).join('') + '</div>' +
-      '<span class="my-sec">Посты METOD ремонта</span><div class="post-empty"><span>Посты закрытого канала появятся здесь автоматически после подключения канала: фото, текст, бренд и товары с кнопкой «В корзину».</span>' + (S.metod.active() ? '' : '<a class="btn btn--dark btn--small" href="metod.html" style="align-self:flex-start">Лента полностью — с подпиской METOD</a>') + '</div>' +
-      (promo.length ? '<span class="my-sec">Акции партнёров</span>' + promo.map(function (p) { return '<div class="my-promo"><img class="my-promo__pic" src="' + p.img + '" alt=""><div class="grow"><div class="my-row__t">' + esc(p.brand) + '</div><div class="my-row__m">' + esc(p.name) + ' · −' + p.discount + ' %' + (D.promo[p.id].until ? ' · до ' + esc(D.promo[p.id].until) : '') + '</div></div><span class="my-ad">Реклама</span>' + cartBtn(p, 'feed') + '</div>'; }).join('') : '') +
-      '<span class="my-sec">Товары со скидкой</span>' + (deals.length ? deals.map(function (p) { return '<div class="card--my">' + productRow(p, { right: '<button type="button" class="ob-del" data-fav="' + p.id + '" aria-label="В избранное">' + (S.favs.has(p.id) ? '♥' : '♡') + '</button>' + cartBtn(p, 'feed'), meta: p.leadTime }) + '</div>'; }).join('') : '<p class="small muted">В этом разделе пока нет акций</p>') +
-      (!S.metod.active() ? '<a class="btn btn--dark" href="metod.html">Ещё товары со скидкой — с подпиской METOD</a>' : '');
-    root.querySelectorAll('[data-fav]').forEach(function (b) { b.addEventListener('click', function () { var on = S.favs.toggle(b.getAttribute('data-fav')); b.textContent = on ? '♥' : '♡'; ui.toast(on ? 'В избранном' : 'Убрали из избранного'); }); });
-    bindCart(root);
+    var sec = ui.qs('s');
+    location.replace('feed.html' + (sec ? '?t=' + encodeURIComponent(sec) : ''));
   }
 
   /* ---------- вдохновение ---------- */
@@ -466,7 +503,7 @@
     first.concat(second).forEach(function (p) { O.basket.add(p.id, 'budget'); });
   }
   if (ui.qs('demo')) { seedDemo(); try { history.replaceState(null, '', PAGE + (view !== 'home' ? '?v=' + view : '')); } catch (e) {} }
-  var TITLES = { center: 'Мой ремонт', home: 'Мой ремонт', new: 'Добавить квартиру', object: 'Объект', visual: 'Визуал и планировки', budget: 'Бюджет', basket: 'Корзина', orders: 'Заказы', order: 'Заказ', feed: 'Лента', inspire: 'Вдохновение', rooms: 'Комнаты и этапы', doc: 'Документ' };
+  var TITLES = { center: 'Мой ремонт', home: 'Мой ремонт', new: 'Добавить объект', object: 'Объект', visual: 'Визуал и планировки', budget: 'Бюджет', basket: 'Корзина', orders: 'Заказы', order: 'Заказ', feed: 'Лента', inspire: 'Вдохновение', rooms: 'Комнаты и этапы', doc: 'Документ' };
   document.title = (TITLES[view] || 'Мой ремонт') + ' — SOVEAPP';
   var t = document.querySelector('.appbar__title'); if (t) t.textContent = TITLES[view] || 'Мой ремонт';
   O.autoReceive();

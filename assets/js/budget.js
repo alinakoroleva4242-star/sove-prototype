@@ -185,5 +185,94 @@
     return v;
   }
 
-  window.SOVE_BUDGET = { compute: compute, areas: areas, fromScout: fromScout, view: view, current: current, paidMap: paidMap, KIT: KIT, WORKS: WORKS };
+  /* ── «По комнатам» (созвон 28.10): бюджет раскладывается по комнатам плана в одном стиле; сумма считается сама, руками не вписывается.
+     Чистый helper: ничего не читает из состояния. byRooms({ rooms:[{name, area}], area, works, roughMat, cats:[{key, title, sum}] })
+     → { rooms:[{name, zone, zoneName, area, works, kit, total, byCat:{key: ₽}}], typical, works, kit, total }.
+     Суммы комнат ВСЕГДА сходятся с входом: каждая строка округляется до 100 ₽, последняя комната добирает разницу.
+     Комнат нет (только «Вся квартира» или площадь вручную) — типовые зоны по площади (typicalRooms), typical: true. ── */
+  var ZONE_NAME = { kitchenLiving: 'Кухня-гостиная', bedroom: 'Спальня', bathroom: 'Санузел', hall: 'Прихожая' };
+  var ZONE_RE = [['kitchenLiving', /кух|гост|столов/i], ['bathroom', /сан|ванн|душ|туалет|с\/у/i], ['hall', /прих|корид|холл|ниша|гардероб/i], ['bedroom', /спал|детск|кабинет|комнат/i]];
+  function zoneOf(name) {
+    var KB = window.SOVE_KB; if (KB && KB.zoneOf) return KB.zoneOf(name);
+    var hit = ZONE_RE.filter(function (z) { return z[1].test(String(name || '')); })[0]; return hit ? hit[0] : 'bedroom';
+  }
+  function isWholeName(n) { return /^(вся\s+квартира|вся\s+площадь|общая(\s+площадь)?|квартира\s+целиком)$/i.test(String(n || '').trim()); }
+  /* применимость категории к типу зоны. Число — вес на м² относительно спальни (0 — в этой зоне категории нет):
+     отделка и черновые — санузел дороже за м² (плитка на пол и стены, KB finish-slots: ≈ 2,5× на 47 м² примера), работы в санузле — 2×;
+     group — доли между типами зон независимо от площади (внутри типа — по площади): сантехника — санузел и кухня, техника — только кухня;
+     each — поровну на комнату (дверь у каждой). Нет подходящей комнаты — по площади всех комнат, чтобы сумма сошлась. */
+  var ROOM_RULES = {
+    works:            { kitchenLiving: 1,   bedroom: 1, bathroom: 2,   hall: 1 },
+    rough_mat:        { kitchenLiving: 1,   bedroom: 1, bathroom: 2.5, hall: 1 },
+    finish:           { kitchenLiving: 1,   bedroom: 1, bathroom: 2.5, hall: 1 },
+    light:            { kitchenLiving: 1,   bedroom: 1, bathroom: 1,   hall: 1 },
+    sockets:          { kitchenLiving: 1.2, bedroom: 1, bathroom: 0.5, hall: 1 },
+    plumbing:         { group: { bathroom: 70, kitchenLiving: 30 } },
+    doors:            { each: true },
+    furniture:        { kitchenLiving: 1,   bedroom: 1, bathroom: 0.3, hall: 0.6 },
+    furniture_custom: { kitchenLiving: 4,   bedroom: 1, bathroom: 0,   hall: 1.5 },
+    appliances:       { group: { kitchenLiving: 100 } },
+    decor:            { kitchenLiving: 1,   bedroom: 1, bathroom: 0.2, hall: 0.5 }
+  };
+  var KIT_KEY = { 'Мебель на заказ': 'furniture_custom' }; KIT.forEach(function (k) { KIT_KEY[k[1]] = k[0]; });
+  function kitKey(title) { return KIT_KEY[String(title || '').trim()] || null; }
+  function split(sum, rooms, rule) {
+    sum = Math.round(sum || 0); rule = rule || {};
+    var w;
+    if (rule.each) w = rooms.map(function () { return 1; });
+    else if (rule.group) {
+      var ga = {}, gs = 0;
+      rooms.forEach(function (r) { if (rule.group[r.zone]) ga[r.zone] = (ga[r.zone] || 0) + r.area; });
+      Object.keys(ga).forEach(function (z) { gs += rule.group[z]; });
+      w = rooms.map(function (r) { return rule.group[r.zone] && ga[r.zone] ? rule.group[r.zone] / gs * (r.area / ga[r.zone]) : 0; });
+    } else w = rooms.map(function (r) { return r.area * (typeof rule[r.zone] === 'number' ? rule[r.zone] : 1); });
+    var tw = w.reduce(function (a, x) { return a + x; }, 0);
+    if (!(tw > 0)) { w = rooms.map(function (r) { return r.area; }); tw = w.reduce(function (a, x) { return a + x; }, 0); }
+    if (!(tw > 0)) { w = rooms.map(function () { return 1; }); tw = rooms.length; }
+    var last = -1; w.forEach(function (x, i) { if (x > 0) last = i; });
+    var out = [], acc = 0;
+    rooms.forEach(function (r, i) {
+      if (i === last) { out[i] = sum - acc; return; }
+      var v = w[i] > 0 ? Math.round(sum * w[i] / tw / 100) * 100 : 0; out[i] = v; acc += v;
+    });
+    return out;
+  }
+  /* типовые зоны по площади: кухня-гостиная 40 %, санузел 10 % (8 % от 60 м²), прихожая 12 %, остаток — спальни (до 60 м² — одна, до 90 — две, дальше три) */
+  function typicalRooms(area) {
+    area = Math.round((Number(area) || 0) * 10) / 10; if (!(area > 0)) return [];
+    var beds = area < 60 ? 1 : area < 90 ? 2 : 3, bath = area < 60 ? 10 : 8;
+    var plan = [['Кухня-гостиная', 'kitchenLiving', 40]], rest = 100 - 40 - bath - 12, bs = beds === 1 ? [1] : beds === 2 ? [.57, .43] : [.42, .32, .26];
+    bs.forEach(function (x, i) { plan.push([i ? 'Спальня ' + (i + 1) : 'Спальня', 'bedroom', rest * x]); });
+    plan.push(['Санузел', 'bathroom', bath], ['Прихожая', 'hall', 12]);
+    var acc = 0;
+    return plan.map(function (p, i) {
+      var a = i === plan.length - 1 ? Math.round((area - acc) * 10) / 10 : Math.round(area * p[2] / 100 * 10) / 10; acc += a;
+      return { name: p[0], zone: p[1], area: a, typical: true };
+    });
+  }
+  function byRooms(o) {
+    o = o || {};
+    var src = (o.rooms || []).filter(function (r) { return r && Number(r.area) > 0 && !isWholeName(r.name); }), typical = false;
+    if (!src.length) { src = typicalRooms(o.area || (o.rooms || []).reduce(function (a, r) { return a + (Number(r && r.area) || 0); }, 0)); typical = true; }
+    var rooms = src.map(function (r) { var z = r.zone || zoneOf(r.name); return { name: r.name || ZONE_NAME[z], zone: z, zoneName: ZONE_NAME[z] || ZONE_NAME.bedroom, area: Math.round(Number(r.area) * 10) / 10, typical: !!r.typical, works: 0, kit: 0, total: 0, byCat: {} }; });
+    if (!rooms.length) return { rooms: [], typical: typical, works: 0, kit: 0, total: 0 };
+    /* черновые материалы — это 40 % «Отделки» расчёта (fromScout): делим их вместе с отделкой одним правилом, чтобы итог комнаты
+       на экране Бюджета совпадал с итогом комнаты в Расчёте копейка в копейку (а не расходился на округление) */
+    var fin = (o.cats || []).filter(function (c) { return c && c.key === 'finish'; })[0], RM = null;
+    if (o.roughMat && fin) { var C = split((fin.sum || 0) + o.roughMat, rooms, ROOM_RULES.finish), Fo = split(fin.sum, rooms, ROOM_RULES.finish); RM = C.map(function (x, i) { return x - Fo[i]; }); }
+    else if (o.roughMat) RM = split(o.roughMat, rooms, ROOM_RULES.rough_mat);
+    var W = split(o.works, rooms, ROOM_RULES.works);
+    rooms.forEach(function (r, i) { r.works = W[i] + (RM ? RM[i] : 0); });
+    (o.cats || []).forEach(function (c) {
+      if (!c || !c.key) return;
+      var v = split(c.sum, rooms, ROOM_RULES[c.key] || null);
+      rooms.forEach(function (r, i) { r.byCat[c.key] = v[i]; r.kit += v[i]; });
+    });
+    rooms.forEach(function (r) { r.total = r.works + r.kit; });
+    var tot = function (f) { return rooms.reduce(function (a, r) { return a + r[f]; }, 0); };
+    return { rooms: rooms, typical: typical, works: tot('works'), kit: tot('kit'), total: tot('total') };
+  }
+
+  window.SOVE_BUDGET = { compute: compute, areas: areas, fromScout: fromScout, view: view, current: current, paidMap: paidMap, KIT: KIT, WORKS: WORKS,
+    byRooms: byRooms, typicalRooms: typicalRooms, kitKey: kitKey, zoneOf: zoneOf, ZONE_NAME: ZONE_NAME, ROOM_RULES: ROOM_RULES };
 })();

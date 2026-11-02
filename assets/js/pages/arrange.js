@@ -10,14 +10,19 @@
   function m2(v) { return (Math.round(v * 10) / 10).toString().replace('.', ','); }
   var root = document.getElementById('ar-root'); if (!root) return;
   var SRC = window.SOVE_ARRANGE; if (!SRC) { root.innerHTML = '<p class="text">Нет данных планировки.</p>'; return; }
-  /* свой план клиента с первого шага: разметка и расстановка пришли с сервера, вариант один */
+  /* свой план клиента с первого шага: разметка и расстановка пришли с сервера, вариант один.
+     У комнат — id, у окон room_id, у дверей a_id / b_id (frameFromMarkup): проёмы ищут комнату по id, по типу — только если id нет */
   var LIVE = (window.SOVE_FLOW && S.ui.qs('live')) ? (window.SOVE_FLOW.load().live || null) : null;
   if (LIVE && LIVE.layout && LIVE.layout.rooms) {
     var L = LIVE.layout;
     SRC = { px_per_m: L.px_per_m, flat: LIVE.flat || 'Ваш план', rooms: L.rooms.map(function (r) {
-        return { name: r.name, type: r.type, box: r.box, m2: r.doc_m2, part_of: r.part_of || null }; }),
-      windows: L.windows || [], doors: L.doors || [], outside: L.outside || [], furniture: L.furniture || [],
+        return { id: r.id || null, name: r.name, type: r.type, box: r.box, m2: r.doc_m2, part_of: r.part_of || null, part_id: r.part_id || null }; }),
+      windows: (L.windows || []).map(function (w) { return Object.assign({}, w, { room_id: w.room_id || null }); }),
+      doors: (L.doors || []).map(function (d) { return Object.assign({}, d, { a_id: d.a_id || null, b_id: d.b_id || null }); }),
+      outside: L.outside || [], furniture: L.furniture || [],
       variants: [{ name: 'По вашей анкете', furniture: L.furniture || [], not_placed: LIVE.not_placed || [] }] };
+    /* стены с картинки плана (demo-flow frameFromMarkup) — по ним 3D и «Чертёж», как на «Проверь план» */
+    if (L.walls_2d && L.walls_2d.length) { SRC.walls_2d = L.walls_2d; SRC.doors_2d = L.doors_2d || []; SRC.windows_2d = L.windows_2d || []; }
   }
 
   var PPM = SRC.px_per_m;                       /* пикселей плана в метре */
@@ -55,8 +60,9 @@
   /* расстановка переживает перезаход вместе с номером варианта и «подписью» плана: { plan, sig, items }.
      Раньше ключ был общий, и после смены чипа и перезагрузки на «Рекомендовано» вставали рамки «Больше хранения»
      (у Алины так и есть: «! Замечаний» на «Рекомендовано»). v2 (28.10): сохранения прежних версий экрана — с правками
-     из советов и заменой по размеру — не подхватываем; расстановку другого плана с тем же именем файла — тоже */
-  var SAVE_KEY = 'sove.arrange.layout.v2' + (LIVE && LIVE.name ? ':' + LIVE.name : '');
+     из советов и заменой по размеру — не подхватываем; расстановку другого плана с тем же именем файла — тоже:
+     ключ своего плана — ключ файла (размер + имя + содержимое, plan-demo.js), имя файла — только у старых записей */
+  var SAVE_KEY = 'sove.arrange.layout.v2' + (LIVE && (LIVE.key || LIVE.name) ? ':' + (LIVE.key || LIVE.name) : '');
   var SIG = SRC.rooms.map(function (r) { return r.name + ':' + (r.box || []).map(Math.round).join(','); }).join('|');
   function loadSaved() {
     try {
@@ -362,7 +368,7 @@
   /* рамка плана — по самим данным: другая квартира другого размера впишется сама */
   var VB = (function () {
     var all = SRC.rooms.map(function (r) { return r.box; })
-      .concat((SRC.outside || []).map(function (o) { return o.box; }));
+      .concat((SRC.outside || []).map(function (o) { return o.box; }), (SRC.walls_2d || []).map(function (w) { return w.box; }));
     var pad = 0.35 * PPM;
     var x1 = Math.min.apply(null, all.map(function (b) { return b[0]; })) - pad;
     var y1 = Math.min.apply(null, all.map(function (b) { return b[1]; })) - pad;
@@ -412,7 +418,32 @@
   var WALL = Math.round(0.25 * PPM);  /* стена 25 см — в пикселях этого плана */
 
   /* ── план квартиры ───────────────────────────────────────────────────── */
+  /* стены с картинки плана (walls_2d / windows_2d / doors_2d рамки, в пикселях плана): 2D рисует их же, что 3D и «Чертёж»
+     (разбор 30.10: 2D строил стены из рамок комнат, и три вида расходились). Двери — створкой и дугой, как на чертеже:
+     петля, полотно и сторона открывания — из той же геометрии (SOVE_CAD.geometry), в пиксели — × её масштаб */
+  var IMG = SRC.walls_2d && SRC.walls_2d.length ? (function () {
+    var leaves = [];
+    try {
+      var G = window.SOVE_CAD && window.SOVE_CAD.ready() ? window.SOVE_CAD.geometry(geoOf(null), {}) : null, k = G ? G.ppm : 0;
+      if (G) leaves = G.doors.map(function (d) {
+        function p(v) { return [v[0] * k, v[1] * k]; }
+        return { kind: d.kind, hinge: p(d.hinge), tip: p(d.tip), end: p(d.end), r: d.r * k };
+      });
+    } catch (err) { leaves = []; }
+    return { walls: SRC.walls_2d.map(function (w) { return w.box; }), windows: (SRC.windows_2d || []).map(function (w) { return w.box; }), leaves: leaves };
+  })() : null;
+  function imageLayer() {
+    function rect(cls, b) { return '<rect class="' + cls + '" x="' + b[0] + '" y="' + b[1] + '" width="' + (b[2] - b[0]) + '" height="' + (b[3] - b[1]) + '"/>'; }
+    return IMG.walls.map(function (b) { return rect('ar-wall is-img', b); }).join('') +
+      IMG.windows.map(function (b) { return rect('ar-win', b); }).join('') +
+      IMG.leaves.map(function (d) {
+        var h = d.hinge, t = d.tip, e = d.end, sweep = ((t[0] - h[0]) * (e[1] - h[1]) - (t[1] - h[1]) * (e[0] - h[0])) > 0 ? 1 : 0;
+        return '<line class="ar-leaf' + (d.kind === 'entrance' ? ' is-entrance' : '') + '" x1="' + h[0] + '" y1="' + h[1] + '" x2="' + t[0] + '" y2="' + t[1] + '"/>' +
+          '<path class="ar-arc" d="M ' + t[0] + ' ' + t[1] + ' A ' + d.r + ' ' + d.r + ' 0 0 ' + sweep + ' ' + e[0] + ' ' + e[1] + '"/>';
+      }).join('');
+  }
   function wallLayer() {
+    if (IMG) return '';                           /* стены с картинки рисует openingsLayer поверх комнат */
     /* комнаты приходят по внутренним размерам: между ними пустота толщиной стены.
        Подкладываем серую плиту — промежутки читаются как стены, квартира как одно целое. */
     return rooms().map(function (r) {
@@ -429,11 +460,12 @@
   }
 
   function openingsLayer() {
+    if (IMG) return imageLayer();
     var out = [];
     /* окно: полоса по той стене комнаты, на которой оно стоит. В данных окно задано
        вокруг линии стены плана и висело снаружи контура — привязываем к комнате. */
     (SRC.windows || []).forEach(function (w) {
-      var r = rooms().filter(function (x) { return (x.type || x.name).toLowerCase() === String(w.room).toLowerCase(); })[0];
+      var r = roomById(w.room_id) || rooms().filter(function (x) { return (x.type || x.name).toLowerCase() === String(w.room).toLowerCase(); })[0];
       if (!r) return;
       var b = r.box, s = w.box, box;
       if (w.wall === 'west') box = [b[0] - WALL, Math.max(s[1], b[1]), b[0], Math.min(s[3], b[3])];
@@ -448,7 +480,7 @@
     (SRC.doors || []).forEach(function (d) {
       var b = d.box, cx = (b[0] + b[2]) / 2, cy = (b[1] + b[3]) / 2;
       var span = Math.min(b[2] - b[0], b[3] - b[1]);
-      var ra = roomByType(d.a), rb = roomByType(d.b);
+      var ra = roomByRef(d.a_id, d.a), rb = roomByRef(d.b_id, d.b);
       var wall = null;                           /* {horizontal, at, from, to} */
       if (ra && rb) wall = sharedWall(ra.box, rb.box);
       if (!wall && ra) wall = outerWall(ra.box, cx, cy);
@@ -475,7 +507,13 @@
     return out.join('');
   }
 
-  function roomByType(t) {
+  /* комната проёма: сначала по id (у своего плана), затем по типу — для примера ЖК PRIDE и старых записей без id */
+  function roomById(id) {
+    if (!id) return null;
+    return rooms().filter(function (r) { return !r.part_of && r.id === id; })[0] || null;
+  }
+  function roomByRef(id, t) {
+    var byId = roomById(id); if (byId) return byId;
     if (!t) return null;
     return rooms().filter(function (r) {
       return !r.part_of && String(r.type || r.name).toLowerCase() === String(t).toLowerCase();
@@ -851,6 +889,7 @@
   function is3d() { return P3.ok && !st.view2d; }
   function geoOf(v) {
     var g = { px_per_m: SRC.px_per_m, rooms: SRC.rooms, windows: SRC.windows || [], doors: SRC.doors || [], outside: SRC.outside || [], partitions: v ? v.partitions : [] };
+    if (SRC.walls_2d) { g.walls_2d = SRC.walls_2d; g.doors_2d = SRC.doors_2d; g.windows_2d = SRC.windows_2d; }
     return g;
   }
   var GEO = {};
@@ -916,10 +955,18 @@
       view3d.dropIn(1500, function () { ld.remove(); });
     }
   }
+  /* «Чертёж» рядом с 3D / 2D (plan-cad.js): чертёж CADCraft с мебелью, как третья колонка сравнения 27.10, — листом поверх экрана */
+  function cadBtn() { return window.SOVE_CAD && window.SOVE_CAD.ready() ? '<button type="button" class="pz-seg__cad" data-act="cad" aria-haspopup="dialog">Чертёж</button>' : ''; }
   function seg() {
-    if (!P3.ok) return '';
+    if (!P3.ok) return cadBtn() ? '<div class="pz-seg" role="group" aria-label="Вид плана">' + cadBtn() + '</div>' : '';
     return '<div class="pz-seg" role="group" aria-label="Вид плана"><button type="button" data-act="v3d" aria-pressed="' + is3d() + '">3D</button>' +
-      '<button type="button" data-act="v2d" aria-pressed="' + !is3d() + '">2D</button></div>';
+      '<button type="button" data-act="v2d" aria-pressed="' + !is3d() + '">2D</button>' + cadBtn() + '</div>';
+  }
+  /* план — как на экране: пример ЖК PRIDE или свой план из расстановки (рамка и мебель в одних пикселях плана), мебель — где
+     стоит сейчас. Вариант стен на чертёж не переносим — пишем, что стены исходные */
+  function openCad() {
+    var C = window.SOVE_CAD; if (!C) return;
+    C.open({ geo: SRC, furniture: st.items, title: LIVE ? '' : C.PRIDE_TITLE, note: VAR ? 'стены исходные, без варианта ' + VLET[VAR.id] : '' });
   }
   function stageBlock() {
     var plan = is3d() ? '<div class="pz-3dslot"></div>' : planSvg();
@@ -1029,7 +1076,7 @@
       kitchenLen: kl,
       goods: g.filter(function (x) { return x.p; }).map(function (x) { return { label: x.it.label, room: x.room, id: x.p.id, metod: x.p.metod }; }),
       variant: VAR ? { id: VAR.id, letter: VLET[VAR.id], name: VAR.name, text: VAR.text, approval: VAR.approval, partitions: VAR.partitions } : null,
-      geo: LIVE ? { px_per_m: SRC.px_per_m, rooms: SRC.rooms } : null,
+      geo: savedGeo(),
       volumes: null }) });                 /* объёмов по плану в Планировке больше нет (28.10) — старые не оставляем расчёту */
   }
   /* расстановку, картинку плана и мебель — в состояние сценария (для A6, сохранения, PDF и визуализаций) */
@@ -1043,8 +1090,17 @@
       goods: g.filter(function (x) { return x.p; }).map(function (x) { return { label: x.it.label, room: x.room, id: x.p.id, metod: x.p.metod }; }),
       variant: VAR ? { id: VAR.id, letter: VLET[VAR.id], name: VAR.name, text: VAR.text, approval: VAR.approval, partitions: VAR.partitions } : null,
       others: VAR ? WALLS.filter(allowed).filter(function (w) { return w.id !== VAR.id; }).map(function (w) { return VLET[w.id]; }) : [],
-      geo: LIVE ? { px_per_m: SRC.px_per_m, rooms: SRC.rooms } : null
+      geo: savedGeo()
     } });
+  }
+  /* план для «Моей планировки» (plan-save.js): свой план — рамки комнат и его же окна, двери и стены с картинки, чтобы 3D там
+     было тем же, что здесь (разбор 30.10: сохранялись только комнаты, и 3D строилось по стенам из рамок с проёмами примера).
+     Бюджет берёт из него только комнаты и масштаб. Пример ЖК PRIDE — null, как раньше */
+  function savedGeo() {
+    if (!LIVE) return null;
+    var g = { px_per_m: SRC.px_per_m, rooms: SRC.rooms, windows: SRC.windows || [], doors: SRC.doors || [], outside: SRC.outside || [] };
+    if (SRC.walls_2d) { g.walls_2d = SRC.walls_2d; g.doors_2d = SRC.doors_2d || []; g.windows_2d = SRC.windows_2d || []; }
+    return g;
   }
   /* финал блока (раздел 15): сохранить — и показываем «Моя планировка» с итогом; скачать; дальше — визуализации */
   function finish() {
@@ -1237,6 +1293,7 @@
     if (a === 'to-save') { toSave(); return; }
     if (a === 'v3d') { st.view2d = false; render(); }
     if (a === 'v2d') { st.view2d = true; render(); }
+    if (a === 'cad') { openCad(); return; }
     if (a === 'hide') { st.hide = !st.hide; st.picked = null; render(); }
     if (a === 'wall-go') { chooseWall(st.wallPick || 'B'); }
     if (a === 'wall-none') { chooseWall(null); }
@@ -1252,6 +1309,14 @@
       m.el.querySelector('[data-own-open]').addEventListener('click', function () { m.close(); FLOW.ownSheet(setInterior); });
     }
   });
+
+  /* «Шаг назад» (Алина 28.10) с мебели на варианте стен — к выбору вариантов на этом же экране; с вариантов
+     и с мебели без них — общая кнопка demo-flow.js ведёт на «Вопросы». Перехват до неё — на фазе захвата */
+  document.addEventListener('click', function (e) {
+    if (!(e.target.closest && e.target.closest('[data-pz-step]')) || !VAR || st.walls) return;
+    /* перепланировка в состоянии могла выключиться — без неё в полосе нет шага «Стены» и шапка показывала «шаг 0 из 5» */
+    e.stopImmediatePropagation(); FLOW.setReplan(true); openWalls();
+  }, true);
 
   st.restored = restore();
   /* пришли из «Найди свой ЖК» (ТЗ-planirovka 18.2): тост «Нашли твою квартиру» один раз */

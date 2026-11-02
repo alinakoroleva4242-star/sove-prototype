@@ -54,7 +54,42 @@ body[data-page="plan-demo"] #main, body[data-page="result"] #main, body[data-pag
 /* в блоке своя шапка с «← Назад» и токенами (эталон A1) — шапку приложения прячем, нижнее меню остаётся */
 body[data-page="plan-demo"] .appbar, body[data-page="arrange"] .appbar, body[data-page="plan-save"] .appbar { display: none; }
 .pz-head__top { display: flex; align-items: center; justify-content: space-between; }
-.pz-back { border: 0; background: none; padding: 0; font: 700 12px/1.2 var(--font); color: #6B655F; cursor: pointer; }
+/* «← Назад» (выйти из Планировки) и «‹ Шаг назад» — две кнопки рядом (Алина 28.10); поле нажатия выше строки, вёрстка та же */
+.pz-head__nav { display: flex; align-items: center; gap: 18px; min-width: 0; }
+.pz-back { border: 0; background: none; padding: 8px 0; margin: -8px 0; font: 700 12px/1.2 var(--font); color: #6B655F; cursor: pointer; white-space: nowrap; }
+/* свой план прочитан не полностью: что проверить — плашкой под заголовком «Проверь план», ниже ряд действий
+   (отметить вход · повернуть · прочитать ещё раз); прочитано плохо или по рамкам — плашка темнее (.is-poor) */
+.pz-approx { margin: 0; padding: 10px 12px; border-radius: var(--r-sm, 12px); background: #FCF0E9; border: 1px solid #F0DACD; color: #7E3A24; font-size: 12.5px; line-height: 1.4; display: grid; gap: 6px; }
+.pz-approx p { margin: 0; }
+.pz-approx.is-poor { background: #F2DCD1; border-color: #DDB3A1; color: #5E2A18; }
+.pz-approx__acts { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 8px; }
+.pz-approx__acts button { border: 0; background: none; padding: 4px 0; font: 700 12px var(--font); color: #A24E32; text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
+/* точка-разделитель — перед каждым действием, кроме первого: при переносе строки не повисает в конце */
+.pz-approx__acts button + button::before { content: '·'; color: #CFA08C; display: inline-block; margin-right: 7px; }
+/* на широком экране план своего плана и лист с квартирами не выше 560 px (ширина — по пропорции, из plan-demo.js), по центру */
+.pz-plan--live, .pz-plan--sheet { width: 100%; box-sizing: border-box; margin: 0 auto; }
+/* режим «Отметить вход»: подсказка над планом, план ловит тап */
+.pz-pick { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px; border-radius: 12px; background: #1E1C1A; color: #fff; font-size: 12.5px; line-height: 1.35; }
+.pz-pick .pz-link { flex: none; padding: 0; color: #F0C9B8; }
+.pz-plan.is-pick { cursor: crosshair; outline: 2px solid #A24E32; outline-offset: -2px; }
+.pz-pick__note { padding-bottom: 88px; }   /* на телефоне низ плана иначе уходил под полосу «Корзина · Избранное · Бюджет» */
+.pz-plan.is-pick .pz-tag { pointer-events: none; }
+/* дверь между комнатами — точка без подписи */
+.pz-tag--d { width: 10px; height: 10px; padding: 0; border-radius: 50%; background: #A24E32; box-shadow: 0 0 0 2px #fff; }
+/* тип помещения в списке «Проверь план» */
+.pz-rooms .pz-type { flex: none; width: 118px; height: 34px; border-radius: 9px; border: 1px solid #D8D2CB; background: #fff; padding: 0 6px; font: 500 12px var(--font); color: #1E1C1A; }
+.pz-rooms .pz-type:focus { border-color: #1E1C1A; outline: none; box-shadow: 0 0 0 1px #1E1C1A; }
+@media (max-width: 360px) { .pz-rooms .pz-type { width: 100px; padding: 0 4px; font-size: 11px; } }
+/* «не похоже на план»: миниатюра файла и советы */
+.pz-np { border-radius: 16px; overflow: hidden; background: #fff; border: 1px solid #E6E1DA; display: grid; place-items: center; }
+.pz-np img { display: block; max-width: 100%; max-height: 220px; object-fit: contain; filter: grayscale(1) brightness(1.06); }
+.pz-tips { margin: 0; padding: 0 0 0 16px; display: grid; gap: 3px; font-size: 12px; color: #6B655F; line-height: 1.45; }
+/* лист с несколькими квартирами: картинка целиком, рамки квартир — кнопки */
+.pz-plan--sheet { height: auto; background: #fff; }
+.pz-plan--sheet img { object-fit: contain; }
+.pz-flat { position: absolute; display: flex; align-items: flex-start; padding: 4px; box-sizing: border-box; border: 2px solid rgba(162,78,50,.85); border-radius: 8px; background: rgba(162,78,50,.08); cursor: pointer; }
+.pz-flat b { font: 800 10px var(--font); padding: 3px 7px; border-radius: 8px; background: #A24E32; color: #fff; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pz-flat.is-on { border-color: #2E6B4E; background: rgba(46,107,78,.14); } .pz-flat.is-on b { background: #2E6B4E; }
 .pz-tok { font-size: 10px; font-weight: 700; color: #7E3A24; text-decoration: none; white-space: nowrap; }
 
 /* ── блок «Планировка», экраны A1–A4 (эталоны design/planirovka) ── */
@@ -97,6 +132,15 @@ body[data-page="plan-demo"] .appbar, body[data-page="arrange"] .appbar, body[dat
 .pz-stages li i { font-style: normal; width: 14px; text-align: center; }
 .pz-stages li.is-done { color: #1E1C1A; } .pz-stages li.is-done i { color: #2E6B4E; font-weight: 800; }
 .pz-stages li.is-now { color: #1E1C1A; font-weight: 700; } .pz-stages li.is-now i { color: #A24E32; }
+/* честное ожидание своего плана: секунды и подсказка под стадиями; PDF и HEIC без картинки — плашкой вместо плана */
+.pz-wait { margin: 0; display: flex; align-items: baseline; gap: 8px; min-width: 0; font-size: 12px; color: #6B655F; line-height: 1.4; }
+.pz-wait b { flex: none; font: 800 16px var(--font); color: #1E1C1A; font-variant-numeric: tabular-nums; }
+.pz-pdf { display: flex; align-items: center; gap: 12px; min-height: 76px; padding: 14px; border-radius: 16px; background: var(--white); border: 1px solid #E6E1DA; min-width: 0; }
+.pz-pdf i { flex: none; font: 800 11px var(--font); font-style: normal; letter-spacing: .5px; padding: 6px 8px; border-radius: 8px; background: #1E1C1A; color: #fff; }
+.pz-pdf span { display: grid; gap: 2px; min-width: 0; }
+.pz-pdf b { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pz-pdf small { font-size: 11px; color: #6B655F; }
+.pz-btn:disabled, .pz-link:disabled { cursor: default; }
 .pz-tag { position: absolute; transform: translate(-50%, -50%); font-size: 9px; font-weight: 800; padding: 4px 8px; border-radius: 10px; background: #fff; color: #1E1C1A;
   box-shadow: 0 2px 8px rgba(0,0,0,.2); white-space: nowrap; }
 .pz-tag--wall { background: #1E1C1A; color: #fff; }
@@ -132,7 +176,7 @@ body[data-page="plan-demo"] .appbar, body[data-page="arrange"] .appbar, body[dat
 .pz-own__i b { font-size: 14px; } .pz-own__i small { font-size: 11px; color: #6B655F; }
 .pz-own__url { display: flex; gap: 6px; margin-top: 6px; } .pz-own__url .input { flex: 1; min-width: 0; height: 36px; }
 .pz-prog { height: 4px; border-radius: 2px; background: #E6E1DA; overflow: hidden; }
-.pz-prog i { display: block; height: 100%; width: 25%; background: #A24E32; transition: width .4s; }
+.pz-prog i { display: block; height: 100%; width: 25%; background: #A24E32; transition: width .45s linear; }
 .pz-rooms .input { min-height: 0; padding: 0 10px; }
 body[data-page="plan-demo"].has-rp-strip #main, body[data-page="arrange"].has-rp-strip #main, body[data-page="plan-save"].has-rp-strip #main { padding-bottom: 76px; }
 
@@ -453,3 +497,23 @@ a.ps-save { display: flex; align-items: center; justify-content: center; text-de
 .pz-state__one { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; text-align: left; }
 .pz-state__one > span { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .pz-state__one > em { font-style: normal; font-size: 12px; font-weight: 700; color: #A24E32; white-space: nowrap; }
+
+/* «Чертёж» (plan-cad.js): кнопка рядом с 3D / 2D и лист с чертежом CADCraft — как третья колонка сравнения 27.10 */
+.pz-seg .pz-seg__cad { border-left: 1px solid #E6E1DA; color: #A24E32; }
+.pz-sheet--cad { max-width: 760px; max-height: calc(100vh - 12px); overflow-y: auto; overscroll-behavior: contain; }
+@supports (height: 100dvh) { .pz-sheet--cad { max-height: calc(100dvh - 12px); } }
+.pz-cad__head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.pz-cad__x { flex: none; width: 40px; height: 40px; border-radius: 12px; border: 1px solid #E6E1DA; background: #fff; color: #1E1C1A;
+  font: 500 24px/1 var(--font); cursor: pointer; display: grid; place-items: center; padding: 0; }
+.pz-cad__body { display: grid; gap: 10px; min-width: 0; }
+.pz-cad__frame { aspect-ratio: 3 / 2; border-radius: 12px; }
+.pz-cad__wait { display: grid; align-content: center; justify-items: center; gap: 8px; padding: 16px; background: #F4F2EE; text-align: center; }
+.pz-cad__wait b { font-size: 15px; color: #1E1C1A; }
+.pz-cad__wait small { font-size: 12px; color: #6B655F; }
+.pz-cad__wait .pz-prog { width: min(240px, 80%); margin-top: 4px; }
+.pz-cad__img { display: block; width: 100%; height: auto; max-height: max(220px, calc(100vh - 290px)); object-fit: contain; border-radius: 12px; background: #20262E; }
+.pz-cad__acts { display: grid; gap: 8px; }
+@media (min-width: 560px) { .pz-cad__acts { grid-template-columns: 1fr 1fr; } }
+.pz-cad__note { margin: 0; font-size: 11px; color: #6B655F; text-align: center; }
+.pz-cad__err { margin: 0; padding: 12px; border-radius: 12px; background: #FCF0E9; border: 1px solid #F0DACD; color: #7E3A24; font-size: 13px; font-weight: 600; line-height: 1.4; }
+.pz-sheet--cad .pz-btn:disabled { opacity: .55; }

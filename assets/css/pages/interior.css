@@ -695,3 +695,14 @@ div.rl__h { cursor: default; } .rl__h b { font-size: 13px; } .rl__h small { font
 .vp__exl { position: absolute; left: 8px; top: 8px; padding: 3px 7px; border-radius: 6px; background: rgba(255,255,255,.92); font: 800 9px/1 var(--mt-font); letter-spacing: 1px; text-transform: uppercase; color: var(--mt-mute); }
 .vp__ext { position: absolute; left: 0; right: 0; bottom: 0; padding: 8px 10px; display: flex; flex-direction: column; gap: 2px; background: rgba(255,255,255,.92); }
 .vp__ext b { font: 600 15px/1.1 var(--mt-serif); color: var(--mt-ink); } .vp__ext small { font-size: 9.5px; color: var(--mt-mute); }
+
+/* ═══ несколько интерьеров у объекта (созвон 28.10): шторка «Сменить интерьер» — список своих интерьеров, «текущий» / «Переключиться» ═══ */
+.ci-list { display: flex; flex-direction: column; gap: 6px; }
+.ci-it { display: flex; gap: 10px; align-items: center; width: 100%; padding: 8px 10px; border: 1px solid var(--mt-line); border-radius: 12px; background: #fff; color: var(--mt-ink); font-family: var(--mt-font); text-align: left; cursor: pointer; box-sizing: border-box; }
+.ci-it.is-on { border: 2px solid var(--mt-acc); padding: 7px 9px; cursor: default; }
+.ci-it__pic { width: 52px; height: 42px; border-radius: 8px; flex-shrink: 0; background: #EFEAE3 center / cover; }
+.ci-it__t { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.ci-it__t b { font-size: 13px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ci-it__t small { font-size: 11px; color: var(--mt-mute); }
+.ci-it__a { font-size: 11px; font-weight: 700; color: var(--mt-acc); white-space: nowrap; }
+.ci-it.is-on .ci-it__a { color: var(--mt-green); }

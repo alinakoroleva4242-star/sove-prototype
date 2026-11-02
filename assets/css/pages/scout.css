@@ -313,3 +313,43 @@
 /* «Что сейчас в квартире» свёрнуто: одна строка с выбранным состоянием и «изменить ›» (Алина 27.10) */
 .scout-state--one, .scout-state.scout-state--one { flex-direction: row; min-height: 0; padding: var(--s4) var(--s5, 20px); width: 100%; }
 .scout-state__ch { font-size: 12px; font-weight: 700; color: var(--accent, #A24E32); }
+
+/* «По комнатам» (созвон 28.10): строка на комнату шага 3 — Работы · Материалы и комплектация · Итого; тап раскрывает категории комплектации.
+   Телефон: имя комнаты, под ним три значения с подписями; от 760 px — одна строка-таблица с шапкой колонок */
+.scout-rooms-b { margin-top: var(--s10); }
+.rb-note { margin-top: -6px; }
+.rb-grid { display: grid; grid-template-columns: minmax(0, 1fr) 20px; grid-template-areas: 'name ch' 'vals vals'; gap: 10px var(--s3); align-items: center; }
+.rb-head { display: none; }
+.rb-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.rb-room { border-bottom: 1px solid var(--line); }
+.rb-room__row { width: 100%; min-height: 56px; padding: 12px 0; border: 0; background: none; font: inherit; color: var(--ink); text-align: left; cursor: pointer; }
+.rb-room__row:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.rb-room__name { grid-area: name; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.rb-room__name b { font-size: 15px; font-weight: 600; line-height: 1.3; overflow-wrap: anywhere; }
+.rb-room__name small { font-size: 12.5px; }
+.rb-room__ch { grid-area: ch; display: inline-flex; justify-content: center; font-size: 14px; line-height: 1; color: var(--stone); transition: transform .15s; }
+.rb-room.is-open .rb-room__ch { transform: rotate(180deg); color: var(--accent); }
+.rb-room__vals { grid-area: vals; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; min-width: 0; align-items: end; }
+.rb-room__v { display: flex; flex-direction: column; justify-content: flex-end; gap: 2px; min-width: 0; }
+.rb-room__v small { font-size: 11px; line-height: 1.2; }
+.rb-room__v b { font-size: 14px; font-weight: 600; white-space: nowrap; }
+.rb-room__v--t b { color: var(--accent); }
+.rb-cats { list-style: none; margin: 0 0 12px; padding: 0 0 0 12px; display: flex; flex-direction: column; border-left: 2px solid var(--accent-soft); }
+.rb-cat { display: flex; justify-content: space-between; align-items: baseline; gap: var(--s3); padding: 7px 0; border-top: 1px dashed var(--line); font-size: 13.5px; }
+.rb-cat:first-child { border-top: 0; }
+.rb-cat__n { min-width: 0; overflow-wrap: anywhere; }
+.rb-cat__v { white-space: nowrap; font-weight: 500; }
+.rb-cat--sum { border-top: 1px solid var(--line); font-weight: 600; }
+.rb-sum { padding-top: 12px; border-top: 1px solid var(--ink); margin-top: -1px; }
+.rb-sum .rb-room__v--t b { font-size: 16px; }
+@media (min-width: 760px) {
+  .rb-grid { grid-template-columns: minmax(0, 1fr) 130px 190px 150px 20px; grid-template-areas: none; }
+  .rb-room__name, .rb-room__vals, .rb-room__ch { grid-area: auto; }
+  .rb-room__vals { display: contents; }
+  .rb-room__v { text-align: right; align-items: flex-end; }
+  .rb-room__v small { display: none; }
+  .rb-head { display: grid; padding-bottom: 8px; border-bottom: 1px solid var(--ink); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; font-weight: 600; color: var(--graphite); }
+  .rb-head > span:not(:first-child) { text-align: right; }
+  .rb-head .rb-room__vals > span { text-align: right; }
+  .rb-cats { margin-left: 0; }
+}

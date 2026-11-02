@@ -35,32 +35,149 @@
   function registerProduct(p) {
     if (!p || !p.id) return; addToData(p);
     var x = extras(); if (x[p.id]) return;
-    x[p.id] = { id: p.id, name: p.name, brand: p.brand, metod: p.metod, retail: p.retail, img: p.img, category: p.category || 'Мебель', subcat: p.subcat || '' };
+    /* brandRaw — исходный бренд каталога (DECARO СПБ): по нему склад продавца по умолчанию (sellers.js) */
+    x[p.id] = { id: p.id, name: p.name, brand: p.brand, brandRaw: p.brandRaw, metod: p.metod, retail: p.retail, img: p.img, category: p.category || 'Мебель', subcat: p.subcat || '' };
     try { localStorage.setItem(XKEY, JSON.stringify(x)); } catch (e) {}
   }
   window.addEventListener('storage', function (e) { if (e.key === KEY) { load(); renderStrip(); window.dispatchEvent(new Event('sove:repair')); } });
 
   function roomKey(name) { var n = String(name || '').toLowerCase(); return /кух|гост/.test(n) ? 'liv' : /спал/.test(n) ? 'bed' : /сан|ванн|душ/.test(n) ? 'bath' : /прих|корид|холл/.test(n) ? 'hall' : n.replace(/[^a-zа-я0-9]+/g, '-'); }
 
-  /* ---------- квартиры ---------- */
+  /* ---------- квартиры = объект (схема «Данные вокруг объекта v2», созвон 28.10: любая запись принадлежит объекту) ----------
+     поля: id, name, jk (ЖК), city, m2, rooms, baths, state (concrete_free | concrete_walls | whitebox | finished), budgetType (base | premium),
+     accuracy (примерно | точнее | точно — считается из основы: нет плана / план застройщика → примерно, обмерный → точнее, дизайн-проект → точно),
+     isDraft (черновик — создан сам при первом действии, человек ещё не назвал и не заполнил), currentInteriorId, capsuleId, createdAt (ts — прежнее имя).
+     Анкета заказов (SOVE.orders.object) и расчёт (SOVE.my: area, stateId, level, capsuleId) зеркалят активную квартиру. */
+  var STATE = { concrete_free: 'Бетон', concrete_walls: 'Бетон, стены', whitebox: 'White box', finished: 'С отделкой' };
+  var ACCURACY = { none: 'примерно', developer_plan: 'примерно', measured_plan: 'точнее', design_project: 'точно' };
+  /* состояние квартиры ↔ состояние в расчёте (SOVE.my.stateId: concrete | pre | finish | secondary) */
+  var STATE_MY = { concrete_free: 'concrete', concrete_walls: 'concrete', whitebox: 'pre', finished: 'finish' };
+  var MY_STATE = { concrete: 'concrete_walls', pre: 'whitebox', finish: 'finished', secondary: 'finished' };
+  function accuracyOf(id) { var p = (st.repair[id] || {}).plan; return ACCURACY[p ? p.level : 'none'] || 'примерно'; }
+  function num(v, fb) { return v === null || v === undefined || v === '' ? fb : v; }
+  /* квартира → расчёт (S.my): площадь, состояние, уровень, капсула — только заданное в квартире и отличающееся (обратное зеркало — в S.my.set, без создания квартиры);
+     при смене активной квартиры ('budget') — ещё и итог расчёта: из сохранённого бюджета этой квартиры, иначе пусто (итог прежней квартиры к ней не относится).
+     Зовётся ДО save(): к событию 'sove:repair' расчёт уже согласован с квартирой */
+  function mirrorMy(f, keys) {
+    try {
+      var my = S.my; if (!my || !f) return; var m = my.get(), p = {};
+      if (keys.indexOf('m2') >= 0 && f.m2 > 0 && m.area !== f.m2) p.area = f.m2;
+      if (keys.indexOf('state') >= 0 && f.state && STATE_MY[f.state] && m.stateId !== STATE_MY[f.state]) p.stateId = STATE_MY[f.state];
+      if (keys.indexOf('budgetType') >= 0 && f.budgetType && m.level !== f.budgetType) p.level = f.budgetType;
+      if (keys.indexOf('capsuleId') >= 0 && (m.capsuleId || null) !== (f.capsuleId || null)) p.capsuleId = f.capsuleId || null;
+      if (keys.indexOf('budget') >= 0) { var b = (st.repair[f.id] || {}).budget || {}; ['total', 'works', 'kitMetod', 'kitRetail'].forEach(function (k) { var v = b[k] || null; if ((m[k] || null) !== v) p[k] = v; }); }
+      if (Object.keys(p).length) my.set(p);
+    } catch (e) {}
+  }
+  var ALL = ['m2', 'state', 'budgetType', 'capsuleId', 'budget'];
   var flats = {
+    STATE: STATE, STATE_MY: STATE_MY, MY_STATE: MY_STATE, accuracy: accuracyOf,
     list: function () { return st.flats.slice(); },
     get: function (id) { return st.flats.filter(function (f) { return f.id === id; })[0] || null; },
     active: function () { return flats.get(st.active) || st.flats[0] || null; },
-    setActive: function (id) { if (flats.get(id)) { st.active = id; save(); } },
-    /* новая квартира: первая — «Моя квартира», дальше «Квартира 2», «Квартира 3»; поля объекта подтягиваем из старой анкеты, если она есть */
+    setActive: function (id) { var f = flats.get(id); if (f && st.active !== id) { st.active = id; mirrorMy(f, ALL); save(); } },
+    /* новая квартира: первая — «Моя квартира», дальше «Квартира 2», «Квартира 3»; поля объекта подтягиваем из старой анкеты, если она есть; сразу активная */
     add: function (o) {
-      o = o || {}; var ob = (!st.flats.length && S.orders && S.orders.object.get()) || {};
-      var f = { id: uid('flat'), name: o.name || (st.flats.length ? 'Квартира ' + (st.flats.length + 1) : 'Моя квартира'), jk: o.jk || ob.complex || '', city: o.city || ob.city || '', m2: o.m2 || ob.area || null, rooms: o.rooms || null, ts: Date.now() };
-      st.flats.push(f); st.active = f.id; save(); return f;
+      o = o || {}; var ob = (!st.flats.length && S.orders && S.orders.object.get()) || {}, now = Date.now();
+      var f = { id: uid('flat'), name: o.name || (st.flats.length ? 'Квартира ' + (st.flats.length + 1) : 'Моя квартира'), jk: o.jk || ob.complex || '', city: o.city || ob.city || '',
+        m2: num(o.m2, ob.area || null), rooms: num(o.rooms, num(ob.rooms, null)), baths: num(o.baths, num(ob.bathrooms, null)), state: o.state || null, budgetType: o.budgetType || ob.tier || null,
+        accuracy: 'примерно', isDraft: !!o.isDraft, currentInteriorId: null, capsuleId: o.capsuleId || null, ts: now, createdAt: now };
+      st.flats.push(f); st.active = f.id; mirrorMy(f, ALL); save(); return f;
     },
-    /* квартира создаётся сама при первом сохранении */
-    ensure: function () { return flats.active() || flats.add(); },
-    update: function (id, patch) { var f = flats.get(id); if (f) { Object.assign(f, patch); save(); } return f; }
+    /* квартира создаётся сама при первом действии с данными — черновик «Моя квартира» */
+    ensure: function () { return flats.active() || flats.add({ name: 'Моя квартира', isDraft: true }); },
+    update: function (id, patch) {
+      var f = flats.get(id); if (!f) return null; patch = patch || {};
+      Object.assign(f, patch); f.accuracy = accuracyOf(f.id);
+      mirrorMy(f, Object.keys(patch).filter(function (k) { return ALL.indexOf(k) >= 0; }));
+      save(); return f;
+    },
+    /* ensure + update: первое действие с данными создаёт квартиру и сразу заполняет; имя, ЖК, город или план снимают «черновик» */
+    touch: function (patch) {
+      patch = Object.assign({}, patch || {}); var f = flats.ensure();
+      if (patch.name || patch.jk || patch.city) patch.isDraft = false;
+      return flats.update(f.id, patch);
+    }
   };
-  function rp(id) { id = id || (flats.active() || {}).id; if (!id) return { plan: null, interior: null, rooms: {}, budget: null }; return st.repair[id] || (st.repair[id] = { plan: null, interior: null, rooms: {}, budget: null }); }
+  function rp(id) { id = id || (flats.active() || {}).id; if (!id) return { plan: null, interior: null, rooms: {}, budget: null }; return attachInteriors(st.repair[id] || (st.repair[id] = { plan: null, rooms: {}, budget: null, interiors: [] }), id); }
   function favOf(id) { id = id || (flats.active() || {}).id; return id ? (st.fav[id] || (st.fav[id] = [])) : []; }
   function cartOf(id) { id = id || (flats.active() || {}).id; return id ? (st.cart[id] || (st.cart[id] = [])) : []; }
+
+  /* ---------- интерьеры квартиры (схема v2 Алины, созвон 28.10: один объект можно проработать в нескольких интерьерах) ----------
+     r.interiors — список досок в порядке создания: {id, type ('capsule' | 'own'), capsuleId, baseCapsuleId, name, img / imageUrl, level, scope, zones, slots, dna,
+     renders, objects, status ('active'), createdAt, ts, …}. r.interior — ТЕКУЩИЙ (flat.currentInteriorId): свойство-аксессор, отдельно в localStorage не хранится,
+     все экраны (бюджет, полоса, Мой ремонт) читают R.get().interior как раньше. Запись r.interior = доска кладёт её в список (по id; без id — новый интерьер)
+     и делает текущей; прежний остаётся в списке со своими материалами и рендерами. Смена интерьера — круг заново: материалы и визуализации собираются под новый.
+     Старый формат (r.interior без r.interiors, r.interiorHistory) переезжает в список при первом чтении — данные не теряются. */
+  function curIdOf(r, flatId) { var f = flats.get(flatId); return f ? (f.currentInteriorId || null) : (r.currentInteriorId || null); }
+  function setCurId(r, flatId, id) { var f = flats.get(flatId); if (f) f.currentInteriorId = id; else r.currentInteriorId = id; }
+  function normInterior(it, now) {
+    if (!it || typeof it !== 'object') return null;
+    if (!it.id) it.id = uid('int'); if (!it.status) it.status = 'active'; if (!it.createdAt) it.createdAt = it.boardGeneratedAt || it.ts || now || Date.now();
+    return it;
+  }
+  /* тихая запись хранилища (без события и полосы) — после миграции старого формата */
+  var persistT = null;
+  function persistSoon() { if (persistT) return; persistT = setTimeout(function () { persistT = null; try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (e) {} }, 0); }
+  function attachInteriors(r, flatId) {
+    var d = Object.getOwnPropertyDescriptor(r, 'interior'); if (d && d.get) return r;
+    var legacy = r.interior || null, hist = r.interiorHistory || [], now = Date.now();
+    delete r.interior; delete r.interiorHistory;
+    if (!Array.isArray(r.interiors)) r.interiors = [];
+    var has = function (id) { return r.interiors.some(function (x) { return x.id === id; }); };
+    r.interiors.forEach(function (x) { normInterior(x, now); });
+    /* старый формат: история «Заменить?» (новые сверху) → в порядке создания, затем сохранённый интерьер — он и текущий */
+    hist.slice().reverse().concat(legacy ? [legacy] : []).forEach(function (x) { if (normInterior(x, now) && !has(x.id)) r.interiors.push(x); });
+    if (legacy) setCurId(r, flatId, legacy.id);
+    var cid = curIdOf(r, flatId); if (!has(cid) && r.interiors.length) setCurId(r, flatId, r.interiors[r.interiors.length - 1].id);
+    if (legacy || hist.length) persistSoon();   /* переезд старого формата — записать сразу (id интерьеров стабильны, экраны без repair.js видят список) */
+    Object.defineProperty(r, 'interior', { enumerable: false, configurable: true,
+      get: function () { var id = curIdOf(r, flatId); return r.interiors.filter(function (x) { return x.id === id; })[0] || null; },
+      set: function (v) {
+        if (!v) { setCurId(r, flatId, null); return; }
+        normInterior(v); var i = r.interiors.map(function (x) { return x.id; }).indexOf(v.id);
+        if (i >= 0) r.interiors[i] = v; else r.interiors.push(v);
+        setCurId(r, flatId, v.id);
+        var f = flats.get(flatId); if (f && v.capsuleId) f.capsuleId = v.capsuleId;   /* капсула текущего интерьера — капсула квартиры */
+      } });
+    return r;
+  }
+  /* карточка интерьера для списков: «К2 · Изумрудная неоклассика», n — номер в порядке создания («1 из 2»), rooms / renders / slots — счётчики */
+  function interiorSummary(it, i, cid, flatId) {
+    var c = it.capsuleId && D.capsule(it.capsuleId), name = it.name || it.style || (c && c.name) || 'Мой интерьер';
+    var rooms = it.scope === 'rooms' ? (it.zones || []).length : it.scope === 'room' ? 1 : (planZones(flatId).zones.length || roomsOf(flatId).length);
+    return { id: it.id, n: i + 1, name: name, title: c ? c.code + ' · ' + name : name, code: c ? c.code : '', type: it.type || (it.capsuleId ? 'capsule' : 'own'),
+      capsuleId: it.capsuleId || null, baseCapsuleId: it.baseCapsuleId || null, img: it.img || it.imageUrl || (c && c.cover) || '', level: it.level || null,
+      scope: it.scope || 'flat', zones: (it.zones || []).slice(), rooms: rooms, status: it.status || 'active', createdAt: it.createdAt || it.ts || null, ts: it.ts || null,
+      renders: (it.renders || []).length, slots: it.slots ? Object.keys(it.slots).length : 0, current: it.id === cid };
+  }
+  var interiors = {
+    list: function (flatId) { var r = rp(flatId), cid = r.interior ? r.interior.id : null; return (r.interiors || []).map(function (it, i) { return interiorSummary(it, i, cid, flatId || (flats.active() || {}).id); }); },
+    get: function (id, flatId) {
+      var ids = flatId ? [flatId] : [(flats.active() || {}).id].concat(st.flats.map(function (f) { return f.id; }));
+      for (var i = 0; i < ids.length; i++) { if (!ids[i]) continue; var hit = (rp(ids[i]).interiors || []).filter(function (x) { return x.id === id; })[0]; if (hit) return hit; }
+      return null;
+    },
+    current: function (flatId) { return rp(flatId).interior; },
+    /* новый интерьер квартиры — становится текущим; прежний остаётся в списке (не архив — просто не текущий) */
+    add: function (data, flatId) { var f = flatId ? flats.get(flatId) : flats.ensure(); if (!f) return null; var v = write('interior', Object.assign({}, data, { id: null }), f.id); save(); return v; },
+    /* переключение: flat.currentInteriorId, капсула интерьера — капсула квартиры (и расчёта); save → 'sove:repair' — полоса, бюджет и Мой ремонт перерисуются */
+    setCurrent: function (id, flatId) {
+      var f = flatId ? flats.get(flatId) : flats.active(); if (!f) return null;
+      var r = rp(f.id), it = (r.interiors || []).filter(function (x) { return x.id === id; })[0]; if (!it) return null;
+      setCurId(r, f.id, it.id);
+      flats.update(f.id, it.capsuleId ? { capsuleId: it.capsuleId } : {});
+      return it;
+    },
+    remove: function (id, flatId) {
+      var f = flatId ? flats.get(flatId) : flats.active(); if (!f) return false;
+      var r = rp(f.id), n = (r.interiors || []).length; r.interiors = (r.interiors || []).filter(function (x) { return x.id !== id; });
+      if (r.interiors.length === n) return false;
+      if (curIdOf(r, f.id) === id) setCurId(r, f.id, r.interiors.length ? r.interiors[r.interiors.length - 1].id : null);
+      save(); return true;
+    },
+    rename: function (id, name, flatId) { var it = interiors.get(id, flatId); if (!it) return null; it.name = String(name || '').trim() || it.name; save(); return it; }
+  };
 
   /* ---------- чтение для экрана ---------- */
   function level(id) { var p = rp(id).plan; return p ? p.level : 'none'; }
@@ -78,7 +195,7 @@
       : !r.interior ? { text: 'Выберите интерьер — капсула SOVEAPP или своя картинка', cta: 'В Интерьер', href: LINK.materials }
       : !r.budget ? { text: 'Посчитайте бюджет ремонта — 2 минуты', cta: 'Посчитать бюджет', href: LINK.scout }
       : !buy ? { text: 'Перенесите бюджет в корзину', cta: 'Всё в корзину', href: MY + '#sec-budget' }
-      : { text: 'Оформить корзину', cta: 'Оформить', href: MY + '#sec-cart' };
+      : { text: 'Оформить корзину', cta: 'Оформить', href: MY + '?v=basket' };
     return { steps: steps, next: next };
   }
   /* бюджет устарел: после него сохранили другой план или мудборд */
@@ -93,7 +210,8 @@
     if (act && act.onClick) t.querySelector('button').addEventListener('click', function () { t.remove(); act.onClick(); });
     box.appendChild(t); setTimeout(function () { t.remove(); }, 5200);
   }
-  function anchor(kind) { return MY + '#sec-' + ({ plan: 'plan', interior: 'interior', render: 'rooms', budget: 'budget', fav: 'fav', cart: 'cart' }[kind] || 'plan'); }
+  /* корзина и бюджет — свои экраны (якорей #sec-cart / #sec-budget на главном виде «Моего ремонта» нет) */
+  function anchor(kind) { if (kind === 'cart') return MY + '?v=basket'; if (kind === 'budget') return MY + '?v=budget'; return MY + '#sec-' + ({ plan: 'plan', interior: 'interior', render: 'rooms', fav: 'fav' }[kind] || 'plan'); }
   function savedToast(kind, flatId, move) {
     if (st.flats.length > 1) { var f = flats.get(flatId); toast('Сохранено в «' + f.name + '»', { label: 'Сменить', onClick: function () { pickFlat(flatId, move); } }); }
     else toast('Сохранено в Мой ремонт', { label: 'Открыть', href: anchor(kind) });
@@ -104,7 +222,8 @@
     var m = ui.modal({ title: 'В какую квартиру?', html: '<div class="rp-pick">' + others.map(function (f) { return '<button type="button" class="rp-pick__b" data-to="' + f.id + '"><b>' + esc(f.name) + '</b><span>' + esc(flatLine(f) || 'данных пока нет') + '</span></button>'; }).join('') + '</div>', actions: [{ label: 'Отмена', kind: 'link' }] });
     m.el.querySelectorAll('[data-to]').forEach(function (b) { b.addEventListener('click', function () { var to = b.getAttribute('data-to'); m.close(); move(to); save(); ui.toast('Перенесли в «' + flats.get(to).name + '»', 'ok'); }); });
   }
-  function flatLine(f) { if (!f) return ''; return [f.jk ? 'ЖК ' + f.jk : '', f.city, f.m2 ? F.area(f.m2) : ''].filter(Boolean).join(' · '); }
+  /* строка квартиры «ЖК · город · м²»; «ЖК» не дублируем, если человек вписал его сам */
+  function flatLine(f) { if (!f) return ''; return [f.jk ? (/^(жк|кп)\s/i.test(f.jk) ? f.jk : 'ЖК ' + f.jk) : '', f.city, f.m2 ? F.area(f.m2) : ''].filter(Boolean).join(' · '); }
 
   /* ---------- сохранения из Генерации и расчёта (таблица п. 3 ТЗ) ----------
      kind: 'plan' {level, img, rooms:[{name,m2}], variant} · 'interior' {capsuleId|null, name, img, dna:[src], productIds}
@@ -116,13 +235,18 @@
       /* тот же кадр второй раз (Интерьер кладёт его и при генерации, и по «В Мой ремонт») — не дублируем, освежаем время */
       var same = list.filter(function (x) { return x.src === data.src; })[0];
       if (same) { same.ts = now; if (data.from) same.from = data.from; return same; }
-      var item = { id: uid('rnd'), src: data.src, ts: now, mine: !!data.mine, from: data.from || null, capsuleId: data.capsuleId || (r.interior && r.interior.capsuleId) || null, interiorTs: r.interior ? r.interior.ts : null };
+      var item = { id: uid('rnd'), src: data.src, ts: now, mine: !!data.mine, from: data.from || null, capsuleId: data.capsuleId || (r.interior && r.interior.capsuleId) || null, interiorTs: r.interior ? r.interior.ts : null, interiorId: r.interior ? r.interior.id : null };
       list.unshift(item); if (!r.rooms[k + ':main']) r.rooms[k + ':main'] = item.id; return item;
     }
-    /* доска Интерьера (со слотами материалов) при замене не пропадает — уходит в историю квартиры, как обещает окно «Заменить?» */
-    if (kind === 'interior' && r.interior && r.interior.slots) (r.interiorHistory = r.interiorHistory || []).unshift(r.interior);
-    var v = Object.assign({}, data, { ts: now }); r[kind] = v;
-    if (kind === 'plan') { var f = flats.get(flatId), m2 = (data.rooms || []).reduce(function (a, x) { return a + (x.m2 || 0); }, 0); if (f && m2 && !f.m2) f.m2 = Math.round(m2 * 10) / 10; if (f && data.jk && !f.jk) f.jk = data.jk; }
+    var v = Object.assign({}, data, { ts: now });
+    /* интерьер: с id — обновление той же доски, без id — НОВЫЙ интерьер квартиры (прежний остаётся в r.interiors со своими материалами и рендерами);
+       записанный становится текущим — flat.currentInteriorId ставит аксессор r.interior */
+    if (kind === 'interior') { v.id = data.id || uid('int'); v.status = data.status || 'active'; v.createdAt = data.createdAt || now; }
+    r[kind] = v;
+    /* план — основа квартиры: площадь и ЖК (если не заданы), точность из уровня основы, черновик снимается */
+    if (kind === 'plan') { var f = flats.get(flatId), m2 = (data.rooms || []).reduce(function (a, x) { return a + (x.m2 || 0); }, 0); if (f) { if (m2 && !f.m2) f.m2 = Math.round(m2 * 10) / 10; if (data.jk && !f.jk) f.jk = data.jk; f.accuracy = accuracyOf(f.id); f.isDraft = false; } }
+    /* капсула интерьера — капсула квартиры */
+    if (kind === 'interior') { var fi = flats.get(flatId); if (fi && data.capsuleId) fi.capsuleId = data.capsuleId; }
     if (kind === 'budget') { var fb = flats.get(flatId); if (fb) fb.budgetType = data.type; }
     return v;
   }
@@ -135,11 +259,14 @@
       savedToast(kind, f.id, function (to) {
         var src = rp(f.id), dst = rp(to);
         if (kind === 'render') { var k = roomKey(data.room); var it = (src.rooms[k] || []).shift(); if (it) (dst.rooms[k] = dst.rooms[k] || []).unshift(it); if (src.rooms[k + ':main'] === (it && it.id)) src.rooms[k + ':main'] = (src.rooms[k][0] || {}).id || null; if (!dst.rooms[k + ':main'] && it) dst.rooms[k + ':main'] = it.id; }
+        /* интерьер — в список другой квартиры; здесь текущим снова становится прежний */
+        else if (kind === 'interior') { var ii = src.interior; if (ii) { src.interiors = src.interiors.filter(function (x) { return x.id !== ii.id; }); setCurId(src, f.id, cur ? cur.id : (src.interiors.length ? src.interiors[src.interiors.length - 1].id : null)); dst.interior = ii; } }
         else { dst[kind] = src[kind]; src[kind] = cur || null; }
       });
       if (opts.done) opts.done();
     }
-    if (cur && !opts.force) ui.confirm({ title: 'Заменить текущий ' + WHAT[kind] + '?', text: 'В «' + f.name + '» уже сохранён ' + WHAT[kind] + ' от ' + F.dateLong(cur.ts) + '. Прежний останется в истории ' + (kind === 'budget' ? 'расчётов' : 'генераций') + '.', ok: 'Заменить', onOk: go });
+    /* новый интерьер прежний не заменяет (у объекта несколько интерьеров) — вопроса «Заменить?» для него нет */
+    if (cur && kind !== 'interior' && !opts.force) ui.confirm({ title: 'Заменить текущий ' + WHAT[kind] + '?', text: 'В «' + f.name + '» уже сохранён ' + WHAT[kind] + ' от ' + F.dateLong(cur.ts) + '. Прежний останется в истории ' + (kind === 'budget' ? 'расчётов' : 'генераций') + '.', ok: 'Заменить', onOk: go });
     else go();
   }
   function setMainRender(key, id) { var r = rp(); r.rooms[key + ':main'] = id; save(); }
@@ -165,23 +292,58 @@
     },
     move: function (pid, to) { pid = Number(pid); var from = favOf(); var i = from.indexOf(pid); if (i >= 0) from.splice(i, 1); var dst = favOf(to); if (dst.indexOf(pid) < 0) dst.unshift(pid); save(); }
   };
+  /* корзина квартиры (♡/🛒 в Маркете, ленте, Интерьере) зеркалится в корзину оплаты O.basket (экран my.html?v=basket, заказы по поставщикам):
+     раньше товар из Маркета и ленты до экрана корзины и заказа не доходил (созвон 28.10: «всё в итоге попадает в Мой ремонт») */
+  /* продавец строки (Таня 29.10: один товар — несколько продавцов-складов, DECARO · Москва / · Санкт-Петербург):
+     seller — объект {id, name, city, delivery, priceDelta} или id продавца; не передан — выбранный на карточке товара или по умолчанию (SOVE.sellers).
+     У товара с одним продавцом — null: корзина и заказ группируются по бренду, как раньше */
+  function sellerOf(pid, seller) {
+    try {
+      if (seller && typeof seller === 'object' && seller.name) return { id: seller.id || seller.name, name: seller.name, city: seller.city || '', delivery: seller.delivery || '', priceDelta: Number(seller.priceDelta) || 0 };
+      var X = S.sellers, p = D.product(pid); if (!X || !p) return null;
+      var s = seller ? X.get(p, seller) : null; return s ? X.short(s) : X.pick(p);
+    } catch (e) { return null; }
+  }
+  function mirror(pid, source, qty, seller) { try { var O = S.orders; if (O && O.basket && !O.basket.has(pid)) O.basket.add(pid, source === 'budget' ? 'budget' : 'catalog', qty || 1, seller || undefined); } catch (e) {} }
+  function unmirror(pid) { try { var O = S.orders; if (!O || !O.basket) return; O.basket.list().filter(function (b) { return b.productId === Number(pid); }).forEach(function (b) { O.basket.remove(b.id); }); } catch (e) {} }
+  /* строка корзины квартиры: {productId, qty, source, ts, seller?} */
   var cart = {
     has: function (pid) { return cartOf().some(function (r) { return r.productId === Number(pid); }); },
     rows: cartRows, totals: cartTotals,
-    add: function (pid, source, quiet) {
+    add: function (pid, source, quiet, seller) {
       var f = flats.ensure(), list = cartOf(f.id); pid = Number(pid);
-      var row = list.filter(function (r) { return r.productId === pid; })[0];
-      if (row) row.qty += 1; else list.unshift({ productId: pid, qty: 1, source: SRC[source] ? source : 'market', ts: Date.now() });
-      if (!quiet) { save(); cartToast(); }
+      var row = list.filter(function (r) { return r.productId === pid; })[0], sl = sellerOf(pid, seller);
+      if (row) { row.qty += 1; if (sl && (!row.seller || seller)) { row.seller = sl; try { if (S.orders) S.orders.basket.setSeller(pid, sl); } catch (e) {} } }
+      else { var nr = { productId: pid, qty: 1, source: SRC[source] ? source : 'market', ts: Date.now() }; if (sl) nr.seller = sl; list.unshift(nr); }
+      mirror(pid, source, row ? row.qty : 1, sl);
+      /* товар живого каталога, которого нет в списке товаров страницы (🛒 на карточке Маркета): дотягиваем карточку по id —
+         иначе корзина и заказ его не видят; заодно продавец по умолчанию (склад DECARO по исходному бренду) */
+      if (!row && !D.product(pid) && S.catalog && S.catalog.resolve) {
+        S.catalog.resolve(pid).then(function (p) {
+          if (!p) return; registerProduct(p);
+          var r2 = cartOf(f.id).filter(function (r) { return r.productId === pid; })[0]; if (!r2) return;
+          if (!r2.seller) { var s2 = sellerOf(pid, seller); if (s2) r2.seller = s2; }
+          mirror(pid, source, r2.qty, r2.seller); save();
+        }).catch(function () {});
+      }
+      if (!quiet) { save(); cartToast(sl); }
+    },
+    /* продавец товара в корзине: смена на карточке товара — и в корзине оплаты */
+    sellerOf: function (pid) { var row = cartOf().filter(function (r) { return r.productId === Number(pid); })[0]; return row ? row.seller || null : null; },
+    setSeller: function (pid, seller) {
+      pid = Number(pid); var row = cartOf().filter(function (r) { return r.productId === pid; })[0]; if (!row) return null;
+      var sl = sellerOf(pid, seller); if (sl) row.seller = sl; else delete row.seller;
+      try { if (S.orders) S.orders.basket.setSeller(pid, sl); } catch (e) {}
+      save(); return sl;
     },
     addMany: function (ids, source) { var n = 0; flats.ensure(); ids.forEach(function (id) { if (!cart.has(id)) { cart.add(id, source, true); n++; } }); save(); cartToast(); return n; },
-    remove: function (pid) { var f = flats.active(); if (!f) return; st.cart[f.id] = cartOf(f.id).filter(function (r) { return r.productId !== Number(pid); }); save(); },
+    remove: function (pid) { var f = flats.active(); if (!f) return; st.cart[f.id] = cartOf(f.id).filter(function (r) { return r.productId !== Number(pid); }); unmirror(pid); save(); },
     toggle: function (pid, source) { if (cart.has(pid)) { cart.remove(pid); toast('Убрали из корзины'); return false; } cart.add(pid, source); return true; },
     qty: function (pid, d) { var row = cartOf().filter(function (r) { return r.productId === Number(pid); })[0]; if (!row) return; row.qty = Math.max(1, row.qty + d); save(); },
     /* «Оформить»: корзина квартиры уходит в общую корзину оплаты (my.html?v=basket — оплата через SOVEAPP, заказы по поставщикам) */
     checkout: function () {
       var O = S.orders; if (!O) { location.href = MY + '?v=basket'; return; }
-      cartRows().forEach(function (r) { if (!O.basket.has(r.productId)) O.basket.add(r.productId, r.source === 'budget' ? 'budget' : 'catalog', r.qty); });
+      cartRows().forEach(function (r) { if (!O.basket.has(r.productId)) O.basket.add(r.productId, r.source === 'budget' ? 'budget' : 'catalog', r.qty, r.seller || undefined); });
       location.href = MY + '?v=basket';
     }
   };
@@ -201,7 +363,7 @@
       return i < 0;
     }
   };
-  function cartToast() { var t = cartTotals(); toast('В корзине · ' + t.count, { label: 'Оформить', href: anchor('cart') }); }
+  function cartToast(seller) { var t = cartTotals(); toast('В корзине · ' + (seller && seller.name ? seller.name : t.count), { label: 'Оформить', href: anchor('cart') }); }
   /* сердечки Маркета и карточки товара пишут в Избранное текущей квартиры */
   S.favs = { has: fav.has, list: function () { return fav.list(); }, toggle: function (id) { return fav.toggle(id); } };
 
@@ -336,9 +498,16 @@
       var sp = D.scout.samplePlan, c = D.capsule('k2'), area = sp.rooms.reduce(function (a, r) { return a + r.area; }, 0);
       flats.update(f.id, { jk: 'PRIDE' });
       write('plan', { level: 'developer_plan', img: 'assets/img/demo/1-domik-vsya-kvartira.jpg', rooms: sp.rooms.map(function (r) { return { name: r.name, m2: r.area }; }), variant: 'Расстановка по анкете', jk: 'PRIDE' }, f.id);
-      var mats = capsuleProducts('k2');
-      write('interior', { capsuleId: 'k2', name: c.name, img: c.cover, dna: c.dna, productIds: mats.map(function (p) { return p.id; }) }, f.id);
-      [['Кухня-гостиная', '3-kuhnya-gostinaya'], ['Спальня', '2-spalnya'], ['Спальня', '6-spalnya-pravka-komandoy'], ['Санузел', '4-sanuzel'], ['Прихожая', '5-prihozhaya']].forEach(function (x) { write('render', { room: x[0], src: 'assets/img/demo/' + x[1] + '.jpg' }, f.id); });
+      var mats = capsuleProducts('k2'), KB = window.SOVE_KB, RENDERS = [['Кухня-гостиная', '3-kuhnya-gostinaya'], ['Спальня', '2-spalnya'], ['Спальня', '6-spalnya-pravka-komandoy'], ['Санузел', '4-sanuzel'], ['Прихожая', '5-prihozhaya']];
+      var board = { capsuleId: 'k2', name: c.name, img: c.cover, dna: c.dna, productIds: mats.map(function (p) { return p.id; }) };
+      /* на экранах с базой материалов (kb/*) — полная доска К2 со слотами и визуализациями, как после экрана «Интерьер»: иначе мудборд без слотов */
+      if (KB && KB.fromCapsule && KB.capsule && KB.capsule('k2') && KB.zoneOf) {
+        var kc = KB.capsule('k2'), slots = KB.fromCapsule('k2', 'base'), snap = {}, ang = {}; Object.keys(slots).forEach(function (k) { snap[k] = slots[k].sku; });
+        Object.assign(board, { type: 'capsule', source: 'capsule', imageUrl: c.cover, style: kc.style, dna: kc.dna, scope: 'flat', zones: [], basis: 'plan', accuracy: 'точно', slots: slots, level: 'base', objects: {}, objectDelta: 0, decor: [], tokensSpent: 0, boardGeneratedAt: Date.now(),
+          renders: RENDERS.map(function (x) { var z = KB.zoneOf(x[0]); ang[z] = (ang[z] || 0) + 1; return { zone: z, room: x[0], angle: ang[z] - 1, img: 'assets/img/demo/' + x[1] + '.jpg', skus: snap }; }) });
+      }
+      write('interior', board, f.id);
+      RENDERS.forEach(function (x) { write('render', { room: x[0], src: 'assets/img/demo/' + x[1] + '.jpg', from: 'interior' }, f.id); });
       var state = D.scout.states.filter(function (s) { return s.id === 'concrete'; })[0], kitMetod = c.pricePerM2 * area, works = state.rate * area;
       write('budget', { type: 'base', area: area, works: works, kitMetod: kitMetod, kitRetail: kitMetod * D.scout.retailMarkup, total: works + kitMetod }, f.id);
       st.fav[f.id] = mats.slice(0, 4).map(function (p) { return p.id; });
@@ -356,8 +525,8 @@
     if (confirm('Стереть все данные прототипа в этом браузере?')) { try { localStorage.removeItem('sove.proto.v1'); localStorage.removeItem(KEY); localStorage.removeItem(XKEY); } catch (x) {} location.href = 'index.html'; }
   }, true);
 
-  S.repair = { LINK: LINK, LEVEL: LEVEL, RANK: RANK, SRC: SRC, flats: flats, flatLine: flatLine, get: rp, level: level, rooms: roomsOf, roomKey: roomKey, rendersCount: rendersCount,
-    capsuleProducts: capsuleProducts, roomProducts: roomProducts, progress: progress, budgetStale: budgetStale,
+  S.repair = { LINK: LINK, LEVEL: LEVEL, RANK: RANK, SRC: SRC, STATE: STATE, ACCURACY: ACCURACY, flats: flats, flatLine: flatLine, get: rp, level: level, rooms: roomsOf, roomKey: roomKey, rendersCount: rendersCount,
+    capsuleProducts: capsuleProducts, roomProducts: roomProducts, progress: progress, budgetStale: budgetStale, interiors: interiors,
     save: saveTo, saveButton: saveButton, setMainRender: setMainRender, removeRender: removeRender, fav: fav, cart: cart, card: card, price: price, btns: btns, sync: syncButtons,
     toast: toast, renderStrip: renderStrip, ownMat: ownMat, favSets: favSets, planZones: planZones, materialsSum: materialsSum, registerProduct: registerProduct, seed: seed, reset: reset };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', renderStrip); else renderStrip();

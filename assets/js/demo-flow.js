@@ -34,26 +34,67 @@
     var rt = encodeURIComponent(location.pathname.split('/').pop() + location.search);
     var tok = bal ? '<a class="pz-tok" href="tokens.html?returnTo=' + rt + '">' + esc(bal) + ' 🎁</a>' : '';
     return '<header class="pz-head">' +
-      '<div class="pz-head__top"><button type="button" class="pz-back" data-pz-back>← Назад</button>' + tok + '</div>' +
+      '<div class="pz-head__top"><span class="pz-head__nav"><button type="button" class="pz-back" data-pz-back>← Назад</button>' +
+        '<button type="button" class="pz-back pz-back--step" data-pz-step>‹ Шаг назад</button></span>' + tok + '</div>' +
       '<h1 class="pz-head__t">Планировка</h1>' +
       '<div class="pz-bar" role="progressbar" aria-valuemin="1" aria-valuemax="' + total + '" aria-valuenow="' + step + '">' + bars +
         '<small>шаг ' + step + ' из ' + total + '</small></div>' +
       '</header>';
   }
 
+  /* ── «← Назад» и «Шаг назад» — разные кнопки (Алина 28.10: «Назад и шаг назад должны быть разными кнопками»).
+     «← Назад» выводит из Планировки туда, откуда в неё пришли (Генерации, Мой ремонт…), «Шаг назад» — на предыдущий шаг.
+     Шаги внутри plan-demo.html и arrange.html ведут сами страницы (перехватывают «Шаг назад» раньше), здесь — переходы между страницами.
+     Откуда пришли — запоминаем на входе в блок: детали (вход, токены, оплата, рамка телефона) и сами шаги Планировки не считаются.
+     Точка входа — только на страницах блока; на остальных с этой шапкой (result.html, Генерации) «← Назад» — как раньше */
+  var PLAN_PAGE = /\/(plan-demo|arrange|plan-save)\.html$/.test(location.pathname);
+  var ENTRY = 'sove.plan.entry', PAGE_RE = /^[a-z0-9_-]+\.html$/i, INNER = /^(plan-demo|arrange|plan-save|auth|tokens|phone|pay|metod)\.html$/i;
+  /* страница из адреса (referrer): только свой origin и имя вида «страница.html» с параметрами; чужой сайт, пустой
+     адрес или деталь блока — null. Так в точку входа не попадёт чужой адрес (referrer проверялся по подстроке хоста) */
+  function pageOf(href) {
+    var u; try { u = new URL(href); } catch (e) { return null; }
+    var name = u.pathname.split('/').pop();
+    return u.origin === location.origin && PAGE_RE.test(name) && !INNER.test(name) ? name + u.search : null;
+  }
+  function sameSite(href) { try { return new URL(href).origin === location.origin; } catch (e) { return false; } }
+  /* записанное тоже проверяем — переход делаем только на свою страницу вида «имя.html?…» */
+  function entryOk(v) { var m = /^([^?#]+)(\?[^#]*)?$/.exec(v || ''); return !!(m && PAGE_RE.test(m[1]) && !INNER.test(m[1])); }
+  (function () {
+    var to = PLAN_PAGE ? pageOf(document.referrer) : null;
+    if (to) try { sessionStorage.setItem(ENTRY, to); } catch (e) { /* без памяти — в Генерации */ }
+  })();
+  function entryPage() { var to = null; try { to = sessionStorage.getItem(ENTRY); } catch (e) {} return entryOk(to) ? to : 'sove-ai.html'; }
+
   document.addEventListener('click', function (e) {
     var b = e.target.closest && e.target.closest('[data-pz-back]'); if (!b) return;
-    /* из расстановки — всегда на шаг «Вопросы» Планировки (Алина 27.10: plan-demo.html?back=1).
-       Пришли туда со страницы Планировки — возвращаемся на ту же запись истории (вопросы восстанавливает plan-demo.js),
-       иначе заменяем запись: так «← Назад» с первого экрана Планировки не возвращает снова в расстановку */
-    if (/arrange\.html/.test(location.pathname) && /flow=1/.test(location.search)) {
+    /* не страница блока (Визуализации, Генерации) — назад по истории со своего сайта, иначе в Генерации */
+    if (!PLAN_PAGE) { if (history.length > 1 && sameSite(document.referrer)) history.back(); else location.href = 'sove-ai.html'; return; }
+    /* расстановка вне сценария (открыли из Мой ремонт) — назад по истории, как раньше */
+    if (/arrange\.html/.test(location.pathname) && !/flow=1/.test(location.search)) { if (history.length > 1) history.back(); else location.href = 'sove-ai.html'; return; }
+    var to = entryPage();
+    /* страницу Планировки открыли прямо со страницы входа — назад по истории, без лишней записи; иначе (пришли с шага
+       Планировки, после входа) переход: «назад по истории» замкнул бы круг первая страница → мебель → … */
+    if (history.length > 1 && pageOf(document.referrer) === to) history.back(); else location.href = to;
+  });
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest && e.target.closest('[data-pz-step]'); if (!b) return;
+    if (/arrange\.html/.test(location.pathname)) {
+      /* расстановка вне сценария (открыли из «Мой ремонт», без flow=1): шага «Вопросы» перед ней не было — назад по истории
+         со своего сайта, иначе в «Мой ремонт»; вести на вопросы с чужими ответами было бы ложным шагом */
+      if (!/flow=1/.test(location.search)) { if (history.length > 1 && sameSite(document.referrer)) history.back(); else location.href = 'my.html'; return; }
+      /* мебель и «Варианты стен» → шаг «Вопросы» (Алина 27.10: plan-demo.html?back=1). Пришли туда со страницы Планировки —
+         та же запись истории (вопросы восстанавливает plan-demo.js), иначе заменяем запись, чтобы «назад» не вёл снова в расстановку */
       if (history.length > 1 && /plan-demo\.html/.test(document.referrer)) history.back(); else location.replace('plan-demo.html?back=1');
       return;
     }
-    /* в Планировку вернулись из расстановки заменой записи или после входа (auth.html сам уводит обратно на экран мебели) —
-       «назад по истории» замкнул бы круг первая страница → мебель → …; ведём в Генерации */
-    var reentered = /plan-demo\.html/.test(location.pathname) && /\/(arrange|auth)\.html/.test(document.referrer);
-    if (!reentered && history.length > 1 && document.referrer.indexOf(location.host) >= 0) history.back(); else location.href = 'sove-ai.html';
+    /* «Моя планировка» → мебель */
+    if (/plan-save\.html/.test(location.pathname)) {
+      if (history.length > 1 && /arrange\.html/.test(document.referrer)) history.back();
+      else location.href = 'arrange.html?v=panel&flow=1' + (load().live ? '&live=1' : '');
+      return;
+    }
+    /* у шага нет предыдущего на этой странице (вопросы, открытые с экрана мебели) — назад по истории */
+    if (history.length > 1) history.back(); else location.href = entryPage();
   });
 
   /* ── цена «Вариантов стен» в токенах (открытое решение № 1 ТЗ: Алина 24.10 — «например, 10») ── */
@@ -638,24 +679,193 @@
   var RU = { 'спальня': 'Спальня', 'санузел': 'Санузел', 'прихожая': 'Прихожая', 'гостиная': 'Гостиная',
              'гостиная-кухня': 'Кухня-гостиная', 'кухня': 'Кухня', 'детская': 'Детская',
              'гардеробная': 'Гардеробная', 'балкон': 'Балкон', 'другое': 'Помещение' };
+  /* масштаб, если сервер его не прислал (28.10: маршрут отдавал разметку без scale_px_per_m, и демо считало любой план
+     шириной 9 м — у обмерного плана и дизайн-проекта мебель «не входила по метражу»). Берём площади комнат с плана
+     (их читает зрение) против площади в пикселях: у разметки по стенам — area_px рабочей копии шириной до 400 px,
+     у разметки по рамкам — рамка зрения. Медиана по комнатам; квартира уже 2 м или шире 60 м — не верим.
+     Балкон и лоджию (вне контура, площадь на плане своя) и крошечные зоны (меньше 1 % рабочей копии — обрезки у стояков)
+     не считаем: они и масштаб, и «разброс» сбивали на ровном плане */
+  function roomScales(res, W, H) {
+    var f = Math.min(1, 400 / W), tiny = 0.01 * (W * f) * (H * f), k = [];
+    (res.rooms || []).forEach(function (r) {
+      var m2 = +r.area_m2, b = r.box_2d, px = 0;
+      if (!(m2 > 0.5) || r.seeded === false || r.type === 'балкон' || /балкон|лодж/i.test(r.label || '')) return;
+      if (r.area_px > 0) { if (r.area_px < tiny) return; px = r.area_px / (f * f); }
+      else if (b) px = (b[3] - b[1]) / 1000 * W * ((b[2] - b[0]) / 1000 * H);
+      if (px > 0) k.push(Math.sqrt(px / m2));
+    });
+    return k.sort(function (a, b) { return a - b; });
+  }
+  function scaleFromRooms(res, W, H) {
+    var k = roomScales(res, W, H);
+    if (!k.length) return null;
+    var n = k.length, med = n % 2 ? k[(n - 1) / 2] : (k[n / 2 - 1] + k[n / 2]) / 2, wide = W / med;
+    return wide > 2 && wide < 60 ? { ppm: med, spread: k[n - 1] / k[0] } : null;
+  }
+  /* насколько разметке можно верить — для предупреждения на «Проверь план»:
+     scale — откуда масштаб (server / areas / guess — площадей на плане нет и сервер масштаб не прислал),
+     boxes — стены не разобраны, комнаты рамками от зрения,
+     odd — площади комнат с плана не сходятся с найденными зонами больше чем вдвое по стороне (зоны порезаны мебелью):
+     с масштабом сервера — каждая комната против него, без — разброс между комнатами; площади есть, а масштаб по ним
+     не сошёлся (квартира уже 2 м или шире 60 м) — тоже odd */
+  function markupQuality(res, W, H) {
+    var ppm = +res.scale_px_per_m || 0, s = ppm ? null : scaleFromRooms(res, W, H), k = roomScales(res, W, H), n = k.length;
+    var hasArea = (res.rooms || []).some(function (r) { return r.seeded !== false && +r.area_m2 > 0; });
+    var spread = !n ? 1 : ppm ? Math.max(k[n - 1] / ppm, ppm / k[0]) : k[n - 1] / k[0];
+    return { scale: ppm ? 'server' : s || hasArea ? 'areas' : 'guess', boxes: res.method === 'boxes',
+             odd: res.method !== 'boxes' && (spread > 2 || (hasArea && !ppm && !s)) };
+  }
+  /* ── честная оценка чтения для «Проверь план» (PR2) ──
+     Новый сервер присылает quality {level: ok | approx | poor, path: walls | boxes | flats, reasons: [коды]…}; старый — нет,
+     тогда собираем её из markupQuality: рамки → approx + walls_unresolved, зоны не сходятся → poor + areas_mismatch,
+     масштаб угадан → approx + no_scale; вход — по проёмам. Вход, отмеченный человеком, лежит в openings — ему верим
+     больше, чем коду no_entrance от сервера: причину снимаем, и если причин не осталось, план по стенам считаем ok */
+  var REASON_RU = {
+    no_scale: 'на плане нет площадей — размеры в 3D примерные',
+    areas_mismatch: 'площади комнат не сходятся с найденными зонами',
+    no_entrance: 'вход не нашли — отметь его',
+    no_windows: 'окна не нашли',
+    walls_unresolved: 'стены не разобрались — комнаты показаны прямоугольниками',
+    rooms_unseeded: 'часть комнат не легла на план',
+    openings_dropped: 'часть дверей не подтвердилась',
+    labels_uncertain: 'подписи комнат могли перепутаться — проверь названия',
+    multiple_flats: 'на листе несколько квартир',
+    pro_failed: 'проверка сильной моделью не сработала'
+  };
+  function qualityOf(res, W, H) {
+    res = res || {};
+    var ops = res.openings || [], hasEntrance = ops.some(function (o) { return o.kind === 'entrance'; }), hasWindow = ops.some(function (o) { return o.kind === 'window'; });
+    var flats = Array.isArray(res.flats) ? res.flats.filter(function (f) { return f && Array.isArray(f.box_2d) && f.box_2d.length === 4; }) : [];
+    var q = res.quality, out;
+    if (q && typeof q === 'object' && q.level) {
+      out = { level: /^(ok|approx|poor)$/.test(q.level) ? q.level : 'approx', path: /^(walls|boxes|flats)$/.test(q.path) ? q.path : (res.method === 'boxes' ? 'boxes' : res.method === 'flats' ? 'flats' : 'walls'),
+              reasons: (Array.isArray(q.reasons) ? q.reasons : []).filter(function (c) { return typeof c === 'string'; }), server: true };
+    } else if (res.method === 'flats') {
+      out = { level: 'poor', path: 'flats', reasons: ['multiple_flats'], server: false };
+    } else {
+      var m = markupQuality(res, W > 0 ? W : 1000, H > 0 ? H : 1000), reasons = [], level = 'ok';
+      if (m.boxes) { reasons.push('walls_unresolved'); level = 'approx'; }
+      if (m.odd) { reasons.push('areas_mismatch'); level = 'poor'; }
+      if (m.scale === 'guess') { reasons.push('no_scale'); if (level === 'ok') level = 'approx'; }
+      if (!hasEntrance) { reasons.push('no_entrance'); if (level === 'ok') level = 'approx'; }
+      if (flats.length > 1) reasons.push('multiple_flats');
+      out = { level: level, path: res.method === 'boxes' ? 'boxes' : 'walls', reasons: reasons, server: false };
+    }
+    if (hasEntrance) out.reasons = out.reasons.filter(function (c) { return c !== 'no_entrance'; });
+    if (!out.reasons.length && out.level !== 'ok' && out.path === 'walls') out.level = 'ok';
+    out.entrance_found = hasEntrance; out.windows_found = hasWindow; out.flats = flats;
+    return out;
+  }
+  /* причины словами: только известные коды, не больше max (по умолчанию двух) */
+  function reasonsText(q, max) {
+    return ((q && q.reasons) || []).map(function (c) { return REASON_RU[c]; }).filter(Boolean).slice(0, max || 2).join(', ');
+  }
+  /* ── поворот ответа разметки на 90° по часовой вместе с картинкой (кнопка «Повернуть» без запроса к серверу) ──
+     Точка [y, x] в долях 0–1000 → [x, 1000 − y]; рамка [y1, x1, y2, x2] → [x1, 1000 − x2, x2, 1000 − x1];
+     стороны north → east → south → west → north («south-east» — по частям). Обходим весь ответ: box_2d / main_box_2d /
+     flat_box_2d (комнаты, ниши, квартиры, outside, dropped), point_2d, span_2d, polygon, wall / wall_of_a / wall_of_b /
+     side / position; image_size меняет стороны. Подписанная картинка сервера к повёрнутому ответу не подходит — убираем */
+  var SIDE_CW = { north: 'east', east: 'south', south: 'west', west: 'north' };
+  function rotateSide(s) { return String(s).split('-').map(function (p) { return SIDE_CW[p] || p; }).join('-'); }
+  function rotatePoint(p) { return [p[1], 1000 - p[0]]; }
+  function rotateBox(b) { return [b[1], 1000 - b[2], b[3], 1000 - b[0]]; }
+  function rotateRes(res) {
+    var BOX = { box_2d: 1, main_box_2d: 1, flat_box_2d: 1 }, SIDE = { wall: 1, wall_of_a: 1, wall_of_b: 1, side: 1, position: 1 };
+    function nums(v, n) { return Array.isArray(v) && v.length === n && v.every(function (x) { return typeof x === 'number' && isFinite(x); }); }
+    function walk(o) {
+      if (Array.isArray(o)) return o.map(walk);
+      if (!o || typeof o !== 'object') return o;
+      var out = {};
+      Object.keys(o).forEach(function (k) {
+        var v = o[k];
+        if (k === 'labeled_png_base64' || k === 'source_image_base64') return;   /* картинки сервера к повёрнутому ответу не подходят */
+        if (BOX[k] && nums(v, 4)) out[k] = rotateBox(v);
+        else if (k === 'point_2d' && nums(v, 2)) out[k] = rotatePoint(v);
+        else if (k === 'span_2d' && Array.isArray(v) && v.length === 2 && nums(v[0], 2) && nums(v[1], 2)) {
+          var a = rotatePoint(v[0]), b = rotatePoint(v[1]);          /* первая точка — меньшая: рамки окна считаются от неё */
+          out[k] = a[0] < b[0] || (a[0] === b[0] && a[1] <= b[1]) ? [a, b] : [b, a];
+        }
+        else if (k === 'polygon' && Array.isArray(v)) out[k] = v.map(function (p) { return nums(p, 2) ? rotatePoint(p) : p; });
+        else if (k === 'image_size' && nums(v, 2)) out[k] = [v[1], v[0]];
+        else if (k === 'along' && (v === 'x' || v === 'y')) out[k] = v === 'x' ? 'y' : 'x';   /* ось проёма doors_2d / windows_2d */
+        else if (SIDE[k] && typeof v === 'string') out[k] = rotateSide(v);
+        else out[k] = walk(v);
+      });
+      return out;
+    }
+    return walk(res);
+  }
+  /* точка проёма в долях 0–1000: середина отрезка, если точки нет */
+  function openingPoint(o) {
+    return o.point_2d || (o.span_2d ? [(o.span_2d[0][0] + o.span_2d[1][0]) / 2, (o.span_2d[0][1] + o.span_2d[1][1]) / 2] : null);
+  }
+  /* ── проёмы привязаны к комнатам по id, а не по типу ──
+     Раньше дверь знала только типы комнат (a / b): когда человек на «Проверь план» исправлял «Спальня» → «Кухня-гостиная»,
+     тип менялся, и проёмы приходилось переписывать одним проходом по старым типам (а две комнаты одного типа путались).
+     Теперь сразу после ответа сервера каждая комната получает id (с сервера, иначе r0, r1…), а каждый проём — a_id / b_id /
+     room_id: с сервера, если он их прислал, иначе по типу и близости к точке проёма. Делается один раз; переименование
+     комнаты id не меняет. Типы (room / a / b) остаются — по ним откат там, где id нет (старый сервер) */
+  function resolveOpenings(res) {
+    if (!res) return res;
+    var rooms = res.rooms || [];
+    rooms.forEach(function (r, i) { if (!r.id) r.id = 'r' + i; });
+    var live = rooms.filter(function (r) { return r.seeded !== false && r.box_2d; });
+    function has(id) { return !!id && rooms.some(function (r) { return r.id === id; }); }
+    function gap(p, b) { var dy = Math.max(b[0] - p[0], 0, p[0] - b[2]), dx = Math.max(b[1] - p[1], 0, p[1] - b[3]); return dy * dy + dx * dx; }
+    /* комната этого типа, ближайшая к точке; skip = 1 — вторая по близости (дверь между двумя комнатами одного типа) */
+    function pick(type, p, skip) {
+      var c = live.filter(function (r) { return r.type === type; }); if (!c.length) return null;
+      if (c.length > 1 && p) c.sort(function (x, y) { return gap(p, x.main_box_2d || x.box_2d) - gap(p, y.main_box_2d || y.box_2d); });
+      return c[Math.min(skip || 0, c.length - 1)].id;
+    }
+    (res.openings || []).forEach(function (o) {
+      var p = openingPoint(o), same = !!o.b && o.a === o.b;
+      if (!has(o.a_id)) o.a_id = o.a ? pick(o.a, p, 0) : null;
+      if (!has(o.b_id)) o.b_id = o.b ? pick(o.b, p, same ? 1 : 0) : null;
+      if (!has(o.room_id)) o.room_id = (o.room ? pick(o.room, p, 0) : null) || o.a_id || null;
+    });
+    return res;
+  }
   function frameFromMarkup(res, W, H) {
-    var ppm = +(res.scale_px_per_m || (W / 9));
+    var est = res.scale_px_per_m ? null : scaleFromRooms(res, W, H);
+    var ppm = +(res.scale_px_per_m || (est && est.ppm) || (W / 9));
     function px(b) { return [Math.round(b[1] / 1000 * W), Math.round(b[0] / 1000 * H), Math.round(b[3] / 1000 * W), Math.round(b[2] / 1000 * H)]; }
     var rooms = [], windows = [], doors = [];
     (res.rooms || []).forEach(function (r) {
       if (r.seeded === false || !r.box_2d) return;
       var name = r.label || RU[r.type] || (r.type || 'Помещение');
-      rooms.push({ name: name, type: r.type, box: px(r.main_box_2d || r.box_2d), doc_m2: r.area_m2 });
-      if (r.recess) rooms.push({ name: 'Ниша: ' + name, type: r.type, part_of: name, box: px(r.recess.box_2d),
+      rooms.push({ id: r.id, name: name, type: r.type, box: px(r.main_box_2d || r.box_2d), doc_m2: r.area_m2 });
+      /* part_id — id хозяина: две комнаты с одним названием не делят ниши (чертёж, разбор 30.10); part_of — имя, как раньше */
+      if (r.recess) rooms.push({ name: 'Ниша: ' + name, type: r.type, part_of: name, part_id: r.id || null, box: px(r.recess.box_2d),
         doc_m2: Math.round((r.recess.depth_m || 0) * (r.recess.width_m || 0) * 10) / 10, contains: r.recess.contains });
     });
     var clear = 0.9 * ppm, wall = 0.3 * ppm;
+    /* разметка по рамкам (стены не разобраны): у окна только точка в середине стены, у двери — без стороны.
+       Окну даём 1,2 м вдоль стены, двери сторону — по тому, на какой стороне рамки комнаты лежит точка.
+       Рамку комнаты ищем по id (a_id), по типу — только если id нет */
+    var boxOf = {}, boxOfType = {};
+    (res.rooms || []).forEach(function (r) {
+      if (!r.box_2d) return;
+      if (r.id && !boxOf[r.id]) boxOf[r.id] = r.main_box_2d || r.box_2d;
+      if (!boxOfType[r.type]) boxOfType[r.type] = r.main_box_2d || r.box_2d;
+    });
+    function sideOf(o) {
+      var b = (o.a_id && boxOf[o.a_id]) || boxOfType[o.a], p = o.point_2d; if (!b || !p) return null;
+      var d = [['north', Math.abs(p[0] - b[0])], ['south', Math.abs(p[0] - b[2])], ['west', Math.abs(p[1] - b[1])], ['east', Math.abs(p[1] - b[3])]];
+      d.sort(function (x, y) { return x[1] - y[1]; });
+      return d[0][0];
+    }
     (res.openings || []).forEach(function (o) {
+      if (o.kind === 'window' && !o.span_2d && o.point_2d && o.wall) {
+        var hy = 600 * ppm / H, hx = 600 * ppm / W, p = o.point_2d;   /* полуширина 0,6 м в долях 0–1000 */
+        o = Object.assign({}, o, { span_2d: o.wall === 'north' || o.wall === 'south' ? [[p[0], p[1] - hx], [p[0], p[1] + hx]] : [[p[0] - hy, p[1]], [p[0] + hy, p[1]]] });
+      }
+      if (o.kind === 'door' && !o.wall_of_a && !o.wall) o = Object.assign({}, o, { wall_of_a: sideOf(o) });
       if (o.kind === 'window' && o.span_2d) {
         var ay = o.span_2d[0][0], ax = o.span_2d[0][1], by = o.span_2d[1][0], bx = o.span_2d[1][1], box;
         if (ay === by) box = [ax / 1000 * W, ay / 1000 * H - wall / 2, bx / 1000 * W, by / 1000 * H + wall / 2];
         else box = [ax / 1000 * W - wall / 2, ay / 1000 * H, bx / 1000 * W + wall / 2, by / 1000 * H];
-        windows.push({ room: o.a, wall: o.wall, box: box.map(Math.round) });
+        windows.push({ room: o.a, room_id: o.room_id || o.a_id || null, wall: o.wall, box: box.map(Math.round) });
       } else if (o.kind === 'door' || o.kind === 'passage' || o.kind === 'entrance') {
         if (!o.point_2d) return;
         var cy = o.point_2d[0] / 1000 * H, cx = o.point_2d[1] / 1000 * W;
@@ -666,35 +876,419 @@
                  [cx - half, cy - clear, cx + half, cy + clear];
         } else if (side === 'north' || side === 'south') box2 = [cx - half, cy - clear, cx + half, cy + clear];
         else box2 = [cx - clear, cy - half, cx + clear, cy + half];
-        doors.push({ kind: o.kind, a: o.a, b: o.b, box: box2.map(Math.round) });
+        doors.push({ kind: o.kind, a: o.a, b: o.b, a_id: o.a_id || null, b_id: o.b_id || null, box: box2.map(Math.round) });
       }
     });
-    return { px_per_m: Math.round(ppm * 100) / 100, rooms: rooms, windows: windows, doors: doors,
+    var frame = { px_per_m: Math.round(ppm * 100) / 100, rooms: rooms, windows: windows, doors: doors,
              outside: (res.outside || []).map(function (p) { return { box: px(p.box_2d) }; }) };
+    var img = imageWalls(res, px, ppm);
+    if (img) { frame.walls_2d = img.walls; frame.doors_2d = img.doors; frame.windows_2d = img.windows; }
+    return frame;
+  }
+  /* ── стены с картинки плана (сервер 29.10: walls_2d / doors_2d / windows_2d) ──
+     Прямоугольники стен с уже вырезанными дверями и окнами — по ним рисуют чертёж и 3D, а не стены, достроенные из рамок
+     комнат (лист девочек 29.10: «квадрат» у санузла, ступеньки на стенах, 3D не совпадало с чертежом). В рамку — в пикселях
+     картинки, как остальное: walls_2d [{ box }], doors_2d [{ box, along, kind, a, b, a_id, b_id }], windows_2d [{ box, along,
+     room, room_id, wall }]; along — вдоль какой оси идёт проём. Окно и дверь сервер отдаёт тем куском стены, что вырезал, а он
+     бывает тоньше самой стены (PDF 29.10: окно — линия стекла 5 см в стене 25 см, над и под ней пусто; PRIDE: окно у наружной
+     грани, за ним пустая ниша). Такой проём дотягиваем до граней стены по косякам — кускам стены у его концов (их край — в 5 см
+     от конца проёма), — но не дальше 0,35 м в каждую сторону: глубокий простенок с нишей под батарею (лист девочек, 0,45 м)
+     не заполняем. Стен в ответе нет (старый сервер, пример PRIDE) — полей в рамке нет, всё как раньше */
+  var FIT_TOL_M = 0.05, FIT_MAX_M = 0.35;
+  function swapXY(b) { return [b[1], b[0], b[3], b[2]]; }
+  function fitOpening(box, alongX, walls, ppm) {
+    if (!alongX) return swapXY(fitOpening(swapXY(box), true, walls.map(swapXY), ppm));
+    var tol = Math.max(1, FIT_TOL_M * ppm), far = FIT_MAX_M * ppm;
+    /* косяк у конца проёма: куски стены, примыкающие к этому концу, — цепочкой от проёма по толщине стены */
+    function jamb(x, left) {
+      var js = walls.filter(function (w) { return Math.abs((left ? w[2] : w[0]) - x) <= tol; }), b0 = box[1], b1 = box[3], found = false, grew = true;
+      while (grew) {
+        grew = false;
+        js.forEach(function (j) {
+          if (j[1] > b1 + tol || j[3] < b0 - tol) return;
+          found = true;
+          if (j[1] < b0) { b0 = j[1]; grew = true; }
+          if (j[3] > b1) { b1 = j[3]; grew = true; }
+        });
+      }
+      return found ? [b0, b1] : null;
+    }
+    /* оба косяка — общая их часть (у угла один косяк — перпендикулярная стена, её длину не берём) */
+    var L = jamb(box[0], true), R = jamb(box[2], false), B = L && R ? [Math.max(L[0], R[0]), Math.min(L[1], R[1])] : L || R;
+    if (!B || B[0] > B[1]) return box;
+    var y0 = Math.min(B[0], box[1]), y1 = Math.max(B[1], box[3]);
+    walls.forEach(function (w) {                              /* на другие стены не залезаем */
+      if (Math.min(w[2], box[2]) - Math.max(w[0], box[0]) <= tol) return;
+      if (w[3] <= box[1] && w[3] > y0) y0 = w[3];
+      if (w[1] >= box[3] && w[1] < y1) y1 = w[1];
+    });
+    return [box[0], box[1] - y0 <= far ? y0 : box[1], box[2], y1 - box[3] <= far ? y1 : box[3]];
+  }
+  function imageWalls(res, px, ppm) {
+    function ok(b) { return Array.isArray(b) && b.length === 4 && b.every(function (v) { return typeof v === 'number' && isFinite(v); }); }
+    function pxN(b) { return px([Math.min(b[0], b[2]), Math.min(b[1], b[3]), Math.max(b[0], b[2]), Math.max(b[1], b[3])]); }
+    function real(b) { return b[2] > b[0] && b[3] > b[1]; }
+    function axis(o, b) { return o.along === 'x' || o.along === 'y' ? o.along : (b[2] - b[0] >= b[3] - b[1] ? 'x' : 'y'); }
+    var walls = (Array.isArray(res.walls_2d) ? res.walls_2d : []).filter(function (w) { return w && ok(w.box_2d); }).map(function (w) { return pxN(w.box_2d); }).filter(real);
+    if (!walls.length) return null;
+    var doors = [], windows = [];
+    (Array.isArray(res.doors_2d) ? res.doors_2d : []).forEach(function (d) {
+      if (!d || !ok(d.box_2d)) return;
+      var b = pxN(d.box_2d), al = axis(d, b); if (!real(b)) return;
+      doors.push({ box: fitOpening(b, al === 'x', walls, ppm), along: al, kind: d.kind || 'door', a: d.a || null, b: d.b || null, a_id: d.a_id || null, b_id: d.b_id || null });
+    });
+    (Array.isArray(res.windows_2d) ? res.windows_2d : []).forEach(function (w) {
+      if (!w || !ok(w.box_2d)) return;
+      var b = pxN(w.box_2d), al = axis(w, b); if (!real(b)) return;
+      windows.push({ box: fitOpening(b, al === 'x', walls, ppm), along: al, room: w.room || null, room_id: w.room_id || null, wall: w.wall || null });
+    });
+    return { walls: walls.map(function (b) { return { box: b }; }), doors: doors, windows: windows };
+  }
+  /* ── «Отметить вход» по стенам с картинки (разбор 30.10: вход менялся только в проёмах, а 3D и чертёж строятся
+     из walls_2d / doors_2d — створка оставалась на старом месте). Всё в долях 0–1000 [ymin, xmin, ymax, xmax].
+     1) Прежняя створка входа уходит из doors_2d. Своя (поле cut — что вырезали) возвращает вырезанные куски; створка сервера
+        заделывается куском стены, если стену там резали: у её конца вплотную кусок той же стены (косяк) — толщина по косякам.
+        Нет косяков вплотную — это разрыв, нарисованный на плане, он остаётся разрывом.
+     2) Новая — как дверь в cut_openings сервера (ai_plan_markup.py): 0,9 м вдоль стены, на которой точка (сторона комнаты
+        wall), по толщине ближайшего куска стены этой оси вместе со слоями той же стены вплотную (штриховка даёт 2–3 слоя).
+        Точка отметки лежит на рамке комнаты, а стена бывает в 0,3 м от неё, поэтому вырез строим по самой стене, а не ±0,4 м
+        от точки; вдоль — в пределах стороны комнаты, чтобы проём не уходил в угол. Створка — вырезанное место:
+        { box_2d, along, kind: 'entrance', a, a_id, wall, cut }. Стен с картинки нет — ответ не трогаем */
+  function cutEntrance(res, W, H) {
+    var src = res && Array.isArray(res.walls_2d) ? res.walls_2d : null;
+    if (!src || !src.length || !(W > 0) || !(H > 0)) return res;
+    var est = res.scale_px_per_m ? null : scaleFromRooms(res, W, H);
+    var ppm = +(res.scale_px_per_m || (est && est.ppm) || (W / 9)), mx = ppm / W * 1000, my = ppm / H * 1000;   /* 1 м в долях по x и y */
+    function ok(b) { return Array.isArray(b) && b.length === 4 && b.every(function (v) { return typeof v === 'number' && isFinite(v); }); }
+    function nb(b) { return [Math.min(b[0], b[2]), Math.min(b[1], b[3]), Math.max(b[0], b[2]), Math.max(b[1], b[3])]; }
+    function r2(b) { return b.map(function (v) { return Math.round(v * 100) / 100; }); }
+    function over(a0, a1, b0, b1) { return Math.min(a1, b1) - Math.max(a0, b0); }
+    var rects = src.filter(function (w) { return w && ok(w.box_2d); }).map(function (w) { return nb(w.box_2d); });
+    /* оси куска: ax — стена идёт вдоль x (горизонтальная); la/lb — индексы вдоль, ta/tb — поперёк (толщина) */
+    function axes(ax) { return ax ? { la: 1, lb: 3, ta: 0, tb: 2, ul: mx, ut: my } : { la: 0, lb: 2, ta: 1, tb: 3, ul: my, ut: mx }; }
+    /* слои той же стены вплотную к полосе [t0, t1] — цепочкой: кусок идёт вдоль стены (вдоль длиннее, чем поперёк) и перекрывает
+       проём [s0, s1] хотя бы наполовину — проёма или своей длины (короткий слой у косяка). Перегородка, упёршаяся в стену
+       поперёк, вдоль короче, чем поперёк, — в толщину не попадает */
+    function layers(t0, t1, s0, s1, A) {
+      var tol = 0.02 * A.ut, grew = true;
+      while (grew) {
+        grew = false;
+        rects.forEach(function (r) {
+          var len = r[A.lb] - r[A.la], ov = over(r[A.la], r[A.lb], s0, s1);
+          if (len / A.ul < (r[A.tb] - r[A.ta]) / A.ut || (ov < 0.5 * (s1 - s0) && ov < 0.5 * len)) return;
+          if (r[A.tb] < t0 - tol || r[A.ta] > t1 + tol) return;
+          if (r[A.ta] < t0 && t1 - r[A.ta] <= 0.8 * A.ut) { t0 = r[A.ta]; grew = true; }
+          if (r[A.tb] > t1 && r[A.tb] - t0 <= 0.8 * A.ut) { t1 = r[A.tb]; grew = true; }
+        });
+      }
+      return [t0, t1];
+    }
+    /* вырезать прямоугольник c из всех кусков: (что осталось, что вырезано) — как _cut сервера. Обрезки не выбрасываем
+       (сервер убирает тоньше 3 см): вырезанное ровно дополняет оставшееся, и повторная отметка возвращает стену как была */
+    function cut(c) {
+      var keep = [], parts = [];
+      rects.forEach(function (r) {
+        var i = [Math.max(r[0], c[0]), Math.max(r[1], c[1]), Math.min(r[2], c[2]), Math.min(r[3], c[3])];
+        if (i[0] >= i[2] || i[1] >= i[3]) { keep.push(r); return; }
+        parts.push(i);
+        [[r[0], r[1], i[0], r[3]], [i[2], r[1], r[2], r[3]], [i[0], r[1], i[2], i[1]], [i[0], i[3], i[2], r[3]]].forEach(function (p) {
+          if (p[2] - p[0] > 1e-6 && p[3] - p[1] > 1e-6) keep.push(p);
+        });
+      });
+      rects = keep;
+      return parts;
+    }
+    /* 1) прежняя створка входа: заделать, если стену резали */
+    function closeGap(b, along) {
+      var ax = along === 'x' ? true : along === 'y' ? false : (b[3] - b[1]) / mx >= (b[2] - b[0]) / my, A = axes(ax), tol = 0.02 * A.ul, tt = 0.02 * A.ut;
+      /* косяк у конца створки: куски стены (вдоль не короче 0,25 м — короткие уступы у проёма в толщину не берём), кончающиеся
+         у этого конца, — цепочкой по толщине от створки: все слои стены */
+      function jamb(end, left) {
+        var js = rects.filter(function (r) { return Math.abs((left ? r[A.lb] : r[A.la]) - end) <= tol && (r[A.lb] - r[A.la]) / A.ul >= 0.25; });
+        var t0 = b[A.ta], t1 = b[A.tb], found = false, grew = true;
+        while (grew) {
+          grew = false;
+          js.forEach(function (j) {
+            if (j[A.tb] < t0 - tt || j[A.ta] > t1 + tt) return;
+            found = true;
+            if (j[A.ta] < t0 && t1 - j[A.ta] <= 0.8 * A.ut) { t0 = j[A.ta]; grew = true; }
+            if (j[A.tb] > t1 && j[A.tb] - t0 <= 0.8 * A.ut) { t1 = j[A.tb]; grew = true; }
+          });
+        }
+        return found ? [t0, t1] : null;
+      }
+      var L = jamb(b[A.la], true), R = jamb(b[A.lb], false), T = L && R ? [Math.max(L[0], R[0]), Math.min(L[1], R[1])] : L || R;
+      if (!T || T[1] - T[0] <= 0) return null;
+      var out = b.slice(); out[A.ta] = T[0]; out[A.tb] = T[1];
+      /* косяк только с одной стороны: щель до ближайшего куска той же стены с другой (до 0,3 м) тоже заделываем — разрыв
+         на плане бывает шире створки сервера (лист девочек: 12 см у входа), и в стене оставалась прорезь */
+      function reach(left) {
+        var best = null;
+        rects.forEach(function (r) {
+          if (over(r[A.ta], r[A.tb], T[0], T[1]) <= 0) return;
+          var d = left ? out[A.la] - r[A.lb] : r[A.la] - out[A.lb];
+          if (d > 0 && d <= 0.3 * A.ul && (!best || d < best.d)) best = { d: d, v: left ? r[A.lb] : r[A.la] };
+        });
+        return best;
+      }
+      var gl = L ? null : reach(true), gr = R ? null : reach(false);
+      if (gl) out[A.la] = gl.v;
+      if (gr) out[A.lb] = gr.v;
+      return out;
+    }
+    var doors = (Array.isArray(res.doors_2d) ? res.doors_2d : []).filter(function (d) {
+      if (!d || d.kind !== 'entrance') return true;
+      if (Array.isArray(d.cut)) d.cut.forEach(function (p) { if (p && ok(p.box_2d)) rects.push(nb(p.box_2d)); });
+      else if (ok(d.box_2d)) { var back = closeGap(nb(d.box_2d), d.along); if (back) rects.push(back); }
+      return false;
+    });
+    /* 2) новая створка в точке входа */
+    var o = (res.openings || []).filter(function (x) { return x && x.kind === 'entrance' && Array.isArray(x.point_2d) && x.point_2d.length === 2; })[0];
+    var py = o ? +o.point_2d[0] : 0, px = o ? +o.point_2d[1] : 0, w = o ? Math.min(+o.width_m || 0.9, 1.0) : 0.9;
+    var side = o ? o.wall_of_a || o.wall : null, ax = side === 'north' || side === 'south' ? true : side === 'east' || side === 'west' ? false : null;
+    var dist = function (r, A) { var p = A.ta === 0 ? py : px; return Math.max(r[A.ta] - p, 0, p - r[A.tb]) / A.ut; };
+    /* кусок стены этой оси (вдоль длиннее, чем поперёк, толщина до 0,8 м) не дальше 0,8 м от точки поперёк;
+       gapM — насколько он может не доставать до проёма [s0, s1] вдоль: 0 — перекрывает его хотя бы на 0,2 м */
+    var nearest = function (A, s0, s1, gapM) {
+      function along(r) { return over(r[A.la], r[A.lb], s0, s1); }
+      return rects.filter(function (r) {
+        var len = (r[A.lb] - r[A.la]) / A.ul, thick = (r[A.tb] - r[A.ta]) / A.ut;
+        return len >= thick && thick <= 0.8 && dist(r, A) <= 0.8 && (gapM ? along(r) >= -gapM * A.ul : along(r) >= 0.2 * A.ul);
+      }).sort(function (p1, p2) { return dist(p1, A) - dist(p2, A) || along(p2) - along(p1); })[0] || null;
+    };
+    if (o && ax === null) {                               /* стороны нет — ось по ближайшему куску, как у сервера */
+      var hx = nearest(axes(true), px - w / 2 * mx, px + w / 2 * mx), hy = nearest(axes(false), py - w / 2 * my, py + w / 2 * my);
+      ax = !!hx && (!hy || dist(hx, axes(true)) <= dist(hy, axes(false)));
+    }
+    var A = axes(ax), half = w / 2 * A.ul, c0 = A.la === 1 ? px : py;
+    /* вдоль — в пределах стороны своей комнаты: тап у угла не уводит проём в соседнюю стену */
+    var room = o ? (res.rooms || []).filter(function (x) { return x && x.id && x.id === (o.a_id || o.room_id); })[0] : null;
+    var rb = room ? nb(room.main_box_2d || room.box_2d || []) : null;
+    if (rb && ok(rb) && rb[A.lb] - rb[A.la] >= 2 * half) c0 = Math.max(rb[A.la] + half, Math.min(rb[A.lb] - half, c0));
+    var s0 = c0 - half, s1 = c0 + half, near = o ? nearest(A, s0, s1, 0) : null, T = null;
+    if (near) T = layers(near[A.ta], near[A.tb], s0, s1, A);
+    else if (o) {
+      /* стены в точке нет — вход нарисован разрывом (план застройщика): толщина — по куску стены у разрыва, до 1 м вдоль */
+      var jam = nearest(A, s0, s1, 1.0);
+      if (jam) T = layers(jam[A.ta], jam[A.tb], jam[A.la], jam[A.lb], A);
+    }
+    if (T) {
+      var c = []; c[A.la] = s0; c[A.lb] = s1; c[A.ta] = T[0]; c[A.tb] = T[1];
+      var parts = cut(c);
+      doors.push({ box_2d: r2(c), along: ax ? 'x' : 'y', kind: 'entrance', a: o.a || null, b: null, a_id: o.a_id || o.room_id || null,
+        b_id: null, wall: side || null, by_user: !!o.by_user, cut: parts.map(function (p) { return { box_2d: r2(p) }; }) });
+    }
+    res.walls_2d = rects.map(function (q) { return { box_2d: r2(q) }; });
+    res.doors_2d = doors;
+    return res;
+  }
+  /* расстановка (/ai/layout/auto) отдаёт только комнаты, окна, двери и «вне квартиры» — стены с картинки возвращаем из нашей рамки */
+  function carryWalls(lay, frame) {
+    if (!lay || !frame || !frame.walls_2d) return lay;
+    ['walls_2d', 'doors_2d', 'windows_2d'].forEach(function (k) { if (!lay[k] && frame[k]) lay[k] = frame[k]; });
+    return lay;
+  }
+  /* расстановка вернула комнаты, окна и двери без id (сервер их потерял) — возвращаем id по типу и рамке из нашей же рамки */
+  function restoreIds(lay, frame) {
+    if (!lay || !frame) return lay;
+    function same(a, b) { return a && b && a.length === 4 && a.every(function (v, i) { return Math.abs(v - b[i]) < 1.5; }); }
+    [['rooms', ['id']], ['windows', ['room_id']], ['doors', ['a_id', 'b_id']]].forEach(function (x) {
+      var k = x[0], keys = x[1], src = frame[k] || [];
+      (lay[k] || []).forEach(function (it) {
+        if (keys.every(function (kk) { return it[kk]; })) return;
+        var m = src.filter(function (s) { return same(s.box, it.box) && (k !== 'rooms' || s.type === it.type); })[0];
+        if (m) keys.forEach(function (kk) { if (!it[kk] && m[kk]) it[kk] = m[kk]; });
+      });
+    });
+    return lay;
   }
 
-  /* анкета из четырёх ответов → формат brief, который читает /ai/layout/auto */
+  /* тип комнаты по названию, которое человек исправил на «Проверь план»: мебель сервер ставит по типу (спальня,
+     гостиная / кухня, санузел, прихожая), а зрение путает типы на плане без подписей (у обмерного — только номера).
+     Детская — как спальня (кровать, шкаф). Слово не узнали — тип остаётся от зрения */
+  function typeFromName(name) {
+    var s = ' ' + String(name || '').toLowerCase().replace(/ё/g, 'е') + ' ';
+    if (/кухн[а-я]*[\s-]*гост|гост[а-я]*[\s-]*кухн|студи/.test(s)) return 'гостиная-кухня';
+    if (/санузел|сан\.?\s*узел|с\/у|ванн|туалет|уборн|душев/.test(s)) return 'санузел';
+    if (/прихож|коридор|холл|тамбур/.test(s)) return 'прихожая';
+    if (/гардероб/.test(s)) return 'гардеробная';
+    if (/балкон|лодж/.test(s)) return 'балкон';
+    if (/кухн/.test(s)) return 'кухня';
+    if (/гостин|[^а-я]зал[^а-я]/.test(s)) return 'гостиная';
+    if (/детск/.test(s)) return 'детская';           /* в списке типов — «Детская»; мебель расставляем как в спальне (goLive) */
+    if (/спальн/.test(s)) return 'спальня';
+    return null;
+  }
+
+  /* анкета → формат brief, который читает /ai/layout/auto (bedroom · storage · kitchen · living · bathroom · laundry).
+     Раньше кухня, холодильник и стол были зашиты («Г-образная», «встроенный», «на 4»), а рабочее место — всегда «нет»;
+     теперь берём ответы человека, где вопрос есть, а где вопроса нет — прежние умолчания.
+     brief: { bed, sofa, sleeper, table, kitchen, fridge, bath, wash, work, storage } — собирает commit() в plan-demo.js */
   function briefFromAnswers(a) {
     a = a || {};
+    var sofa = a.sofa === 'угловой' ? 'угловой' : 'прямой, до 200 см';
+    if (a.sleeper === 'раскладной') sofa += ', раскладной';
+    var zones = ['прихожая', 'спальня']; if (a.storage) zones.push('гостиная');   /* «больше хранения» — стеллаж и в гостиной */
     return {
       rooms: { kitchen_format: 'кухня-гостиная (единое пространство)' },
-      kitchen: { shape: 'Г-образная', front_m: '2–3', fridge: 'встроенный' },
-      living: { dining_table: 'стол на 4', sofa: a.sofa || 'прямой, до 200 см', tv: true, extra: 'место для хранения' },
+      kitchen: { shape: a.kitchen || 'Г-образная', front_m: '2–3', fridge: a.fridge === 'отдельный' ? 'отдельный' : 'встроенный' },
+      living: { dining_table: 'стол ' + (a.table || 'на 4'), sofa: sofa, tv: true, extra: 'место для хранения' },
       bedroom: { bed: a.bed || '160×200', nightstands: 2, wardrobe: 'шкаф', workplace: a.work === 'да', tv: false },
       bathroom: { shower: a.bath === 'ванна' ? '' : 'встроенный', bathtub: a.bath === 'ванна', wc: 'подвесной', sink: 'накладная' },
-      storage: { zones: ['прихожая', 'спальня'] },
-      laundry: { appliances: ['стиральная машина'] }
+      storage: { zones: zones },
+      /* стирка не в санузле (ниша прихожей, кухня, шкаф, постирочная) — машину в санузел не ставим */
+      laundry: { appliances: !a.wash || a.wash === 'в санузле' ? ['стиральная машина'] : [] }
     };
   }
 
-  /* вызовы API того же сервера; на стенде /api/ проксируется на API, как на сайте */
-  function apiMarkup(file) {
-    var fd = new FormData(); fd.append('file', file, file.name || 'plan.jpg');
-    return fetch('/api/ai/plan/markup', { method: 'POST', body: fd }).then(unwrap);
+  /* ── файл плана: тип, ключ, подготовка к отправке ──
+     Принимаем JPG, PNG, WebP, GIF, BMP, HEIC и PDF. У HEIC с Android тип часто пустой — смотрим на расширение */
+  var EXT_TYPE = { jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp', gif: 'image/gif', bmp: 'image/bmp',
+                   heic: 'image/heic', heif: 'image/heif', pdf: 'application/pdf' };
+  function extOf(name) { var m = /\.([a-z0-9]+)$/i.exec(String(name || '')); return m ? m[1].toLowerCase() : ''; }
+  /* тип файла по MIME или расширению; '' — не наш формат */
+  function fileType(file) {
+    var t = String(file && file.type || '').toLowerCase(), byExt = EXT_TYPE[extOf(file && file.name)] || '';
+    if (t === 'application/pdf' || /^image\/(jpe?g|png|webp|gif|bmp|heic|heif)$/.test(t)) return t;
+    if (!t || t === 'application/octet-stream' || /^image\//.test(t)) return byExt;
+    return '';
+  }
+  function baseName(name) { return String(name || '').replace(/\.[a-z0-9]+$/i, '') || 'plan'; }
+  /* ключ файла — 16 hex: FNV-1a 32 бит дважды (разные начальные значения) по размеру, имени и первым/последним 64 КБ.
+     Нужен, чтобы расстановки двух разных файлов с одинаковым именем (image.jpg с телефона) не делили одну запись.
+     crypto.subtle здесь недоступен — демо открывают по http */
+  function readBytes(blob) {
+    if (blob.arrayBuffer) return blob.arrayBuffer().then(function (b) { return new Uint8Array(b); });
+    return new Promise(function (ok, no) { var fr = new FileReader(); fr.onload = function () { ok(new Uint8Array(fr.result)); }; fr.onerror = function () { no(fr.error); }; fr.readAsArrayBuffer(blob); });
+  }
+  function fnv1a(bytes, h) { for (var i = 0; i < bytes.length; i++) { h ^= bytes[i]; h = Math.imul(h, 16777619) >>> 0; } return h >>> 0; }
+  function hex8(n) { return ('00000000' + n.toString(16)).slice(-8); }
+  function fileKey(file) {
+    var K = 65536, size = file.size || 0, head = file.slice(0, Math.min(K, size)), tail = size > K ? file.slice(Math.max(K, size - K)) : null;
+    var meta = []; String(size + ':' + (file.name || '')).split('').forEach(function (c) { var code = c.charCodeAt(0); meta.push(code & 255, code >> 8); });
+    return Promise.all([readBytes(head), tail ? readBytes(tail) : Promise.resolve(new Uint8Array(0))]).then(function (parts) {
+      var h1 = 0x811c9dc5, h2 = 0x050c5d1f;
+      [new Uint8Array(meta)].concat(parts).forEach(function (b) { h1 = fnv1a(b, h1); h2 = fnv1a(b, h2 ^ 0xa5a5a5a5); });
+      return hex8(h1) + hex8(h2);
+    }).catch(function () { return hex8(fnv1a(new Uint8Array(meta), 0x811c9dc5)) + hex8(size >>> 0); });
+  }
+  /* подготовка к отправке → { kind: 'image' | 'pdf' | 'raw', blob, name, w, h, src, key }.
+     PDF уходит как есть (kind 'pdf'). Картинку браузер открывает сам: открылась — рисуем на холст с белой подложкой
+     (PNG с прозрачностью) и отдаём JPEG не больше 2000 px по стороне и 4 МБ (качество 0,9 → 0,82 → 0,72, потом 1600 px);
+     EXIF-поворот браузер применяет сам, поэтому «что отправили = что показываем». Не открылась (HEIC в Chrome, битый
+     файл) — kind 'raw': файл как есть, тип по расширению (пустой тип ушёл бы как octet-stream и получил 415) */
+  var SEND_PX = [2000, 1600], SEND_Q = [0.9, 0.82, 0.72], SEND_MAX = 4 * 1024 * 1024, RAW_MAX = 10 * 1024 * 1024;
+  function prepareImage(file) {
+    return fileKey(file).then(function (key) {
+      var name = file.name || 'plan', type = fileType(file);
+      if (type === 'application/pdf') return { kind: 'pdf', blob: file, name: name, w: 0, h: 0, src: null, key: key };
+      return new Promise(function (ok, no) {
+        var url = URL.createObjectURL(file), im = new Image();
+        im.onerror = function () {
+          URL.revokeObjectURL(url);
+          var blob = type && type !== file.type ? new File([file], name, { type: type }) : file;
+          ok({ kind: 'raw', blob: blob, name: name, w: 0, h: 0, src: null, key: key });
+        };
+        im.onload = function () {
+          URL.revokeObjectURL(url);
+          var W = im.naturalWidth, H = im.naturalHeight, steps = [];
+          SEND_PX.forEach(function (px) { SEND_Q.forEach(function (q) { steps.push({ px: px, q: q }); }); });
+          function fallback() {
+            /* холст не сработал — отправляем оригинал, если он проходит по размеру сервера */
+            if (file.size <= RAW_MAX) return ok({ kind: 'image', blob: file, name: name, w: W, h: H, src: URL.createObjectURL(file), key: key });
+            var e = new Error('Файл весит ' + mbTxt(file.size) + ' МБ — больше 10 МБ. Сохрани план картинкой поменьше или сделай скриншот.'); e.kind = 'big'; no(e);
+          }
+          function step(i) {
+            var s = steps[i], k = Math.min(1, s.px / Math.max(W, H)), c = document.createElement('canvas');
+            c.width = Math.max(1, Math.round(W * k)); c.height = Math.max(1, Math.round(H * k));
+            try {
+              var g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); g.drawImage(im, 0, 0, c.width, c.height);
+              c.toBlob(function (blob) {
+                if (!blob) return fallback();
+                if (blob.size > SEND_MAX && i + 1 < steps.length) return step(i + 1);
+                ok({ kind: 'image', blob: blob, name: baseName(name) + '.jpg', w: c.width, h: c.height, src: URL.createObjectURL(blob), key: key });
+              }, 'image/jpeg', s.q);
+            } catch (e) { fallback(); }
+          }
+          step(0);
+        };
+        im.src = url;
+      });
+    });
+  }
+  function mbTxt(bytes) { return String(Math.round(bytes / 1024 / 1024 * 10) / 10).replace('.', ','); }
+
+  /* ── вызовы API того же сервера; на стенде /api/ проксируется на API, как на сайте ──
+     Разметка — XMLHttpRequest, а не fetch: нужен ход отправки файла (полоса ожидания), таймаут и отмена.
+     o: { name, hints, projectId, timeoutMs, onUpload(доля 0–1) }. Возвращает Promise с методом .abort().
+     Ошибка: e.kind = 'timeout' | 'net' (нет ответа, статус 0) | 'http' | 'abort', e.status, e.code (поле code
+     или detail.code из JSON), текст — detail / error.message, как раньше */
+  var MARKUP_TIMEOUT_MS = 200000;   // сервер отвечает не позже 170 с; сложный план (БТИ, этаж) читается до 2–2,5 мин
+  function markupTimeout() { var v = 0; try { v = parseInt(sessionStorage.getItem('sove.plan.timeoutMs'), 10) || 0; } catch (e) {} return v > 0 ? v : MARKUP_TIMEOUT_MS; }
+  function apiMarkup(blob, o) {
+    o = o || {};
+    var xhr = new XMLHttpRequest();
+    var p = new Promise(function (ok, no) {
+      var fd = new FormData(); fd.append('file', blob, o.name || blob.name || 'plan.jpg');
+      if (o.hints) fd.append('hints', typeof o.hints === 'string' ? o.hints : JSON.stringify(o.hints));
+      xhr.open('POST', '/api/ai/plan/markup' + (o.projectId ? '?project_id=' + encodeURIComponent(o.projectId) : ''));
+      xhr.timeout = o.timeoutMs || markupTimeout();
+      xhr.responseType = 'text';
+      if (xhr.upload && o.onUpload) {
+        xhr.upload.onprogress = function (e) { if (e.lengthComputable && e.total) o.onUpload(Math.min(1, e.loaded / e.total)); };
+        xhr.upload.onload = function () { o.onUpload(1); };
+      }
+      function fail(kind, msg) { var e = new Error(msg); e.kind = kind; e.status = 0; no(e); }
+      xhr.onload = function () {
+        var j = null; try { j = JSON.parse(xhr.responseText); } catch (e) {}
+        if (xhr.status >= 200 && xhr.status < 300) return ok(j);
+        var msg = (j && (j.detail || (j.error && j.error.message))) || ('ошибка ' + xhr.status);
+        if (typeof msg !== 'string') msg = JSON.stringify(msg);
+        var e = new Error(msg); e.kind = 'http'; e.status = xhr.status;
+        e.code = String((j && (j.code || (j.detail && j.detail.code) || (j.error && j.error.code))) || '');
+        no(e);
+      };
+      xhr.onerror = function () { fail('net', 'нет связи'); };
+      xhr.ontimeout = function () { fail('timeout', 'сервер не ответил'); };
+      xhr.onabort = function () { fail('abort', 'отменено'); };
+      xhr.send(fd);
+    });
+    p.abort = function () { try { xhr.abort(); } catch (e) {} };
+    return p;
+  }
+  /* человеческий текст ошибки разметки и главное действие экрана → { kind, text, primary: 'retry' | 'other' | 'sample' }.
+     429 от нас — частые загрузки (минута, обратный отсчёт) или дневной лимит; 413 — файл больше 10 МБ; 415 — формат;
+     502/504 — API за nginx не отвечает; 503 или слова провайдера — перегрузка ИИ; «баланс / пополни / API_KEY» —
+     кончились деньги или ключ у провайдера: это к команде; статус 0 — нет связи или таймаут.
+     «ошибка NNN» — наш же текст по коду ответа, не слова сервера: показываем общий */
+  function errorOf(e) {
+    e = e || {};
+    var m = String(e.message || ''); if (/^ошибка \d+$/i.test(m)) m = '';
+    var s = e.status, code = String(e.code || '');
+    function R(kind, text, primary) { return { kind: kind, text: text, primary: primary }; }
+    if (e.kind === 'timeout') return R('timeout', 'Сервер не ответил за 3 минуты — такое бывает при перегрузке, файл в порядке.', 'retry');
+    if (e.kind === 'net' || (s === 0 && e.kind !== 'abort')) return R('net', 'Нет связи — проверь интернет и повтори.', 'retry');
+    if (s === 429) return /rate_minute/i.test(code) || /минут/i.test(m)
+      ? R('minute', 'Слишком много загрузок подряд — подожди минуту.', 'retry')
+      : R('day', 'Дневной лимит разметок исчерпан — попробуй завтра или возьми пример.', 'sample');
+    if (s === 413) return R('big', 'Файл больше 10 МБ — сохрани один лист или сделай скриншот.', 'other');
+    /* коды нового сервера (plan_input): HEIC без декодера, битый PDF, подсказки не разобраны */
+    if (/heic_unsupported/i.test(code)) return R('format', 'HEIC не прочитался — сохрани план как JPG или сделай скриншот.', 'other');
+    if (/bad_pdf/i.test(code)) return R('format', 'PDF не открылся — сохрани лист картинкой или сделай скриншот.', 'other');
+    if (/bad_hints/i.test(code)) return R('hints', 'Подсказки к плану не применились — прочитай его ещё раз.', 'retry');
+    if (s === 415) return R('format', 'Этот формат не читается — нужен JPG, PNG, PDF или HEIC.', 'other');
+    if (/баланс|пополни|API_KEY/i.test(m)) return R('money', 'Распознавание недоступно — сообщи команде.', 'sample');
+    if (s === 502 || s === 504) return R('down', 'Сервер распознавания недоступен — попробуй через пару минут.', 'retry');
+    if (s === 503 || /Error code|Provider|OpenRouter|timed? ?out/i.test(m)) return R('busy', 'Распознавание перегружено — попробуй ещё раз через минуту.', 'retry');
+    if (/[а-яё]/i.test(m)) return R('text', m, 'other');
+    return R('unknown', 'Не получилось прочитать план — попробуй ещё раз или возьми другой файл.', 'retry');
   }
   function apiAuto(frame, brief) {
     return fetch('/api/ai/layout/auto', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ frame: frame, brief: brief }) }).then(unwrap);
+      body: JSON.stringify({ frame: frame, brief: brief }) }).then(unwrap).then(function (out) {
+        if (out && out.layout) { restoreIds(out.layout, frame); carryWalls(out.layout, frame); }
+        return out;
+      });
   }
   function unwrap(r) {
     return r.text().then(function (t) {
@@ -715,6 +1309,8 @@
   }
 
   window.SOVE_FLOW = { load: load, save: save, blockHead: blockHead, SCN: SCN, REPLAN_PRICE: REPLAN_PRICE, priceTxt: priceTxt, replanSheet: replanSheet, replanOn: replanOn, setReplan: setReplan, stepOf: stepOf, interiorTiles: interiorTiles, interiorStrip: interiorStrip, budgetCard: function (o) { budgetOnDone = o && o.rerender || null; return budgetCard(o); }, budgetFull: budgetFull, budgetLayers: budgetLayers, refreshBudget: refreshBudget, productList: productList, planFinish: planFinish, planDoc: planDoc, savePlan: savePlan, downloadSheet: downloadSheet, furnitureSum: furnitureSum, interiorChosen: interiorChosen, capsuleInterior: capsuleInterior, ownSheet: ownSheet, planFor: planFor,
-    frameFromMarkup: frameFromMarkup, briefFromAnswers: briefFromAnswers, apiMarkup: apiMarkup, apiAuto: apiAuto,
-    imageSize: imageSize, RU: RU };
+    frameFromMarkup: frameFromMarkup, markupQuality: markupQuality, qualityOf: qualityOf, reasonsText: reasonsText, REASON_RU: REASON_RU,
+    rotateRes: rotateRes, rotatePoint: rotatePoint, typeFromName: typeFromName, briefFromAnswers: briefFromAnswers, apiMarkup: apiMarkup, apiAuto: apiAuto,
+    imageSize: imageSize, RU: RU, resolveOpenings: resolveOpenings, restoreIds: restoreIds, carryWalls: carryWalls, cutEntrance: cutEntrance, prepareImage: prepareImage, fileKey: fileKey, fileType: fileType,
+    errorOf: errorOf, mbTxt: mbTxt, MARKUP_TIMEOUT_MS: MARKUP_TIMEOUT_MS };
 })();

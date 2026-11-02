@@ -40,8 +40,7 @@
     var api = S.ui.modal({ eyebrow: 'Классификатор SOVEAPP', title: 'Что входит в ремонт', html: clsHtml(level), actions: [{ label: 'Понятно', kind: 'primary' }] });
     api.el.addEventListener('click', function (e) { var b = e.target.closest('[data-cls-level]'); if (!b) return; api.el.querySelector('.modal__body').innerHTML = clsHtml(b.getAttribute('data-cls-level')); });
   }
-  var RECOG = ['Читаю план', 'Нахожу помещения', 'Считаю площади'];
-  var MAX_MB = 20, MAX_ROOM = 999;
+  var MAX_ROOM = 999;
 
   var ICON = {
     check: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
@@ -50,7 +49,7 @@
   };
 
   /* ---------- состояние ---------- */
-  function blank() { return { step: 1, capsuleId: null, source: 'capsule', visuals: null, level: 'base', stateId: null, plan: null, formatId: 'self', area: 0, prefilledFrom: null, savedProjectId: null, pendingSave: 0,
+  function blank() { return { step: 1, capsuleId: null, source: 'capsule', visuals: null, level: 'base', stateId: null, plan: null, planFile: null, planLevel: null, formatId: 'self', area: 0, prefilledFrom: null, savedProjectId: null, pendingSave: 0,
     gate: false, issued: null, payId: null, pendingPay: 0 }; }
   function byId(list, id) { return list.filter(function (x) { return x.id === id; })[0] || null; }
   function okCapsule(id) { var c = id && D.capsule(id); return c && !c.soon && c.pricePerM2 ? c : null; }
@@ -58,7 +57,7 @@
   var saved = S.draft.get('scout');
   var hadDraft = !!(saved && typeof saved === 'object');
   var st = Object.assign(blank(), hadDraft ? saved : {});
-  var roomSeq = 0, recog = null, visRecog = null, uploadError = '', restoredNote = false, focusAfter = null, payError = '';
+  var roomSeq = 0, visRecog = null, restoredNote = false, focusAfter = null, payError = '';
 
   (function sanitize() {
     if (!okCapsule(st.capsuleId)) st.capsuleId = null;
@@ -72,6 +71,7 @@
     if (!byId(SC.states, st.stateId)) st.stateId = null;
     if (!byId(SC.formats, st.formatId)) st.formatId = 'self';
     if (st.plan && (!Array.isArray(st.plan.rooms) || !st.plan.rooms.length)) st.plan = null;
+    if (st.plan && st.plan.mode !== 'plan' && st.plan.mode !== 'manual') st.plan.mode = 'manual';   /* прежние режимы file/sample (имитация распознавания) — теперь ручной ввод */
     if (st.plan) st.plan.rooms.forEach(function (r) { if (!r.id) r.id = 'n' + (++roomSeq); r.area = (typeof r.area === 'number' && r.area > 0) ? r.area : null; });
     st.step = Math.min(3, Math.max(1, Number(st.step) || 1));
   })();
@@ -139,7 +139,7 @@
   }
   function flatOk() { return !!st.stateId && !!st.plan && totalArea() > 0 && !st.plan.rooms.some(function (r) { return r.bad; }); }
   function valid(n) {
-    if (n === 1) return !recog && !visRecog && (isVis() || !!(okCapsule(st.capsuleId) && st.level));
+    if (n === 1) return !visRecog && (isVis() || !!(okCapsule(st.capsuleId) && st.level));
     if (n === 2) return !!st.stateId;
     if (n === 3) return flatOk();
     if (n === 4) return !!byId(SC.formats, st.formatId);
@@ -230,7 +230,7 @@
     if (st.fromInterior && S.repair) {
       var R1 = S.repair, rp1 = R1.get(st.fromInterior);
       if (rp1) {
-        rp1.scoutParams = { stateId: st.stateId, area: rr.area, capsuleId: st.capsuleId, level: st.level, rooms: st.plan ? st.plan.rooms.map(function (r) { return { name: r.name, m2: r.area }; }) : [] };
+        rp1.scoutParams = { stateId: st.stateId, area: rr.area, capsuleId: st.capsuleId, level: st.level, rooms: st.plan ? st.plan.rooms.map(function (r) { return { name: r.name, m2: r.area }; }) : [], byRooms: byRoomsData(rr) };
         rp1.budgetPlan = Object.assign({}, rp1.budgetPlan || {}, { full: true, type: st.level, ts: Date.now(), source: 'scout' });
         R1.flats.update(st.fromInterior, {});
       }
@@ -239,7 +239,7 @@
     if (st.fromPlan !== undefined && st.fromPlan !== null && S.repair) {
       var R = S.repair, fid = st.fromPlan || (R.flats.active() || {}).id, rp = fid ? R.get(fid) : null;
       if (rp) {
-        rp.scoutParams = { stateId: st.stateId, area: rr.area, capsuleId: st.capsuleId, level: st.level, rooms: st.plan ? st.plan.rooms.map(function (r) { return { name: r.name, m2: r.area }; }) : [] };
+        rp.scoutParams = { stateId: st.stateId, area: rr.area, capsuleId: st.capsuleId, level: st.level, rooms: st.plan ? st.plan.rooms.map(function (r) { return { name: r.name, m2: r.area }; }) : [], byRooms: byRoomsData(rr) };
         if (rp.budgetPlan) rp.budgetPlan.type = st.level;
         if (window.SOVE_FLOW && window.SOVE_FLOW.refreshBudget) window.SOVE_FLOW.refreshBudget(); else R.flats.update(fid, {});
       }
@@ -247,7 +247,7 @@
     persist(); return req;
   }
   function showStep() {
-    restoredNote = false; uploadError = ''; focusAfter = '#scout-h'; render();
+    restoredNote = false; focusAfter = '#scout-h'; render();
     var top = document.getElementById('scout-head').getBoundingClientRect().top + window.pageYOffset;
     if (window.pageYOffset > top) window.scrollTo(0, top);
   }
@@ -328,9 +328,8 @@
     if (n === 2) return 'Выберите, что сейчас в квартире';
     if (n === 3) return (!st.plan ? 'Укажите площадь: загрузите план или впишите вручную' : (st.plan.rooms.some(function (r) { return r.bad; }) ? 'Исправьте площадь, отмеченную красным' : 'Укажите площадь хотя бы одного помещения'));
     if (n === 1) {
-      if (recog) return 'Распознаём технический проект…';
       if (visRecog) return 'Подбираем товары по картинкам…';
-      return (st.plan && st.plan.mode === 'file') ? 'Выберите капсулу — посчитаем её под ваши размеры' : 'Выберите капсулу или загрузите план и свои картинки';
+      return (st.plan && st.plan.mode === 'plan') ? 'Выберите капсулу — посчитаем её под ваши размеры' : 'Выберите капсулу или загрузите план и свои картинки';
     }
     return '';
   }
@@ -396,10 +395,11 @@
     return { kitMetod: kitMetod, kitRetail: kitRetail, lines: lines };
   }
   function srcHtml() {
-    var busyT = !!recog, doneT = !busyT && !!st.plan && st.plan.mode === 'file';
-    var roomsN = doneT ? st.plan.rooms.filter(function (r) { return r.area > 0 && !isWhole(r); }).length : 0;
-    var noteT = busyT ? esc(RECOG[Math.min(recog.stage, RECOG.length - 1)]) + '…'
-      : doneT ? esc(st.plan.fileName || 'план') + ' · ' + (roomsN ? roomsN + ' ' + pl(roomsN, ['помещение', 'помещения', 'помещений']) + ' · ' : '') + F.area(totalArea()) + ' · заменить'
+    /* план — из общего окна «Основа квартиры» (plan-upload.js): лежит в Моём ремонте; комнаты и площади даёт только Планировка */
+    var fromPlan = !!st.plan && st.plan.mode === 'plan', doneT = fromPlan || !!st.planFile;
+    var roomsN = fromPlan ? st.plan.rooms.filter(function (r) { return r.area > 0 && !isWhole(r); }).length : 0;
+    var noteT = fromPlan ? esc(st.plan.fileName || 'план') + ' · ' + (roomsN ? roomsN + ' ' + pl(roomsN, ['помещение', 'помещения', 'помещений']) + ' · ' : '') + F.area(totalArea()) + ' · заменить'
+      : st.planFile ? esc(st.planFile) + ' · комнаты — после Планировки · заменить'
       : 'размеры из плана';
     var vis = st.visuals, busyV = !!visRecog, doneV = !busyV && !!vis && vis.items.length > 0;
     var noteV = busyV ? esc(VIS_STAGES[Math.min(visRecog.stage, VIS_STAGES.length - 1)]) + '…'
@@ -414,22 +414,28 @@
     var actsV = doneV ? '<div class="scout-src__acts">' + (isVis() ? '' : '<button type="button" class="btn btn--link" data-act="use-visuals">Считать по картинкам</button>') +
       '<button type="button" class="btn btn--link" data-act="drop-visuals">Убрать картинки</button></div>' : '';
     return '<div class="scout-src" role="group" aria-label="Загрузить своё">' +
-      '<div class="scout-src__item">' + opt('tech', 'Загрузить техпаспорт / план', noteT, busyT, doneT, doneT, 'doc') + (busyT ? prog(recog.stage, RECOG.length) : '') + '</div>' +
+      '<div class="scout-src__item">' + opt('tech', 'Загрузить техпаспорт / план', noteT, false, doneT, doneT, 'doc') + '</div>' +
       '<div class="scout-src__item">' + opt('visuals', 'Моя капсула', noteV, busyV, doneV, isVis(), 'image') + (busyV ? prog(visRecog.stage, VIS_STAGES.length) : '') + actsV + '</div>' +
-      '<input type="file" id="scout-tech-file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png" hidden>' +
       '<input type="file" id="scout-vis-file" accept="image/*" multiple hidden>' +
     '</div>';
   }
-  /* технический проект: тот же разбор, что на шаге «Параметры»; файл — в «Мой ремонт» как обмерный план */
-  function onTechFile(file) {
-    if (!file) return;
-    var name = file.name || 'файл', ext = (name.indexOf('.') >= 0 ? name.split('.').pop() : '').toLowerCase();
-    var okType = /^(pdf|jpg|jpeg|png)$/.test(ext) || /^(application\/pdf|image\/jpeg|image\/png)$/.test(file.type || '');
-    if (!okType) { S.ui.toast('Файл «' + name + '» не подошёл: нужен PDF, JPG или PNG', 'error'); return; }
-    if (file.size > MAX_MB * 1024 * 1024) { S.ui.toast('Файл «' + name + '» больше ' + MAX_MB + ' МБ — сожмите его', 'error'); return; }
-    if (S.orders && S.orders.object) S.orders.object.addDoc('measured_plan', name, file.size);
-    focusAfter = '[data-own="tech"]';
-    startRecog(name, true);
+  /* общее окно «Основа квартиры» (plan-upload.js, созвон 28.10): план сохраняется в Мой ремонт; после закрытия берём из квартиры
+     комнаты с площадями (их даёт Планировка) — иначе остаётся ручной ввод с подсказкой */
+  function openPlanWindow(focus) {
+    if (!S.planUpload) { S.ui.toast('Загрузка плана сейчас недоступна — впишите площади вручную', 'error'); return; }
+    S.planUpload.open({ entry: 'budget', onDone: function () { applyPlan(); focusAfter = focus; render(); } });
+  }
+  function applyPlan() {
+    var p = S.repair && S.repair.get().plan; if (!p) return;
+    var rooms = (p.rooms || []).filter(function (r) { return Number(r.m2) > 0; });
+    st.planFile = p.file || null; st.planLevel = p.level || null;
+    if (rooms.length) {
+      st.plan = { mode: 'plan', fileName: p.file || null, meta: null, rooms: rooms.map(function (r) { return { id: 'n' + (++roomSeq), name: r.name || 'Помещение', area: Math.round(Number(r.m2) * 10) / 10 }; }) };
+      S.ui.toast('Нашли ' + rooms.length + ' ' + pl(rooms.length, ['помещение', 'помещения', 'помещений']) + ' · ' + F.area(totalArea()) + '. Проверьте площади.', 'ok');
+    } else if (!st.plan || st.plan.mode !== 'manual') {
+      st.plan = { mode: 'manual', fileName: null, meta: null, rooms: [ { id: 'n' + (++roomSeq), name: 'Вся квартира', area: null } ] };
+    }
+    touch();
   }
   function stopVis() { if (visRecog && visRecog.timer) clearTimeout(visRecog.timer); visRecog = null; }
   function onVisFiles(list) {
@@ -539,26 +545,6 @@
   }
 
   /* ---------- шаг 3: планировка ---------- */
-  function planSvg() {
-    var rooms = {}; (st.plan ? st.plan.rooms : []).forEach(function (r) { rooms[r.id] = r; });
-    function label(id, name, x, y) {
-      var r = rooms[id], a = r ? (r.area ? F.area(r.area) : '— м²') : 'не считаем';
-      return '<text class="rn" x="' + x + '" y="' + y + '" text-anchor="middle">' + esc(name) + '<tspan class="ra" x="' + x + '" dy="1.35em" data-plan-area="' + id + '">' + esc(a) + '</tspan></text>';
-    }
-    return '<svg viewBox="0 0 800 490" role="img" aria-label="План квартиры-примера: гостиная-кухня, спальня, прихожая и санузел. Окна выделены терракотой.">' +
-      '<path class="w" d="M60 20H780V420H610M540 420H60V20"/>' +
-      '<path class="w wi" d="M402 20V300M402 370V420M402 244H440M510 244H780M631 244V280M631 340V420"/>' +
-      '<g class="win"><rect x="150" y="13" width="170" height="14"/><path d="M150 20H320"/></g>' +
-      '<g class="win"><rect x="520" y="13" width="170" height="14"/><path d="M520 20H690"/></g>' +
-      '<path class="door" d="M440 244V174A70 70 0 0 1 510 244"/>' +
-      '<path class="door" d="M402 370H332A70 70 0 0 1 402 300"/>' +
-      '<path class="door" d="M631 280H691A60 60 0 0 1 631 340"/>' +
-      '<path class="door" d="M540 420V350A70 70 0 0 1 610 420"/>' +
-      label('r1', 'Гостиная-кухня', 231, 205) + label('r2', 'Спальня', 600, 112) + label('r3', 'Прихожая', 482, 292) + label('r4', 'Санузел', 706, 376) +
-      '<g class="dimline"><path d="M60 432V470M780 432V470M60 460H780M54 466l12-12M774 466l12-12"/><rect class="dimbg" x="368" y="448" width="104" height="24"/><text class="dm" x="420" y="466" text-anchor="middle">9,0 м</text></g>' +
-      '<g class="dimline"><path d="M48 20H18M48 420H18M28 20V420M22 26l12-12M22 426l12-12"/><rect class="dimbg" x="16" y="170" width="24" height="100"/><text class="dm" x="28" y="220" text-anchor="middle" transform="rotate(-90 28 220)" dy=".35em">5,0 м</text></g>' +
-      '</svg>';
-  }
   function roomsEditor() {
     var rooms = st.plan.rooms;
     var rows = rooms.map(function (r) {
@@ -578,40 +564,32 @@
   function viewPlan() {
     /* Вика 23.10: план загружают в самом начале (шаг 1), здесь загрузки нет — только площади.
        Из Интерьера («Досчитать весь бюджет») шаг 1 пропускается — там, как у Алины, загрузка плана, пример или площади вручную */
-    if (!st.plan && !recog && !st.fromInterior) st.plan = { mode: 'manual', fileName: null, meta: null, rooms: [ { id: 'n' + (++roomSeq), name: 'Вся квартира', area: null } ] };
-    var fromFile = st.plan && st.plan.mode !== 'manual';
-    var head = '<div class="stack stack--2"><h3 class="h3">Площадь квартиры</h3><p class="text">' + (fromFile && st.plan.mode === 'sample' ? 'Это пример планировки — поправьте площади под свою квартиру или загрузите свой план.' : fromFile ? 'Площади взяли из вашего плана — проверьте и поправьте.' : !st.plan ? 'Загрузите план — посчитаем помещения сами. Плана под рукой нет — впишите площадь вручную.' : 'Впишите площадь квартиры. Помещения можно добавить для точности.') + '</p></div>';
+    if (!st.plan && !st.fromInterior) st.plan = { mode: 'manual', fileName: null, meta: null, rooms: [ { id: 'n' + (++roomSeq), name: 'Вся квартира', area: null } ] };
+    var fromPlan = st.plan && st.plan.mode === 'plan';
+    var head = '<div class="stack stack--2"><h3 class="h3">Площадь квартиры</h3><p class="text">' + (fromPlan ? 'Площади — из комнат вашего плана: проверьте и поправьте.' : !st.plan ? 'Загрузите план — он сохранится в Мой ремонт, комнаты распознает Планировка. Плана под рукой нет — впишите площадь вручную.' : 'Впишите площадь квартиры. Помещения можно добавить для точности.') + '</p></div>';
     var body;
-    if (recog) {
-      body = '<div class="split"><div class="col-8 card card--pad stack stack--6 scout-recog" role="status">' +
-        '<div class="stack stack--2"><span class="eyebrow">Распознаю планировку</span><span class="h4 scout-file">' + esc(recog.fileName) + '</span></div>' +
-        '<div class="progress"><i id="scout-progress" style="width:' + Math.round(recog.stage / RECOG.length * 100) + '%"></i></div>' +
-        '<ol class="stages">' + RECOG.map(function (t, i) { return '<li class="' + (i < recog.stage ? 'is-done' : i === recog.stage ? 'is-now' : '') + '">' + t + '</li>'; }).join('') + '</ol>' +
-        '<div><button type="button" class="btn btn--link" data-act="cancel-recog">Отменить</button></div></div>' + planAside() + '</div>';
-    } else if (!st.plan) {
+    if (!st.plan) {
       body = '<div class="split"><div class="col-8 stack">' +
-        '<div class="uploader" id="scout-drop">' + ICON.plan +
-        '<span class="uploader__title">Перетащите планировку или выберите файл</span><span class="small muted">PDF, JPG или PNG до ' + MAX_MB + ' МБ</span>' +
-        '<label class="scout-vh" for="scout-file">Файл планировки: PDF, JPG или PNG до ' + MAX_MB + ' МБ</label>' +
-        '<input type="file" id="scout-file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"></div>' +
-        (uploadError ? '<div class="notice notice--error" role="alert"><span class="small">' + uploadError + '</span></div>' : '') +
-        '<div class="row scout-plan-alt"><button type="button" class="btn btn--ghost" data-act="sample">Взять пример планировки</button><button type="button" class="btn btn--link" data-act="manual">Ввести площади вручную</button></div>' +
+        '<button type="button" class="uploader scout-up" data-act="upload">' + ICON.plan +
+        '<span class="uploader__title">Загрузить план квартиры</span><span class="small muted">план застройщика, обмерный или дизайн-проект · JPG, PNG или PDF</span></button>' +
+        '<div class="row scout-plan-alt"><button type="button" class="btn btn--link" data-act="manual">Ввести площади вручную</button></div>' +
         '</div>' + planAside() + '</div>';
     } else {
-      var p = st.plan, manual = p.mode === 'manual';
-      var src = p.mode === 'file' ? 'Файл: ' + esc(p.fileName || 'планировка') : p.mode === 'sample' ? 'Пример планировки' : 'Площади введены вручную';
+      var p = st.plan, manual = p.mode === 'manual', RP = S.repair && S.repair.get().plan, lvl = S.repair && st.planLevel ? (S.repair.LEVEL[st.planLevel] || '') : '';
+      var src = fromPlan ? 'План: ' + esc(p.fileName || 'из Моего ремонта') : 'Площади введены вручную';
       /* из Интерьера шага 1 нет — план загружают и меняют здесь (как у Алины) */
-      var top = st.fromInterior ? '<div class="row row--between scout-plan-src"><span class="small"><b>' + src + '</b></span><button type="button" class="btn btn--link" data-act="reset-plan">' + (manual ? 'Загрузить планировку' : 'Заменить планировку') + '</button></div>'
+      var top = st.fromInterior ? '<div class="row row--between scout-plan-src"><span class="small"><b>' + src + '</b></span><button type="button" class="btn btn--link" data-act="' + (manual ? 'upload' : 'reset-plan') + '">' + (manual ? 'Загрузить планировку' : 'Заменить планировку') + '</button></div>'
         : manual ? '' : '<div class="row row--between scout-plan-src"><span class="small"><b>' + src + '</b></span><button type="button" class="btn btn--link" data-step-go="1">Заменить на шаге 1</button></div>';
-      var notice = p.mode === 'file' ? '<div class="notice"><span class="small">В прототипе распознавание не подключено: подставили пример, поправьте площади под свою квартиру.</span></div>' : '';
+      /* план сохранён, но комнат в нём ещё нет — ручной ввод и подсказка, откуда возьмутся комнаты */
+      var note = manual && st.planFile ? '<div class="notice scout-plan-note"><span class="small">План «' + esc(st.planFile) + '» сохранён в Мой ремонт. Комнаты появятся после распознавания в Планировке.</span><a class="arrow-link" href="plan-demo.html?from=budget">Распознать ›</a></div>' : '';
       if (manual) {
         /* Вика 22.10: блок «Где взять площади» убран; вместо «посчитаем на замере» — «не входят в расчёт» */
-        body = top + '<div class="split"><div class="col-7 stack stack--3">' + roomsEditor() + '<p class="small muted">Двери и окна не входят в расчёт.</p></div></div>';
+        body = top + note + '<div class="split"><div class="col-7 stack stack--3">' + roomsEditor() + '<p class="small muted">Двери и окна не входят в расчёт.</p></div></div>';
       } else {
-        var m = p.meta || SC.samplePlan;
-        body = top + notice + '<div class="split scout-plan-grid"><figure class="col-7 stack stack--3"><div class="card scout-plan">' + planSvg() + '</div>' +
-          '<figcaption class="row row--between small"><span class="num">Санузлов: ' + m.bathrooms + ' · дверей: ' + m.doors + ' · окон: ' + m.windows + '</span><span class="scout-legend muted"><i></i>окна</span></figcaption></figure>' +
-          '<div class="col-5 stack"><h3 class="h4">Помещения</h3><p class="small muted">Проверьте площади: их можно поправить, лишнее удалить, недостающее добавить.</p>' + roomsEditor() + '</div></div>';
+        var pic = RP && RP.img ? '<figure class="col-7 stack stack--3"><div class="card scout-plan scout-plan--img"><img src="' + esc(RP.img) + '" alt="План квартиры"></div>' +
+          '<figcaption class="small muted">Из Моего ремонта' + (lvl ? ' · ' + esc(lvl) : '') + '</figcaption></figure>' : '';
+        body = top + '<div class="split scout-plan-grid">' + pic +
+          '<div class="col-' + (pic ? '5' : '7') + ' stack"><h3 class="h4">Помещения</h3><p class="small muted">Комнаты и площади — из Планировки. Проверьте: их можно поправить, лишнее удалить, недостающее добавить.</p>' + roomsEditor() + '</div></div>';
       }
     }
     return '<section class="stack stack--4 scout-sub">' + head + body + '</section>';
@@ -620,8 +598,8 @@
     return '<div class="scout-step stack stack--10">' + viewState() + bar() + '</div>';
   }
   function viewPlanStep() {
-    return '<div class="scout-step stack stack--10">' + stepHead('Параметры объекта', st.plan && st.plan.mode === 'sample' ? 'Площади — из примера планировки.' : st.plan && st.plan.mode !== 'manual' ? (st.fromInterior ? 'Площади — из вашего плана.' : 'Площади — из плана, который вы загрузили на шаге 1.')
-      : st.fromInterior && !st.plan ? 'Загрузите план — посчитаем площади сами. Можно взять пример или ввести площади вручную.' : 'Площадь квартиры и помещений — от неё считаем работы и комплектацию.') +
+    return '<div class="scout-step stack stack--10">' + stepHead('Параметры объекта', st.plan && st.plan.mode === 'plan' ? 'Площади — из комнат вашего плана в Моём ремонте.'
+      : st.fromInterior && !st.plan ? 'Загрузите план — комнаты распознает Планировка. Или введите площади вручную.' : 'Площадь квартиры и помещений — от неё считаем работы и комплектацию.') +
       viewPlan() + bar() + '</div>';
   }
 
@@ -688,7 +666,9 @@
   function repairButton() {
     if (!S.repair || !(st.step === 5 && valid(5))) return '';
     var r = calc();
-    return S.repair.saveButton('budget', { type: st.level === 'premium' ? 'premium' : 'base', capsuleId: st.capsuleId, area: r.area, works: r.works, kitMetod: r.kitMetod, kitRetail: r.kitRetail, total: r.total }, 'Сохранить в Мой ремонт', 'btn btn--primary scout-save');
+    /* экран Бюджета без Планировки строит 9 + 5 и «По комнатам» из этого сохранения (my-budget.js, fromSaved): состояние, комнаты и разбивка — вместе с итогами */
+    return S.repair.saveButton('budget', { type: st.level === 'premium' ? 'premium' : 'base', capsuleId: st.capsuleId, stateId: st.stateId, area: r.area, works: r.works, kitMetod: r.kitMetod, kitRetail: r.kitRetail, total: r.total,
+      rooms: st.plan ? st.plan.rooms.filter(function (x) { return x.area > 0; }).map(function (x) { return { name: x.name, m2: x.area }; }) : [], byRooms: byRoomsData(r) }, 'Сохранить в Мой ремонт', 'btn btn--primary scout-save');
   }
   function saveButton() {
     /* пришли из Бюджета — расчёт уже в бюджете квартиры, возвращаем туда */
@@ -696,6 +676,52 @@
     if (S.repair && st.step === 5 && valid(5)) return repairButton();
     if (st.savedProjectId && S.projects.get(st.savedProjectId)) return '<a class="btn btn--primary scout-save" href="project.html?id=' + encodeURIComponent(st.savedProjectId) + '">Открыть проект</a>';
     return '<button type="button" class="btn btn--primary scout-save" data-act="save">Сохранить в проект</button>';
+  }
+  /* ---------- «По комнатам» (созвон 28.10): бюджет по комнатам шага 3 в одном стиле, суммы сходятся с r.works и r.kitMetod ----------
+     Разбивка — SOVE_BUDGET.byRooms (budget.js): категории — по применимости к зоне (сантехника — санузел и кухня, техника — кухня,
+     двери — поровну, остальное — по площади), «Вся квартира» отдельно не показываем — её остаток уходит по комнатам пропорционально.
+     Комнат нет — типовые зоны по площади с пометкой. Те же данные уходят в паспорт квартиры (rp.scoutParams.byRooms) для экрана Бюджета. */
+  function roomsSplit(r) {
+    var B = window.SOVE_BUDGET; if (!B || !B.byRooms || !(r.area > 0)) return null;
+    var rooms = st.plan ? st.plan.rooms.filter(function (x) { return typeof x.area === 'number' && x.area > 0 && !isWhole(x); }).map(function (x) { return { name: x.name || 'Помещение', area: x.area }; }) : [];
+    var cats = r.visuals ? [{ key: 'visuals', title: 'Подборка по вашим картинкам', sum: r.kitMetod }]
+      : SC.kitShares.map(function (k) { return { key: B.kitKey(k[0]) || k[0], title: k[0], sum: r.kitMetod * k[1] / 100 }; });
+    return B.byRooms({ rooms: rooms, area: r.area, works: r.works, cats: cats });
+  }
+  function byRoomsData(r) {
+    var o = roomsSplit(r); if (!o) return null;
+    return o.rooms.map(function (x) { return { name: x.name, zone: x.zone, area: x.area, works: x.works, kit: x.kit, total: x.total, byCat: x.byCat, typical: o.typical || undefined }; });
+  }
+  function roomsHtml(r) {
+    var o = roomsSplit(r); if (!o || !o.rooms.length) return '';
+    var titles = {}; (r.visuals ? [] : SC.kitShares).forEach(function (k) { titles[window.SOVE_BUDGET.kitKey(k[0]) || k[0]] = k[0]; }); titles.visuals = 'Подборка по вашим картинкам';
+    var n = o.rooms.length;
+    var rows = o.rooms.map(function (x, i) {
+      var cats = Object.keys(x.byCat).filter(function (k) { return x.byCat[k] > 0; }).map(function (k) {
+        return '<li class="rb-cat"><span class="rb-cat__n">' + esc(titles[k] || k) + '</span><b class="rb-cat__v num">' + F.rub(x.byCat[k]) + '</b></li>';
+      }).join('');
+      return '<li class="rb-room">' +
+        '<button type="button" class="rb-room__row rb-grid" data-room-toggle aria-expanded="false" aria-controls="rb-cats-' + i + '">' +
+          '<span class="rb-room__name"><b>' + esc(x.name) + '</b><small class="muted">' + esc(x.zoneName.toLowerCase()) + ' · <span class="num">' + F.area(x.area) + '</span></small></span>' +
+          '<span class="rb-room__vals"><span class="rb-room__v"><small class="muted">Работы</small><b class="num">' + F.rub(x.works) + '</b></span>' +
+          '<span class="rb-room__v"><small class="muted">Материалы и комплектация</small><b class="num">' + F.rub(x.kit) + '</b></span>' +
+          '<span class="rb-room__v rb-room__v--t"><small class="muted">Итого</small><b class="num">' + F.rub(x.total) + '</b></span></span>' +
+          '<span class="rb-room__ch" aria-hidden="true">▾</span>' +
+        '</button>' +
+        '<ul class="rb-cats" id="rb-cats-' + i + '" hidden>' + (cats || '<li class="rb-cat"><span class="rb-cat__n muted">Комплектации в этой комнате нет</span></li>') +
+          '<li class="rb-cat rb-cat--sum"><span class="rb-cat__n">Комплектация комнаты</span><b class="rb-cat__v num">' + F.rub(x.kit) + '</b></li></ul>' +
+      '</li>';
+    }).join('');
+    return '<section class="stack scout-rooms-b" aria-labelledby="scout-rooms-t">' +
+      '<div class="scout-detail__head"><h3 class="h3" id="scout-rooms-t">По комнатам</h3><span class="small muted">' + n + ' ' + pl(n, ['комната', 'комнаты', 'комнат']) + ' · один стиль</span></div>' +
+      (o.typical ? '<p class="small muted rb-note">Типовые зоны · загрузите план, чтобы считать точно.</p>' : '<p class="small muted rb-note">Нажмите на комнату — покажем комплектацию по категориям.</p>') +
+      '<div class="rb-head rb-grid" aria-hidden="true"><span>Комната</span><span class="rb-room__vals"><span>Работы</span><span>Материалы и комплектация</span><span>Итого</span></span><span></span></div>' +
+      '<ul class="rb-list">' + rows + '</ul>' +
+      '<div class="rb-sum rb-grid"><span class="rb-room__name"><b>Вся квартира</b><small class="muted num">' + F.area(r.area) + '</small></span>' +
+        '<span class="rb-room__vals"><span class="rb-room__v"><small class="muted">Работы</small><b class="num">' + F.rub(o.works) + '</b></span>' +
+        '<span class="rb-room__v"><small class="muted">Материалы и комплектация</small><b class="num">' + F.rub(o.kit) + '</b></span>' +
+        '<span class="rb-room__v rb-room__v--t"><small class="muted">Итого</small><b class="num">' + F.rub(o.total) + '</b></span></span><span></span></div>' +
+    '</section>';
   }
   function viewResult() {
     var r = calc(), c = r.capsule, rq = issuedRequest();
@@ -773,6 +799,7 @@
           '<p class="tiny muted">Зачёркнута розничная цена, зелёным — цена METOD. ' + (S.metod.active() ? 'Ваша подписка METOD активна.' : 'Цены METOD действуют с подпиской.') + '</p>' +
           (S.metod.active() ? '' : '<p class="small scout-full">Полная смета по позициям с контактами поставщиков — <a class="link" href="metod.html?returnTo=' + encodeURIComponent(here()) + '">по подписке METOD</a>.</p>') + '</section>' +
       '</div>' +
+      roomsHtml(r) +
       '<p class="small muted scout-disclaimer">Предварительный расчёт. Точная смета — после замера.</p>' +
 
       '<section class="stack stack--6 scout-nexts" aria-labelledby="scout-next-t"><div class="stack stack--3"><h2 class="h2" id="scout-next-t">Дальше</h2><p class="text">' + nextLead + '</p></div>' +
@@ -789,44 +816,14 @@
     stage.innerHTML = note + html;
     document.body.classList.toggle('scout-is-result', st.step === 5);
     if (focusAfter) { var el = stage.querySelector(focusAfter); if (el) { try { el.focus({ preventScroll: focusAfter === '#scout-h' }); } catch (e) { el.focus(); } } focusAfter = null; }
-    if (recog) requestAnimationFrame(function () { var i = document.getElementById('scout-progress'); if (i && recog) i.style.width = Math.round((recog.stage + 1) / RECOG.length * 100) + '%'; });
   }
   function go(n) {
     n = Math.min(Math.max(1, n), maxStep());
-    if (recog) stopRecog();
     if (visRecog) stopVis();
-    st.step = n; st.gate = false; payError = ''; restoredNote = false; uploadError = '';
+    st.step = n; st.gate = false; payError = ''; restoredNote = false;
     persist(); focusAfter = '#scout-h'; render();
     var top = document.getElementById('scout-head').getBoundingClientRect().top + window.pageYOffset;
     if (window.pageYOffset > top) window.scrollTo(0, top);
-  }
-
-  /* ---------- распознавание (в прототипе — имитация, ~3 секунды) ---------- */
-  function startRecog(fileName, own) {
-    uploadError = ''; recog = { fileName: fileName, own: own, stage: 0, timer: null };
-    render();
-    (function tick() {
-      recog.timer = setTimeout(function () {
-        if (!recog) return;
-        recog.stage += 1;
-        if (recog.stage < RECOG.length) { render(); tick(); return; }
-        var sp = SC.samplePlan;
-        st.plan = { mode: own ? 'file' : 'sample', fileName: fileName, meta: { bathrooms: sp.bathrooms, doors: sp.doors, windows: sp.windows },
-          rooms: sp.rooms.map(function (r, i) { return { id: 'r' + (i + 1), name: r.name, area: r.area }; }) };
-        recog = null; touch(); focusAfter = '#scout-h'; render();
-        S.ui.toast('Нашли ' + sp.rooms.length + ' помещения · ' + F.area(totalArea()) + '. Проверьте площади.', 'ok');
-      }, 1000);
-    })();
-  }
-  function stopRecog() { if (recog && recog.timer) clearTimeout(recog.timer); recog = null; }
-  function onFile(file) {
-    if (!file) return;
-    var name = file.name || 'файл', ext = (name.indexOf('.') >= 0 ? name.split('.').pop() : '').toLowerCase();
-    var okType = /^(pdf|jpg|jpeg|png)$/.test(ext) || /^(application\/pdf|image\/jpeg|image\/png)$/.test(file.type || '');
-    if (!okType) { uploadError = 'Файл «' + esc(name) + '» не подошёл: нужен PDF, JPG или PNG. Выберите другой файл, возьмите пример планировки или введите площади вручную.'; render(); return; }
-    if (file.size > MAX_MB * 1024 * 1024) { uploadError = 'Файл «' + esc(name) + '» весит ' + Math.ceil(file.size / 1024 / 1024) + ' МБ — больше ' + MAX_MB + ' МБ. Сожмите его или сфотографируйте планировку.'; render(); return; }
-    if (S.orders && S.orders.object) S.orders.object.addDoc('measured_plan', name, file.size);   /* как загрузка в начале: файл — в «Мой ремонт» */
-    startRecog(name, true);
   }
 
   /* ---------- сохранение ---------- */
@@ -847,7 +844,7 @@
   }
   function restart() {
     S.ui.confirm({ title: 'Начать новый расчёт?', text: 'Очистим выбранные параметры и площади. Расчёты, уже сохранённые в проектах, останутся.', ok: 'Начать заново',
-      onOk: function () { stopRecog(); stopVis(); S.draft.clear('scout'); st = blank(); if (project) st.prefilledFrom = project.id; restoredNote = false; uploadError = ''; syncUrl(); focusAfter = '#scout-h'; render(); window.scrollTo(0, 0); } });
+      onOk: function () { stopVis(); S.draft.clear('scout'); st = blank(); if (project) st.prefilledFrom = project.id; restoredNote = false; syncUrl(); focusAfter = '#scout-h'; render(); window.scrollTo(0, 0); } });
   }
 
   /* ---------- события ---------- */
@@ -868,10 +865,11 @@
     if (t.getAttribute('data-classifier')) { openClassifier(st.level); return; }
     if ((v = t.getAttribute('data-cls-open'))) { openClassifier(v); return; }
     if ((v = t.getAttribute('data-own'))) {
-      if (v === 'tech' && !recog) { var tf = document.getElementById('scout-tech-file'); if (tf) tf.click(); }
+      if (v === 'tech') openPlanWindow('[data-own="tech"]');
       else if (v === 'visuals' && !visRecog) { var vf = document.getElementById('scout-vis-file'); if (vf) vf.click(); }
       return;
     }
+    if (t.hasAttribute('data-room-toggle')) { var open = t.getAttribute('aria-expanded') === 'true', ul = document.getElementById(t.getAttribute('aria-controls')); t.setAttribute('aria-expanded', String(!open)); t.closest('.rb-room').classList.toggle('is-open', !open); if (ul) ul.hidden = open; return; }
     var act = t.getAttribute('data-act'); if (!act) return;
     /* из Интерьера план и капсула уже есть — после «Состояния» сразу расчёт (если площади в порядке), без «Параметров» и «Формата» */
     if (act === 'next' && st.fromInterior && st.step === 2 && validInputs()) { proceed(); return; }
@@ -880,10 +878,9 @@
     else if (act === 'ungate') go(2);
     else if (act === 'back') go(st.step - 1);
     else if (act === 'edit') go(1);
-    else if (act === 'sample') startRecog('Пример: квартира ' + F.area(SC.samplePlan.rooms.reduce(function (a, r) { return a + r.area; }, 0)), false);
-    else if (act === 'manual') { st.plan = { mode: 'manual', fileName: null, meta: null, rooms: ['Гостиная', 'Спальня', 'Санузел'].map(function (n) { return { id: 'n' + (++roomSeq), name: n, area: null }; }) }; uploadError = ''; touch(); focusAfter = '[data-room-area]'; render(); }
-    else if (act === 'cancel-recog') { stopRecog(); focusAfter = '[data-act="sample"]'; render(); }
-    else if (act === 'reset-plan') { st.plan = null; touch(); focusAfter = '#scout-file'; render(); }
+    else if (act === 'upload') openPlanWindow('[data-room-area]');
+    else if (act === 'manual') { st.plan = { mode: 'manual', fileName: null, meta: null, rooms: ['Гостиная', 'Спальня', 'Санузел'].map(function (n) { return { id: 'n' + (++roomSeq), name: n, area: null }; }) }; touch(); focusAfter = '[data-room-area]'; render(); }
+    else if (act === 'reset-plan') { st.plan = null; st.planFile = null; st.planLevel = null; touch(); focusAfter = '[data-act="upload"]'; render(); }
     else if (act === 'add-room') { var id = 'n' + (++roomSeq); while (byId(st.plan.rooms, id)) id = 'n' + (++roomSeq); st.plan.rooms.push({ id: id, name: '', area: null }); touch(); focusAfter = '#rn-' + id; render(); }
     else if (act === 'del-room') { var row = t.closest('[data-room]'); if (row && st.plan.rooms.length > 1) { st.plan.rooms = st.plan.rooms.filter(function (r) { return r.id !== row.getAttribute('data-room'); }); touch(); focusAfter = '[data-act="add-room"]'; render(); } }
     else if (act === 'use-visuals') { if (st.visuals && st.visuals.items.length) { st.source = 'visuals'; touch(); syncUrl(); focusAfter = '[data-own="visuals"]'; render(); } }
@@ -916,12 +913,8 @@
     if (room && !room.bad) { room.raw = null; e.target.value = room.area ? String(room.area).replace('.', ',') : ''; }
   });
   stage.addEventListener('change', function (e) {
-    if (e.target.id === 'scout-file') { var f = e.target.files && e.target.files[0]; e.target.value = ''; onFile(f); }
-    else if (e.target.id === 'scout-tech-file') { var g = e.target.files && e.target.files[0]; e.target.value = ''; onTechFile(g); }
-    else if (e.target.id === 'scout-vis-file') { onVisFiles(e.target.files); e.target.value = ''; }
+    if (e.target.id === 'scout-vis-file') { onVisFiles(e.target.files); e.target.value = ''; }
   });
-  ['dragenter', 'dragover'].forEach(function (ev) { stage.addEventListener(ev, function (e) { var d = e.target.closest && e.target.closest('#scout-drop'); if (d) d.classList.add('is-over'); }); });
-  ['dragleave', 'drop'].forEach(function (ev) { stage.addEventListener(ev, function (e) { var d = e.target.closest && e.target.closest('#scout-drop'); if (d) d.classList.remove('is-over'); }); });
 
   /* вернулись с оплаты, входа или METOD при открытом счёте: пара открыта — сразу показываем результат */
   var issuedOnLoad = resolveGate();

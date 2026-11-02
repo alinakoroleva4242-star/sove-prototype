@@ -1,0 +1,21 @@
+/* Полоса «Кто сделает этот интерьер» (exec-strip.js) — под интерьерами, ведёт в «Исполнители».
+   Бегущая строка не шире полосы: overflow: hidden у дорожки, страница вбок не прокручивается. */
+.xstrip { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px 12px; align-items: center; padding: 14px 16px;
+  border: 1px solid var(--line); border-radius: var(--r); background: var(--white); color: var(--ink); box-shadow: var(--shadow); }
+.xstrip:hover { border-color: var(--line-2); }
+.xstrip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.xstrip__head { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.xstrip__head b { font-size: 15px; font-weight: 700; line-height: 1.3; }
+.xstrip__head i { font-style: normal; font-size: 12.5px; color: var(--graphite); }
+.xstrip__go { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; background: var(--accent); color: var(--white); font-size: 17px; }
+.xstrip__lane { grid-column: 1 / -1; min-width: 0; overflow: hidden;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
+          mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent); }
+.xstrip__run { display: flex; width: max-content; gap: 8px; animation: xstrip-run 60s linear infinite; }
+.xstrip:hover .xstrip__run { animation-play-state: paused; }
+.xstrip__it { display: inline-flex; align-items: center; gap: 4px; padding: 6px 10px; border-radius: var(--pill); background: var(--surface-2);
+  font-size: 12.5px; color: var(--graphite); white-space: nowrap; }
+.xstrip__it b { color: var(--ink); font-weight: 600; }
+.xstrip__it i { font-style: normal; font-weight: 700; color: var(--green); }
+@keyframes xstrip-run { to { transform: translateX(calc(-50% - 4px)); } }
+@media (prefers-reduced-motion: reduce) { .xstrip__run { animation: none; } }

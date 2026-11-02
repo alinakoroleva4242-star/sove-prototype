@@ -43,11 +43,18 @@
   };
 
   UI.changeInteriorSheet = function (o) {
-    var esc = window.SOVE.fmt.esc;
-    return '<i class="ss-grip"></i><div class="sw-head"><span><b class="sw-t">Сменить интерьер</b><span class="sw-sub">другая капсула или свой рендер — пересоберём ДНК, 12 материалов и комнаты</span></span>' +
-        '<button type="button" class="sw-x" data-sw-close aria-label="Закрыть">✕</button></div>' +
-      (o.changes ? '<div class="ci-warn"><b>!</b> твои замены сбросятся · ' + o.changes + ' ' + (o.changes === 1 ? 'замена' : o.changes < 5 ? 'замены' : 'замен') + ' в «' + esc(o.current) + '»</div>' : '') +
-      '<small class="bs-l">КАПСУЛЫ SOVEAPP · БЕСПЛАТНО</small>' + UI.capsuleStrip(o.caps, { current: o.currentId }) +
+    var esc = window.SOVE.fmt.esc, list = o.list || [];
+    var pl = function (n, a, b, c) { var m = n % 100, k = n % 10; return m > 10 && m < 20 ? c : k === 1 ? a : k >= 2 && k <= 4 ? b : c; };
+    /* несколько интерьеров у объекта (созвон 28.10): сверху — свои интерьеры с «текущий» / «Переключиться», ниже — «Новый интерьер» (круг заново) */
+    var mine = list.length > 1 ? '<small class="bs-l">МОИ ИНТЕРЬЕРЫ · ' + list.length + '</small><div class="ci-list">' + list.map(function (it) {
+      return '<button type="button" class="ci-it' + (it.current ? ' is-on' : '') + '" data-switch="' + esc(it.id) + '"' + (it.current ? ' aria-current="true"' : '') + ' aria-label="' + esc(it.title) + (it.current ? ' — текущий' : ' — переключиться') + '">' +
+        '<span class="ci-it__pic"' + (it.img ? ' style="background-image:url(' + esc(it.img) + ')"' : '') + '></span>' +
+        '<span class="ci-it__t"><b>' + esc(it.title) + '</b><small>' + it.rooms + ' ' + UI.roomsWord(it.rooms) + ' · ' + it.renders + ' ' + pl(it.renders, 'визуализация', 'визуализации', 'визуализаций') + '</small></span>' +
+        '<span class="ci-it__a">' + (it.current ? 'текущий' : 'Переключиться ›') + '</span></button>';
+    }).join('') + '</div>' : '';
+    return '<i class="ss-grip"></i><div class="sw-head"><span><b class="sw-t">Сменить интерьер</b><span class="sw-sub">новый интерьер — круг заново: материалы и визуализации соберём под него · прежний сохранится, переключиться можно в любой момент</span></span>' +
+        '<button type="button" class="sw-x" data-sw-close aria-label="Закрыть">✕</button></div>' + mine +
+      '<small class="bs-l">' + (list.length ? 'НОВЫЙ ИНТЕРЬЕР · ' : '') + 'КАПСУЛЫ SOVEAPP · БЕСПЛАТНО</small>' + UI.capsuleStrip(o.caps, { current: o.currentId }) +
       '<label class="up up--line"><input type="file" accept="image/jpeg,image/png,image/webp,image/heic,.heic" hidden data-up><span class="up__ic">⇪</span><span class="up__t"><b>Свой рендер, фото, Pinterest</b><small>разберём ДНК и соберём материалы · от ' + UI.fmtTokens(o.ownPrice) + '</small></span><span class="up__a">›</span></label>' +
       '<button type="button" class="mt-btn2" data-sw-close>Отмена</button>';
   };

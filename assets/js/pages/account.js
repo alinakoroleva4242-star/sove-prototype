@@ -245,7 +245,7 @@
     return R.flats.list().map(function (f, i) {
       var r = R.get(f.id), lvl = R.level(f.id), fav = R.fav.list(f.id).length, cart = R.cart.totals(f.id).qty, n = R.rendersCount(f.id);
       var LV = R.LEVEL[lvl] || 'Без плана', active = (R.flats.active() || {}).id === f.id;
-      return { id: f.id, active: active, name: f.name, data: R.flatLine(f) || 'адрес и площадь не указаны', level: LV + (lvl === 'design_project' ? ' ✓' : ''), budget: r.budget ? (r.budget.type === 'premium' ? 'Премиум' : 'Базовый') : 'База / Премиум',
+      return { id: f.id, active: active, name: f.name, data: (f.isDraft ? 'черновик · ' : '') + (R.flatLine(f) || 'адрес и площадь не указаны'), level: LV + (lvl === 'design_project' ? ' ✓' : ''), budget: r.budget ? (r.budget.type === 'premium' ? 'Премиум' : 'Базовый') : 'База / Премиум',
         tone: ['#B98A72', '#A7A196', '#9E8775', '#C9A48E'][i % 4], img: r.interior && r.interior.img,
         rows: [ { k: 'Основа', v: LV, c: lvl === 'none' ? M : (lvl === 'design_project' ? G : I) }, { k: 'Интерьер', v: r.interior ? esc(r.interior.name) : 'не выбран', c: r.interior ? I : M },
           { k: 'Рендеры сохранены', v: String(n), c: I }, { k: 'Избранное · Корзина', v: fav + ' · ' + cart, c: I } ],

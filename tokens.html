@@ -4,14 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Токены и подписка — SOVEAPP</title>
-<meta name="description" content="Пакет токенов или подписка METOD: выберите способ, проверьте заказ и перейдите к оплате.">
+<meta name="description" content="Пакет по зонам, подписка METOD с одним интерьером в подарок или токены поштучно: выберите способ, проверьте заказ и перейдите к оплате.">
 <link rel="icon" href="assets/img/logo-sg.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap">
-<link rel="stylesheet" href="assets/css/site.css?v=20261028195430">
-<link rel="stylesheet" href="assets/css/app-theme.css?v=20261028195430">
-<link rel="stylesheet" href="assets/css/pages/tokens.css?v=20261028195430">
+<link rel="stylesheet" href="assets/css/site.css?v=20261102173739">
+<link rel="stylesheet" href="assets/css/app-theme.css?v=20261102173739">
+<link rel="stylesheet" href="assets/css/pages/tokens.css?v=20261102173739">
 </head>
 <body data-funnel-cta="К оплате" data-funnel-target="#order" data-page="tokens" data-title="Токены">
 <a class="skip" href="#main">К содержанию</a>
@@ -22,8 +22,8 @@
   <section class="wrap section--top">
     <div class="page-head tk-head">
       <nav class="crumbs" aria-label="Вы здесь"><a href="index.html">Главная</a><span aria-hidden="true">/</span><span>Токены и подписка</span></nav>
-      <h1 class="h1">Два способа получить токены</h1>
-      <p class="lead">Токены тратятся на генерации. <span id="tk-return-note" hidden>Фото и расчёты, с которых вы пришли, сохранены — после оплаты вернём вас на тот же экран.</span></p>
+      <h1 class="h1">Пакет по зонам, подписка или токены</h1>
+      <p class="lead">Пакет открывает комнату целиком: материалы, визуализации и замены. Токены — поштучно за каждое действие. <span id="tk-return-note" hidden>Фото и расчёты, с которых вы пришли, сохранены — после оплаты вернём вас на тот же экран.</span></p>
     </div>
   </section>
 
@@ -32,9 +32,35 @@
 
       <div class="col-8 tk-ways" role="radiogroup" aria-label="Что оплатить">
 
+        <section class="tk-way tk-way--wide rule-top" aria-labelledby="tk-pkg-title">
+          <div class="stack stack--2">
+            <span class="eyebrow">Оплата за зоны</span>
+            <h2 class="h3" id="tk-pkg-title">Пакеты по зонам</h2>
+            <p class="small muted tk-way__desc">Зона — одна комната вашего плана: материалы, визуализации во всех ракурсах и любые замены в ней. Повторные действия в оплаченной зоне бесплатны.</p>
+          </div>
+          <div class="tk-pkgs" id="tk-packages"></div>
+          <div class="tk-way__foot">
+            <p class="small">Пакет не сгорает: зоны открываете, когда удобно. Цены — пример, уточняются.</p>
+            <a class="arrow-link" href="interior.html">Где тратятся зоны — Интерьер</a>
+          </div>
+        </section>
+
+        <section class="tk-way rule-top" aria-labelledby="tk-metod-title">
+          <div class="stack stack--2">
+            <span class="eyebrow">Подписка на срок</span>
+            <h2 class="h3" id="tk-metod-title">Подписка METOD: один интерьер в подарок</h2>
+            <p class="small muted tk-way__desc">Контакты всех поставщиков, закрытый клуб в Telegram и один интерьер в подарок: все комнаты одной квартиры, замены включены.</p>
+          </div>
+          <div class="stack stack--2" id="tk-plans"></div>
+          <div class="tk-way__foot">
+            <p class="small">Бесплатных токенов при подписке нет: подарочные токены сгорают при оплате.</p>
+            <a class="arrow-link" id="tk-metod-link" href="metod.html">Что входит в METOD</a>
+          </div>
+        </section>
+
         <section class="tk-way rule-top" aria-labelledby="tk-pack-title">
           <div class="stack stack--2">
-            <span class="eyebrow">Разовая покупка</span>
+            <span class="eyebrow">Токены поштучно</span>
             <h2 class="h3" id="tk-pack-title">Пакет токенов</h2>
             <p class="small muted tk-way__desc" id="tk-pack-desc">Платите один раз и тратите, когда нужно.</p>
           </div>
@@ -45,24 +71,12 @@
           </div>
         </section>
 
-        <section class="tk-way rule-top" aria-labelledby="tk-metod-title">
-          <div class="stack stack--2">
-            <span class="eyebrow">Подписка на срок</span>
-            <h2 class="h3" id="tk-metod-title">Подписка METOD</h2>
-            <p class="small muted tk-way__desc">Контакты всех поставщиков, закрытый клуб в Telegram и токены на генерации.</p>
-          </div>
-          <div class="stack stack--2" id="tk-plans"></div>
-          <div class="tk-way__foot">
-            <p class="small">Сколько токенов входит в подписку — уточняется.</p>
-            <a class="arrow-link" id="tk-metod-link" href="metod.html">Что входит в METOD</a>
-          </div>
-        </section>
-
         <div class="tk-help">
           <span class="eyebrow">Как выбрать</span>
           <div class="tk-help__cols">
-            <p class="small muted"><b>Пакет</b> — если нужны только поиски в Генерациях: находите мебель и свет по фото или рендеру, платите за каждый запуск.</p>
-            <p class="small muted"><b>METOD</b> — если собираетесь покупать: подписка открывает контакты поставщиков, у которых товары идут по ценам METOD.</p>
+            <p class="small muted"><b>Пакет по зонам</b> — если делаете интерьер комнаты или всей квартиры: одна оплата, и все действия в зоне включены.</p>
+            <p class="small muted"><b>METOD</b> — если собираетесь покупать: контакты поставщиков по ценам METOD, а интерьер одной квартиры — в подарок.</p>
+            <p class="small muted"><b>Токены</b> — если нужны отдельные действия: поиск по фото, один ракурс, одна замена.</p>
           </div>
         </div>
 
@@ -110,8 +124,8 @@
 </div>
 
 <div id="site-footer"></div>
-<script src="assets/js/data.js?v=20261028195430"></script>
-<script src="assets/js/site.js?v=20261028195430"></script>
-<script src="assets/js/pages/tokens.js?v=20261028195430"></script>
+<script src="assets/js/data.js?v=20261102173739"></script>
+<script src="assets/js/site.js?v=20261102173739"></script>
+<script src="assets/js/pages/tokens.js?v=20261102173739"></script>
 </body>
 </html>

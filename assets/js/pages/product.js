@@ -35,11 +35,39 @@
   }).catch(function () { notFound(); });
 
   function main() {
-  var caps = p.capsules.map(function (id) { return D.capsule(id); }).filter(Boolean);
-  var suppliers = p.suppliers.slice().sort(function (a, b) { return a.metod - b.metod; });
+  var caps = (p.capsules || []).map(function (id) { return D.capsule(id); }).filter(Boolean);
+  /* продавцы (SOVE.sellers, Таня 29.10): склады DECARO — Москва и Санкт-Петербург, у примеров data.js — их поставщики,
+     у обычного товара один продавец = бренд. Выбор запоминается по товару; от него — строка «Продавец», доставка, контакт и корзина */
+  var X = S.sellers;
+  var suppliers = (X ? X.list(p) : p.suppliers).slice().sort(function (a, b) { return a.metod - b.metod; });
+  var multi = suppliers.length > 1;
+  var selId = X ? X.chosenId(p) : suppliers[0].id;
+  function sel() { return suppliers.filter(function (s) { return s.id === selId; })[0] || suppliers[0]; }
   /* зона доставки поставщика из кабинета партнёра (SOVE.pext.delivery); пусто — показываем условия каталога */
   function supplierBrand() { return S.pext && S.pext.delivery ? S.pext.delivery.supplierOf(p) : p.brand; }
   function zoneLine(brand) { return S.pext && S.pext.delivery ? S.pext.delivery.line(brand) : ''; }
+  /* доставка продавца: зона из кабинета партнёра, иначе условия продавца («Санкт-Петербург и ЛО»); у одного продавца — как раньше */
+  function sellerDelivery(s) {
+    if (!multi) return zoneLine(supplierBrand()) || F.esc(s.delivery || p.delivery);
+    var z = zoneLine(s.name); if (z) return 'Доставка: ' + z;
+    var d = String(s.delivery || '').trim().replace(/^доставка:?\s*/i, ''); if (!d) return '';
+    return 'Доставка: ' + F.esc(d);
+  }
+  /* строка «Доставка» в таблице: без слова «Доставка» — оно уже в подписи строки */
+  function rowDelivery(s) {
+    if (!multi) return sellerDelivery(s);
+    var z = zoneLine(s.name); if (z) return z;
+    var d = String(s.delivery || '').trim().replace(/^доставка:?\s*/i, '');
+    return F.esc(d.charAt(0).toUpperCase() + d.slice(1));
+  }
+  /* цена у продавца: та же, что крупно на странице (METOD при скидке, иначе розница), плюс наценка продавца */
+  function sellerPrice(s) { return (p.discount > 0 && p.retail > p.metod ? p.metod : (p.retail || p.metod)) + (Number(s.priceDelta) || 0); }
+  /* метка уровня по классификатору (tier-map.js, другой экран её тоже показывает); нет файла — без метки */
+  function tierChip() {
+    try { var t = typeof S.tier === 'function' ? S.tier(p) : null; if (t !== 'base' && t !== 'premium') return '';
+      return '<span class="pc-tier' + (t === 'premium' ? ' pc-tier--premium' : '') + '" title="Уровень по классификатору SOVEAPP">' + (S.tierLabel ? S.tierLabel(t) : t === 'premium' ? 'Премиум' : 'База') + '</span>';
+    } catch (e) { return ''; }
+  }
   var media = [ { src: p.img, alt: p.name, label: 'Фото товара', render: false } ];
   if (caps[0]) media.push({ src: caps[0].cover, alt: 'Интерьер капсулы ' + caps[0].code + ': ' + caps[0].name, label: 'Интерьер капсулы ' + caps[0].code, render: true });
 
@@ -62,25 +90,70 @@
       '<button type="button" class="product-card__fav' + (on ? ' is-on' : '') + '" data-fav="' + x.id + '" aria-pressed="' + on + '" aria-label="' + (on ? 'Убрать из избранного: ' : 'В избранное: ') + F.esc(x.name) + '">' + HEART + '</button></div>';
   }
 
+  /* ---------- «Где купить»: выбор продавца (только у товара с двумя и более продавцами) ---------- */
+  function buyHTML() {
+    if (!multi) return '';
+    var prices = suppliers.map(sellerPrice), min = Math.min.apply(null, prices), same = prices.every(function (x) { return x === prices[0]; });
+    return '<fieldset class="pbuy"><legend class="pbuy__h"><span>Где купить</span><small>' + suppliers.length + ' ' + plural(suppliers.length, ['продавец', 'продавца', 'продавцов']) + '</small></legend>' +
+      suppliers.map(function (s, i) {
+        var on = s.id === selId, pr = prices[i], line = [s.city && s.name.indexOf(s.city) < 0 ? 'Склад: ' + F.esc(s.city) : '', sellerDelivery(s)].filter(Boolean).join(' · ');
+        return '<label class="pbuy__opt' + (on ? ' is-on' : '') + '"><input type="radio" name="p-seller" value="' + F.esc(s.id) + '"' + (on ? ' checked' : '') + '>' +
+          '<span class="pbuy__dot" aria-hidden="true"></span>' +
+          '<span class="pbuy__b"><b>' + F.esc(s.name) + '</b>' + (line ? '<small>' + line + '</small>' : '') + '</span>' +
+          '<span class="pbuy__p"><b class="num">' + F.rub(pr) + '</b>' + (!same && pr === min ? '<small class="green">лучшая цена</small>' : '') + '</span></label>';
+      }).join('') + '</fieldset>';
+  }
+  /* кнопка «В корзину»: нет в корзине → положить у выбранного продавца; лежит у него же → «В корзине ✓» (открыть корзину);
+     лежит у другого продавца → «Сменить продавца в корзине» */
+  var CART = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 4h2l2.5 11h10l2-7H7"/><circle cx="9" cy="19" r="1.5"/><circle cx="17" cy="19" r="1.5"/></svg>';
+  function cartState() {
+    var R = S.repair, O = S.orders;
+    var inCart = R ? R.cart.has(p.id) : !!(O && O.basket.has(p.id));
+    var cur = inCart && multi ? ((R ? R.cart.sellerOf(p.id) : O.basket.sellerOf(p.id)) || null) : null;
+    return { inCart: inCart, cur: cur, other: inCart && multi && (!cur || cur.id !== sel().id) };
+  }
+  function renderBuy() {
+    var box = document.getElementById('p-buy'); if (!box) return;
+    var c = cartState(), state = !c.inCart ? 'add' : c.other ? 'switch' : 'open';
+    var label = { add: 'В корзину', 'switch': 'Сменить продавца в корзине', open: 'В корзине ✓' }[state];
+    box.innerHTML = '<button type="button" class="btn btn--primary btn--lg btn--block product-buy__btn' + (state === 'open' ? ' is-on' : '') + '" data-act="cart" data-state="' + state + '"' +
+      (state === 'open' ? ' aria-label="В корзине — открыть корзину"' : '') + '>' + CART + '<span>' + label + '</span></button>' +
+      (state === 'switch' ? '<p class="product-buy__note">' + (c.cur ? 'Сейчас в корзине — ' + F.esc(c.cur.name) : 'В корзине без выбора продавца') + '</p>'
+        : multi ? '<p class="product-buy__note">Продавец: ' + F.esc(sel().name) + '</p>' : '');
+  }
+  function toCart(state) {
+    var R = S.repair, O = S.orders, s = sel(), seller = multi && X ? X.short(s) : undefined;
+    if (state === 'open') { location.href = 'my.html?v=basket'; return; }
+    /* товар живого каталога — в общий список товаров (корзина и «Мой ремонт» на других экранах его увидят) */
+    if (R && R.registerProduct && !D.product(p.id)) R.registerProduct(p);
+    if (state === 'switch') {
+      if (R) R.cart.setSeller(p.id, seller); else if (O) O.basket.setSeller(p.id, seller);
+      S.ui.toast('Продавец в корзине: ' + s.name, 'ok');
+    } else if (R) R.cart.add(p.id, 'market', false, seller);
+    else if (O) { O.basket.add(p.id, 'catalog', 1, seller); S.ui.toast('В корзине · ' + (multi ? s.name : p.name), 'ok'); }
+    renderBuy();
+  }
+  /* смена продавца: подсветка, строки «Продавец» и «Доставка», кнопка корзины и контакт */
+  function onSeller(id) {
+    selId = id; if (X) X.choose(p.id, id);
+    root.querySelectorAll('.pbuy__opt').forEach(function (l) { var i = l.querySelector('input'); l.classList.toggle('is-on', !!(i && i.checked)); });
+    var nm = document.getElementById('p-seller-name'); if (nm) nm.textContent = sel().name;
+    var dl = document.getElementById('p-delivery'); if (dl) dl.innerHTML = rowDelivery(sel());
+    renderBuy(); ctaMode = null; renderCTA();
+  }
+
   /* ---------- страница ---------- */
   function pageHTML() {
     var cat = encodeURIComponent(p.category);
     var eyebrow = [p.category, p.subcat].concat(caps.length ? [caps.map(function (c) { return c.name; }).join(', ')] : []).join(' · ');
     var rows =
       '<div><span>Срок</span><span>' + F.esc(p.leadTime) + '</span></div>' +
-      '<div><span>Доставка</span><span>' + (zoneLine(supplierBrand()) || F.esc(p.delivery)) + '</span></div>' +
+      '<div><span>Доставка</span><span id="p-delivery">' + rowDelivery(sel()) + '</span></div>' +
       (p.madeToOrder ? '' : '<div><span>Бренд</span><span>' + F.esc(p.brand) + '</span></div>') +
       (caps.length ? '<div><span>' + plural(caps.length, ['Капсула', 'Капсулы', 'Капсулы']) + '</span><span class="row">' + caps.map(function (c) { return '<a class="chip" href="capsule.html?id=' + c.id + '" title="' + F.esc(c.name) + '">' + c.code + '</a>'; }).join('') + '</span></div>' : '');
-    if (suppliers.length > 1) {
-      rows += '<div class="product-suppliers"><div class="product-suppliers__head"><span>Поставщики</span><span class="num">' + suppliers.length + '</span></div><ul>' +
-        suppliers.map(function (s, i) {
-          return '<li><span class="product-suppliers__name"><span>' + F.esc(s.name) + '</span><span class="tiny muted">' + (zoneLine(i === 0 ? supplierBrand() : s.name) || F.esc(s.delivery)) + '</span></span>' +
-            '<span class="product-suppliers__price">' + (i === 0 ? '<span class="badge badge--line">лучшая цена</span>' : '') + '<span class="num' + (i === 0 ? ' green' : '') + '" style="font-weight:600">' + F.rub(s.metod) + '</span></span></li>';
-        }).join('') + '</ul></div>';
-    } else {
-      rows += '<div><span>Поставщик</span><span>' + F.esc(suppliers[0].name) + '</span></div>';
-    }
-    rows += '<div class="seller"><span>Продавец</span><span class="seller__body"><b>' + F.esc(suppliers[0].name) + '</b><small>ИНН и ОГРН — из реестра партнёров · проверен по ЕГРЮЛ</small><a href="about.html#docs">Документы и сертификаты</a></span></div>';
+    /* у товара с выбором продавца список — в блоке «Где купить» над кнопкой «В корзину» */
+    if (!multi) rows += '<div><span>Поставщик</span><span>' + F.esc(suppliers[0].name) + '</span></div>';
+    rows += '<div class="seller"><span>Продавец</span><span class="seller__body"><b id="p-seller-name">' + F.esc(sel().name) + '</b><small>ИНН и ОГРН — из реестра партнёров · проверен по ЕГРЮЛ</small><a href="about.html#docs">Документы и сертификаты</a></span></div>';
 
     var sim = similar().filter(function (x) { return x.white; });
     var guest = !S.auth.isIn();
@@ -99,14 +172,20 @@
       '</div></div>' +
 
       '<div class="col-5 stack stack--6 product-info">' +
-        '<div class="stack stack--3"><span class="eyebrow">' + F.esc(eyebrow) + '</span><h1 class="h2">' + F.esc(p.name) + '</h1></div>' +
-        '<div class="price2">' +
-          '<div class="price2__row"><span>Цена поставщика</span><b class="num">' + F.rub(p.retail) + '</b></div>' +
-          '<div class="price2__row price2__row--our"><span>Ваша цена с METOD</span><b class="num">' + F.rub(p.metod) + '</b></div>' +
-          '<div class="price2__save"><span class="badge badge--green">−' + p.discount + ' %</span><span>выгода ' + F.rub(p.retail - p.metod) + '</span>' +
-          (S.metod.active() ? '<i>подписка активна</i>' : '<a class="link" href="metod.html?returnTo=' + encodeURIComponent('product.html?id=' + p.id) + '">Подключить METOD</a>') + '</div>' +
-        '</div>' +
+        '<div class="stack stack--3"><div class="product-eyebrow"><span class="eyebrow">' + F.esc(eyebrow) + '</span>' + tierChip() + '</div><h1 class="h2">' + F.esc(p.name) + '</h1></div>' +
+        /* без скидки (у поставщика нет цены METOD) — одна цена, без «−0 %» и «выгода 0 ₽» (Таня 29.10) */
+        (p.discount > 0 && p.retail > p.metod
+          ? '<div class="price2">' +
+              '<div class="price2__row"><span>Цена поставщика</span><b class="num">' + F.rub(p.retail) + '</b></div>' +
+              '<div class="price2__row price2__row--our"><span>Ваша цена с METOD</span><b class="num">' + F.rub(p.metod) + '</b></div>' +
+              '<div class="price2__save"><span class="badge badge--green">−' + p.discount + ' %</span><span>выгода ' + F.rub(p.retail - p.metod) + '</span>' +
+              (S.metod.active() ? '<i>подписка активна</i>' : '<a class="link" href="metod.html?returnTo=' + encodeURIComponent('product.html?id=' + p.id) + '">Подключить METOD</a>') + '</div>' +
+            '</div>'
+          : '<div class="price2"><div class="price2__row price2__row--our"><span>Цена</span><b class="num">' + F.rub(p.retail || p.metod) + '</b></div>' +
+              '<p class="tiny muted">Скидки METOD у этого поставщика нет.</p></div>') +
         (function () { var pub = S.pext && S.pext.edits.published('cat:' + p.id); return pub ? '<p class="product-avail"><b>Наличие: ' + (S.pext.STATUS[pub.status] || '—') + '</b> · по данным поставщика' + (pub.priceSove ? ' · цена поставщика ' + F.rub(pub.priceSove) : '') + '</p>' : ''; })() +
+        buyHTML() +
+        '<div class="product-buy" id="p-buy"></div>' +
         '<a class="btn btn--dark btn--block product-fit" href="fit.html?product=' + p.id + '">Примерить в моём интерьере</a>' +
         '<div class="product-cta" id="p-cta"></div>' +
         '<p class="product-inproject" id="p-inproject" hidden></p>' +
@@ -128,14 +207,16 @@
     if (mode === ctaMode) return;
     ctaMode = mode;
     if (mode === 'locked') {
-      box.innerHTML = '<button type="button" class="btn btn--primary btn--lg btn--block" data-act="contact">Узнать, где купить</button>' +
+      /* главная кнопка страницы — «В корзину»; контакт и промокод METOD — второстепенная */
+      box.innerHTML = '<button type="button" class="btn btn--ghost btn--block" data-act="contact">Узнать, где купить</button>' +
         '<p class="product-cta__hint">Контакт и промокод на цену METOD — по подписке. Сама цена видна всем.</p>';
       return;
     }
-    var s = suppliers[0];
+    /* контакт выбранного продавца (склад DECARO · Санкт-Петербург и т. п.); у одного продавца — как раньше */
+    var s = sel(), best = multi && suppliers.every(function (x) { return sellerPrice(x) >= sellerPrice(s); }) && suppliers.some(function (x) { return sellerPrice(x) !== sellerPrice(s); });
     box.innerHTML = '<div class="notice notice--ok product-contact">' +
       '<div class="stack stack--2"><span class="eyebrow">Контакт открыт · ' + (mode === 'metod' ? 'METOD до ' + F.dateLong(S.metod.until()) : 'разовый доступ') + '</span>' +
-      '<span class="h4">' + F.esc(s.name) + '</span><span class="small muted">' + (zoneLine(supplierBrand()) || F.esc(s.delivery)) + (suppliers.length > 1 ? ' · лучшая цена из ' + suppliers.length : '') + '</span></div>' +
+      '<span class="h4">' + F.esc(s.name) + '</span><span class="small muted">' + sellerDelivery(s) + (best ? ' · лучшая цена из ' + suppliers.length : '') + '</span></div>' +
       '<div class="product-promo"><span class="stack stack--2" style="gap:0"><span class="tiny muted">Промокод</span><span class="product-promo__code num" id="p-promo">SOVEAPP-' + p.id + '</span></span><button type="button" class="btn btn--link" data-act="copy">Скопировать</button></div>' +
       '<button type="button" class="btn btn--primary btn--block" data-act="write">Написать поставщику</button>' +
       '<p class="tiny muted">Назовите промокод при заказе — по нему поставщик применит цену METOD.</p></div>';
@@ -226,6 +307,7 @@
       if (hasAccess()) return renderCTA();
       openAccess();
     }
+    if (act === 'cart') return void toCart(btn.getAttribute('data-state'));
     if (act === 'write') S.ui.toast('В прототипе чат не подключён');
     if (act === 'copy') copyPromo();
     if (act === 'project') {
@@ -243,12 +325,18 @@
     }
   });
 
+  root.addEventListener('change', function (e) {
+    var r = e.target.closest && e.target.closest('input[name="p-seller"]'); if (r && r.checked) onSeller(r.value);
+  });
+
   /* ---------- старт ---------- */
   function start() {
     document.title = p.name + ' — SOVEAPP';
     root.setAttribute('aria-busy', 'false');
     root.innerHTML = pageHTML();
-    renderCTA(); renderActions();
+    renderCTA(); renderActions(); renderBuy();
+    /* корзина меняется и с других кнопок (полоса, другие вкладки) — кнопка следит */
+    window.addEventListener('sove:repair', renderBuy); window.addEventListener('sove:orders', renderBuy);
 
     /* действие, начатое до входа, доводим до конца после возврата */
     var intent = S.ui.qs('intent');

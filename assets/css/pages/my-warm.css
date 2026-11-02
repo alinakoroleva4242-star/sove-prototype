@@ -194,3 +194,6 @@ body[data-page="my"] #site-footer { display: none; }
 .mr-gain--flat { background: none; box-shadow: none; padding: 6px 4px; }
 .mr-gain--flat > div > b { font-size: 13.5px; }
 .mr-info { display: inline-grid; place-items: center; width: 13px; height: 13px; border-radius: 50%; border: 1px solid var(--stone); color: var(--stone); font-size: 9px; font-style: normal; font-weight: 700; margin-left: 2px; vertical-align: middle; }
+
+/* полоса Корзина · Избранное · Бюджет закрывала нижнюю кнопку корзины («Оформить заказ») на 390 — запас снизу, как на других страницах с полосой */
+body[data-page="my"].has-rp-strip #main { padding-bottom: 76px; }

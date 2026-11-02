@@ -7,7 +7,7 @@
 
   /* ---------- хранилище ---------- */
   function blank() {
-    return { user: null, gifted: {}, ledger: [], reserves: {}, demoUsed: 0, metodUntil: null, access: [],
+    return { user: null, gifted: {}, ledger: [], reserves: {}, demoUsed: 0, metodUntil: null, access: [], packages: [],
       projects: [], generations: [], favorites: [], payments: [], leads: [], drafts: {}, my: null,
       scout: { freeUsed: false, opened: {}, requests: [] }, seq: 1 };
   }
@@ -67,8 +67,11 @@
       var gifted = false;
       if (!state.gifted[key]) {
         state.gifted[key] = Date.now();
-        state.ledger.push({ id: uid('op'), ts: Date.now(), type: 'gift', amount: D.gift.tokens, reason: 'Подарок за регистрацию', expires: Date.now() + D.gift.days * 864e5 });
-        gifted = true;
+        /* «после оплаты подписки бесплатных токенов нет» (созвон 28.10): при активной METOD подарок не начисляется, попытка помечена */
+        if (!(state.metodUntil && state.metodUntil > Date.now())) {
+          state.ledger.push({ id: uid('op'), ts: Date.now(), type: 'gift', amount: D.gift.tokens, reason: 'Подарок за регистрацию', expires: Date.now() + D.gift.days * 864e5 });
+          gifted = true;
+        }
       }
       save();
       return { gifted: gifted };
@@ -117,7 +120,19 @@
       return sum;
     },
     history: function () { return state.ledger.slice().sort(function (a, b) { return b.ts - a.ts; }); },
-    giftExpires: function () { var g = state.ledger.filter(function (o) { return o.type === 'gift'; })[0]; return g ? g.expires : null; },
+    giftExpires: function () { var g = state.ledger.filter(function (o) { return o.type === 'gift' && !o.burned; })[0]; return g ? g.expires : null; },
+    /* подарочные токены сгорают при оплате подписки (созвон 28.10). Токены неразличимы, считаем, что подарок тратится первым:
+       остаток подарка = баланс − купленные (topup); его и списываем операцией «expire», подарок помечаем burned и снимаем срок */
+    burnGift: function () {
+      var gifts = state.ledger.filter(function (o) { return o.type === 'gift' && !o.burned; }); if (!gifts.length) return 0;
+      var giftSum = 0, topups = 0;
+      gifts.forEach(function (g) { giftSum += g.amount; });
+      state.ledger.forEach(function (o) { if (o.type === 'topup') topups += o.amount; });
+      var burn = Math.max(0, Math.min(giftSum, tokens.balance() - topups));
+      gifts.forEach(function (g) { g.burned = true; delete g.expires; });
+      if (burn > 0) state.ledger.push({ id: uid('op'), ts: Date.now(), type: 'expire', amount: -burn, reason: 'Подарочные токены сгорели · подписка METOD', ref: 'metod' });
+      return burn;
+    },
     canAfford: function (cost) { return tokens.balance() >= cost; },
     /* резерв: токены сразу уходят с баланса, но операция помечена «в резерве» */
     reserve: function (cost, reason, ref) {
@@ -127,6 +142,7 @@
     },
     commit: function (opId) { var op = find(state.ledger, opId); if (op && op.type === 'reserve') { op.type = 'spend'; save(); } },
     refund: function (opId, why) {
+      if (packages.undo(opId)) return;   /* списание из пакета зон — зона возвращается в пакет */
       var op = find(state.ledger, opId); if (!op || op.refunded) return;
       op.type = 'spend'; op.refunded = true;
       state.ledger.push({ id: uid('op'), ts: Date.now() + 1, type: 'refund', amount: -op.amount, reason: 'Возврат · ' + (why || 'операция не удалась'), ref: op.ref });
@@ -135,6 +151,82 @@
     credit: function (amount, reason, ref) { state.ledger.push({ id: uid('op'), ts: Date.now(), type: 'topup', amount: amount, reason: reason, ref: ref || null }); save(); }
   };
   function find(arr, id) { return arr.filter(function (x) { return x.id === id; })[0] || null; }
+
+  /* ---------- пакеты по зонам и бонус подписки (решение созвона 28.10; схема v2 Алины: оплата за интерьер или зоны, замены входят в пакет) ----------
+     Запись пакета: {id, packageId ('zone1'|'zones3'|'flat'|'metod-interior'), kind ('zones'|'interior'), title, zonesTotal (null — без ограничения),
+       zonesLeft, paid {'<flatId>|<зона>': ts} — открытые зоны, flatId — квартира, к которой привязан безлимит (при первом списании), swapsIncluded: true, ts, ref, ops []}.
+     Правила: зона открывается из пакета один раз (первые материалы / визуализация комнаты); повторные действия в открытой зоне — замены,
+       ракурсы, обновление рендера, смена интерьера — бесплатно («замены входят в пакет»). Замена в неоткрытой зоне зону из пакета не берёт —
+       это токены (1 токен), чтобы не списать целую зону за мелочь. Безлимит («Вся квартира», «1 интерьер») покрывает все зоны одной квартиры.
+     API для экранов: S.tokens.packages() · S.tokens.canCover(action, {zone|zones, flatId}) · S.tokens.consume(action, {zone|zones, flatId, reason}) → id операции | null. */
+  var OPEN_ACTIONS = { capsule: 1, roomMaterials: 1, roomVisual: 1, render: 1, ownRoom: 1, ownFlat: 1, angle: 1, rerender: 1 };   /* capsule — первая комната капсулы = материалы одной зоны */
+  var REPEAT_ACTIONS = { materialSwap: 1, objectSwap: 1, changeCapsule: 1, rerender: 1, angle: 1, render: 1 };
+  function pkList() { if (!state.packages) state.packages = []; return state.packages; }
+  function pkKey(flatId, zone) { return (flatId || '') + '|' + zone; }
+  function pkUnlimited(p) { return p.zonesTotal === null || p.zonesTotal === undefined; }
+  function pkAlive(p) { return pkUnlimited(p) ? !p.closed : p.zonesLeft > 0 || Object.keys(p.paid || {}).length > 0; }
+  /* пакет покрывает зону: она уже открыта из него или это безлимит этой (или ещё не привязанной) квартиры */
+  function pkCovers(p, flatId, zone) {
+    if (p.paid && p.paid[pkKey(flatId, zone)]) return true;
+    return pkUnlimited(p) && (!p.flatId || p.flatId === (flatId || null));
+  }
+  var packages = {
+    list: function () { return pkList().slice(); },
+    active: function () { return pkList().filter(function (p) { return pkAlive(p) && (pkUnlimited(p) || p.zonesLeft > 0); }); },
+    /* чип в шапке: «1 интерьер» / «2 зоны из 3» / «Вся квартира»; null — пакетов нет, показываем токены */
+    chipLabel: function () {
+      var list = packages.active(); if (!list.length) return null;
+      var p = list.sort(function (a, b) { return (pkUnlimited(b) ? 1 : 0) - (pkUnlimited(a) ? 1 : 0) || a.ts - b.ts; })[0];
+      if (p.kind === 'interior') return '1 интерьер';
+      if (pkUnlimited(p)) return 'Вся квартира';
+      var w = function (n) { var a = n % 100, b = n % 10; return (a > 10 && a < 20) ? 'зон' : b === 1 ? 'зона' : (b >= 2 && b <= 4) ? 'зоны' : 'зон'; };
+      return p.zonesTotal === 1 ? '1 зона' : p.zonesLeft + ' ' + w(p.zonesLeft) + ' из ' + p.zonesTotal;
+    },
+    /* покупка пакета (pay.confirm) или бонус подписки (metod.activate) */
+    grant: function (o) {
+      var rec = { id: uid('pk'), packageId: o.packageId, kind: o.kind || 'zones', title: o.title, zonesTotal: o.zones === undefined ? null : o.zones, zonesLeft: o.zones || 0,
+        paid: {}, flatId: null, swapsIncluded: true, ts: Date.now(), ref: o.ref || null, ops: [] };
+      pkList().push(rec); save(); return rec;
+    },
+    isCovered: function (flatId, zone) { return pkList().some(function (p) { return pkAlive(p) && pkCovers(p, flatId, zone); }); },
+    /* o: {zone | zones, flatId}. Покрыто, если каждая зона либо уже открыта, либо (для открывающего действия) есть кому её открыть */
+    canCover: function (action, o) {
+      o = o || {}; var zs = o.zones ? o.zones.slice() : o.zone ? [o.zone] : [];
+      if (!zs.length) return false;
+      var need = zs.filter(function (z) { return !packages.isCovered(o.flatId, z); });
+      if (!need.length) return !!(OPEN_ACTIONS[action] || REPEAT_ACTIONS[action]);
+      if (!OPEN_ACTIONS[action]) return false;
+      var left = 0; pkList().forEach(function (p) { if (!pkUnlimited(p) && p.zonesLeft > 0) left += p.zonesLeft; });
+      return left >= need.length;
+    },
+    /* списание: открывает новые зоны из пакетов (безлимит — привязывается к квартире), повтор — бесплатно. Возвращает id операции (для refund) или null */
+    consume: function (action, o) {
+      if (!packages.canCover(action, o)) return null;
+      var zs = o.zones ? o.zones.slice() : [o.zone], opId = uid('pkop'), opened = [], touched = {};
+      zs.forEach(function (z) {
+        var key = pkKey(o.flatId, z);
+        var have = pkList().filter(function (p) { return pkAlive(p) && pkCovers(p, o.flatId, z); }).sort(function (a, b) { return (pkUnlimited(b) ? 1 : 0) - (pkUnlimited(a) ? 1 : 0); })[0];
+        if (have) { if (pkUnlimited(have) && !have.flatId) { have.flatId = o.flatId || null; touched[have.id] = have; } if (!have.paid[key]) { have.paid[key] = Date.now(); opened.push(z); touched[have.id] = have; } return; }
+        var p = pkList().filter(function (x) { return !pkUnlimited(x) && x.zonesLeft > 0; }).sort(function (a, b) { return a.ts - b.ts; })[0];
+        p.zonesLeft -= 1; p.paid[key] = Date.now(); opened.push(z); touched[p.id] = p;
+      });
+      Object.keys(touched).forEach(function (id) { touched[id].ops.push({ id: opId, ts: Date.now(), action: action, zones: zs, opened: opened, flatId: o.flatId || null, reason: o.reason || '' }); });
+      save(); return opId;
+    },
+    /* откат списания (ошибка генерации, «Отменить»): открытые этой операцией зоны возвращаются в пакет */
+    undo: function (opId) {
+      if (!opId || String(opId).indexOf('pkop-') !== 0) return false;
+      var hit = false;
+      pkList().forEach(function (p) {
+        var op = (p.ops || []).filter(function (x) { return x.id === opId && !x.undone; })[0]; if (!op) return;
+        op.undone = true; hit = true;
+        op.opened.forEach(function (z) { var key = pkKey(op.flatId, z); if (p.paid[key]) { delete p.paid[key]; if (!pkUnlimited(p)) p.zonesLeft += 1; } });
+      });
+      if (hit) save(); return hit;
+    }
+  };
+  tokens.packages = packages.list; tokens.packagesActive = packages.active; tokens.packageChip = packages.chipLabel;
+  tokens.canCover = packages.canCover; tokens.consume = packages.consume; tokens.grantPackage = packages.grant; tokens.zoneCovered = packages.isCovered;
 
   /* ---------- демо для гостя ---------- */
   var demo = {
@@ -148,7 +240,14 @@
     active: function () { return !!(state.user && state.metodUntil && state.metodUntil > Date.now()); },
     until: function () { return state.metodUntil; },
     daysLeft: function () { return metod.active() ? Math.ceil((state.metodUntil - Date.now()) / 864e5) : 0; },
-    activate: function (months) { var from = metod.active() ? state.metodUntil : Date.now(); state.metodUntil = from + months * 30 * 864e5; save(); },
+    /* оплата подписки: срок + бонус «один интерьер» (D.metodBonus) за каждую оплату; подарочные токены сгорают — бесплатных токенов при подписке нет (созвон 28.10) */
+    activate: function (months) {
+      var from = metod.active() ? state.metodUntil : Date.now(); state.metodUntil = from + months * 30 * 864e5;
+      tokens.burnGift();
+      var B = D.metodBonus || { interiors: 1 };
+      for (var i = 0; i < (B.interiors || 0); i++) packages.grant({ packageId: 'metod-interior', kind: 'interior', title: 'METOD · один интерьер', zones: null, ref: 'metod' });
+      save();
+    },
     hasContact: function (productId) { return metod.active() || state.access.indexOf(Number(productId)) >= 0; },
     grantContact: function (productId) { if (state.access.indexOf(Number(productId)) < 0) { state.access.push(Number(productId)); save(); } }
   };
@@ -256,9 +355,23 @@
 
   /* ---------- «Мой ремонт»: одна опора для всего, что человек делает на сайте (работает и у гостя) ---------- */
   function myState() { if (!state.my) state.my = { capsuleId: null, level: 'base', area: null, stateId: null, total: null, kitMetod: null, kitRetail: null, works: null, productIds: [], service: null, updated: null }; return state.my; }
+  /* зеркало в активную квартиру «Моего ремонта» (схема объекта v2, созвон 28.10): area → m2, stateId → state, level → budgetType, capsuleId → capsuleId.
+     Квартиру НЕ создаём — её создаёт первое действие с данными (план, расчёт, интерьер, «+ Добавить объект»); пишем только то, что отличается.
+     Обратное зеркало (квартира → расчёт) делает repair.js при смене активной квартиры и правке её полей. */
+  function mirrorFlat(patch) {
+    try {
+      var R = window.SOVE && window.SOVE.repair, fl = R && R.flats, f = fl && fl.active(); if (!f) return;
+      var up = {}, toMy = fl.STATE_MY || {}, fromMy = fl.MY_STATE || {};
+      if (patch.area > 0 && f.m2 !== patch.area) up.m2 = patch.area;
+      if (patch.stateId && fromMy[patch.stateId] && toMy[f.state] !== patch.stateId) up.state = fromMy[patch.stateId];
+      if ((patch.level === 'base' || patch.level === 'premium') && f.budgetType !== patch.level) up.budgetType = patch.level;
+      if (Object.prototype.hasOwnProperty.call(patch, 'capsuleId') && (f.capsuleId || null) !== (patch.capsuleId || null)) up.capsuleId = patch.capsuleId || null;
+      if (Object.keys(up).length) fl.update(f.id, up);
+    } catch (e) {}
+  }
   var my = {
     get: function () { return myState(); },
-    set: function (patch) { Object.assign(myState(), patch, { updated: Date.now() }); save(); return state.my; },
+    set: function (patch) { patch = patch || {}; Object.assign(myState(), patch, { updated: Date.now() }); save(); mirrorFlat(patch); return state.my; },
     hasProduct: function (id) { return myState().productIds.indexOf(Number(id)) >= 0; },
     addProduct: function (id) { id = Number(id); var m = myState(); if (m.productIds.indexOf(id) < 0) { m.productIds.push(id); m.updated = Date.now(); save(); } },
     removeProduct: function (id) { id = Number(id); var m = myState(); m.productIds = m.productIds.filter(function (x) { return x !== id; }); save(); },
@@ -292,6 +405,7 @@
       var pm = find(state.payments, id); if (!pm || pm.status === 'paid') return pm;
       pm.status = 'paid'; pm.paidAt = Date.now();
       if (pm.item.kind === 'pack') tokens.credit(pm.item.tokens, 'Пополнение · ' + pm.item.title, pm.id);
+      if (pm.item.kind === 'package') packages.grant({ packageId: pm.item.id, kind: 'zones', title: pm.item.title, zones: pm.item.zones === undefined ? null : pm.item.zones, ref: pm.id });
       if (pm.item.kind === 'metod') metod.activate(pm.item.months);
       if (pm.item.kind === 'contact') metod.grantContact(pm.item.productId);
       if (pm.item.kind === 'scout') scout.open(pm.item.capsuleId, pm.item.level);
@@ -332,13 +446,15 @@
   /* подвал: пять вкладок, как перечислила Вика 21.10 (Валерия подтвердила 22.10): старый формат, «Заказы» вместо «Капсул»; корзина — плиткой в «Моём ремонте» и строкой в профиле */
   var TABS = [ { key: 'home', label: 'Главная', href: 'index.html', ic: 'home' }, { key: 'orders', label: 'Заказы', href: 'my.html?v=orders', ic: 'box' }, { key: 'my', label: 'Мой ремонт', href: 'my.html', ic: 'my' }, { key: 'market', label: 'Маркет', href: 'market.html', ic: 'cart' }, { key: 'profile', label: 'Профиль', href: 'account.html', ic: 'user' } ];
   /* Планировка (первый экран, шаги, сохранение) подсвечивает «Мой ремонт» — как в макете Вики 28.10 */
-  var TABMAP = { 'partner-cabinet': 'profile', home: 'home', capsules: 'home', capsule: 'home', market: 'market', product: 'market', ai: 'market', services: 'home', metod: 'home', adept: 'home', track: 'my', gen: 'home', scout: 'home', my: 'my', account: 'profile', project: 'my', generations: 'profile', generation: 'profile', tokens: 'profile', 'sove-ai': 'home', 'plan-demo': 'my', arrange: 'my', 'plan-save': 'my', 'gen-new': 'home', interior: 'home', materialy: 'home', moodboard: 'home', about: 'home', partner: 'home', pay: 'profile', auth: 'profile' };
+  var TABMAP = { 'partner-cabinet': 'profile', home: 'home', capsules: 'home', capsule: 'home', market: 'market', product: 'market', ai: 'market', services: 'home', metod: 'home', adept: 'home', track: 'my', gen: 'home', scout: 'home', my: 'my', account: 'profile', project: 'my', generations: 'profile', generation: 'profile', tokens: 'profile', 'sove-ai': 'home', 'plan-demo': 'my', arrange: 'my', 'plan-save': 'my', 'gen-new': 'home', interior: 'home', materialy: 'home', moodboard: 'home', about: 'home', partner: 'home', pay: 'profile', auth: 'profile', executors: 'home' };
 
   var SVC = [ { href: 'metod.html', label: 'METOD', small: 'подписка: скидки и партнёры' }, { href: 'adept.html', label: 'Дизайн-проект', small: 'по вашей капсуле' }, { href: 'sove-ai.html', label: 'Генерации', small: 'поиск по фото и рендер' }, { href: 'track.html', label: 'Управление ремонтом', small: 'ремонт под ключ' } ];
   /* число позиций в корзине для бейджа в меню: orders.js на части страниц не подключён, читаем его хранилище напрямую */
   /* баланс токенов в шапке на любом экране (решения 21.10, шаг 1); экраны со своей шапкой берут его через SOVE.ui.tokenChip() */
-  function tokenChip() { return '<a class="tok-chip" data-tok href="tokens.html?returnTo=' + encodeURIComponent(location.pathname.split('/').pop() + location.search) + '" aria-label="Баланс: ' + fmt.tokens(tokens.balance()) + '. Пополнить">' + fmt.tokens(tokens.balance()) + '</a>'; }
-  function syncTokenChips() { var t = auth.isIn() ? fmt.tokens(tokens.balance()) : ''; document.querySelectorAll('[data-tok]').forEach(function (el) { el.textContent = t; el.hidden = !t; }); }
+  /* текст чипа: при активном пакете зон — «1 интерьер» / «2 зоны из 3» / «Вся квартира» (созвон 28.10), иначе баланс токенов */
+  function chipText() { return packages.chipLabel() || fmt.tokens(tokens.balance()); }
+  function tokenChip() { var t = chipText(); return '<a class="tok-chip" data-tok href="tokens.html?returnTo=' + encodeURIComponent(location.pathname.split('/').pop() + location.search) + '" aria-label="' + (packages.chipLabel() ? 'Пакет: ' + t + '. Токены и пакеты' : 'Баланс: ' + t + '. Пополнить') + '">' + t + '</a>'; }
+  function syncTokenChips() { var t = auth.isIn() ? chipText() : ''; document.querySelectorAll('[data-tok]').forEach(function (el) { el.textContent = t; el.hidden = !t; }); }
   function renderHeader() {
     var host = document.getElementById('site-header'); if (!host) return;
     var page = document.body.getAttribute('data-page') || '';
@@ -418,15 +534,17 @@
     needTokens: function (cost, returnTo) {
       var rt = encodeURIComponent(returnTo || (location.pathname.split('/').pop() + location.search));
       return ui.modal({ eyebrow: 'Не хватает токенов', title: 'Нужно ' + fmt.tokens(cost) + ', на балансе ' + fmt.tokens(tokens.balance()),
-        text: 'Фото и параметры мы сохранили. Выберите любой из двух равнозначных способов продолжить: купить токены или оформить METOD — подписка начисляет токены 1:1 к своей сумме. После оплаты вернём вас на этот экран.',
-        actions: [ { label: 'Купить токены', kind: 'primary', href: 'tokens.html?returnTo=' + rt },
+        text: 'Фото и параметры мы сохранили. Продолжить можно пакетом по зонам или токенами, а в подписку METOD входит один интерьер — все комнаты, замены включены. После оплаты вернём вас на этот экран.',
+        actions: [ { label: 'Пакеты и токены', kind: 'primary', href: 'tokens.html?returnTo=' + rt },
           { label: 'Оформить METOD', kind: 'ghost', href: 'metod.html?returnTo=' + rt },
           { label: 'Не сейчас', kind: 'link' } ] });
     },
     /* окно «войдите»: после кода вернём на returnTo */
     needAuth: function (why, returnTo) {
       var rt = encodeURIComponent(returnTo || (location.pathname.split('/').pop() + location.search));
-      return ui.modal({ eyebrow: 'Нужен вход', title: why || 'Войдите, чтобы продолжить', text: 'Вход по коду из SMS. Новым пользователям дарим ' + fmt.tokens(D.gift.tokens) + ' на генерации. Всё, что вы уже сделали, сохранится.',
+      /* обещание подарка — только пока нет оплаченной подписки: «после оплаты подписки бесплатных токенов нет» */
+      var giftNote = state.metodUntil && state.metodUntil > Date.now() ? '' : ' Новым пользователям дарим ' + fmt.tokens(D.gift.tokens) + ' на генерации.';
+      return ui.modal({ eyebrow: 'Нужен вход', title: why || 'Войдите, чтобы продолжить', text: 'Вход по коду из SMS.' + giftNote + ' Всё, что вы уже сделали, сохранится.',
         actions: [ { label: 'Войти или зарегистрироваться', kind: 'primary', href: 'auth.html?returnTo=' + rt }, { label: 'Не сейчас', kind: 'ghost' } ] });
     },
     /* выбор проекта: вернёт id через onPick; даёт создать новый */
@@ -443,13 +561,17 @@
     productCard: function (p, opts) {
       opts = opts || {};
       var inMy = SOVE.my && SOVE.my.get && (SOVE.my.get().productIds || []).indexOf(p.id) >= 0;
+      /* метка «База» / «Премиум» по классификатору (tier-map.js; Алина 29.10) — только где уровень различает бренд или материал */
+      var tier = SOVE.tier ? SOVE.tier(p) : null;
+      var brand = '<span class="pc__brand">' + fmt.esc(p.brand) + '</span>';
+      if (tier) brand = '<span class="pc__brandrow">' + brand + '<span class="pc-tier' + (tier === 'premium' ? ' pc-tier--premium' : '') + '" title="Уровень по классификатору SOVEAPP">' + SOVE.tierLabel(tier) + '</span></span>';
       return '<article class="pc' + (p.white ? ' pc--white' : '') + '">' +
         '<a class="pc__pic" href="product.html?id=' + p.id + '" tabindex="-1" aria-hidden="true"><img src="' + p.img + '" alt="" loading="lazy">' +
-        '<span class="pc__off">−' + p.discount + ' %</span>' +
+        (p.discount > 0 ? '<span class="pc__off">−' + p.discount + ' %</span>' : '') +
         (SOVE.data.isPromo && SOVE.data.isPromo(p.id) ? '<span class="pc__promo">★ Акция</span>' : '') + '</a>' +
-        '<div class="pc__body">' + (opts.tag ? '<span class="tag' + (opts.tag === 'exact' ? ' tag--exact' : '') + '">' + (opts.tag === 'exact' ? 'точное совпадение' : 'похожее') + '</span>' : '<span class="pc__brand">' + fmt.esc(p.brand) + '</span>') +
+        '<div class="pc__body">' + (opts.tag ? '<span class="tag' + (opts.tag === 'exact' ? ' tag--exact' : '') + '">' + (opts.tag === 'exact' ? 'точное совпадение' : 'похожее') + '</span>' : brand) +
         '<a class="pc__name" href="product.html?id=' + p.id + '">' + fmt.esc(p.name) + '</a>' +
-        '<div class="price"><button type="button" class="price__metod price__metod--tap" data-metod-price="' + p.id + '" aria-label="Цена по подписке METOD: ' + fmt.rub(p.metod) + '. Узнать о подписке">' + fmt.rub(p.metod) + '</button><span class="price__retail">' + fmt.rub(p.retail) + '</span></div>' +
+        '<div class="price"><button type="button" class="price__metod price__metod--tap" data-metod-price="' + p.id + '" aria-label="Цена по подписке METOD: ' + fmt.rub(p.metod) + '. Узнать о подписке">' + fmt.rub(p.metod) + '</button>' + (p.retail > p.metod ? '<span class="price__retail">' + fmt.rub(p.retail) + '</span>' : '') + '</div>' +
         '<span class="price__sub">с подпиской METOD</span>' +
         '<span class="pc__meta">' + fmt.esc(p.leadTime || '') + (p.suppliers && p.suppliers.length > 1 ? ', ' + p.suppliers.length + ' поставщика' : '') + '</span>' +
         (SOVE.pext && SOVE.pext.delivery ? SOVE.pext.delivery.badge(p) : '') +
@@ -608,7 +730,8 @@
           var brands = {};
           r.items.forEach(function (p) { if (p.brand && norm(p.brand).indexOf(n) >= 0) brands[p.brand] = 1; });
           live[n] = { items: r.items, total: r.total, brands: Object.keys(brands).slice(0, 3) };
-          if (norm(input.value.trim()) === n) paint();
+          /* ответ пришёл, а человек уже нажал «Найти» и ушёл из поля — не открываем подсказки поверх результатов */
+          if (norm(input.value.trim()) === n && document.activeElement === input) paint();
         }).catch(function () { live[n] = { items: [], total: 0, brands: [] }; });
       }
       function build(q) {
@@ -727,7 +850,9 @@
         if (!box.contains(e.target) && e.target !== input) close();
       });
       var form = input.closest('form');
-      if (form) form.addEventListener('submit', function () { remember(input.value); });
+      if (form) form.addEventListener('submit', function () { remember(input.value); clearTimeout(tm); close(); });
+      /* ушли из поля (Enter на телефоне, тап мимо) — подсказки закрываем; клик по самой подсказке не мешает: mousedown выше отменяет потерю фокуса */
+      input.addEventListener('blur', function () { clearTimeout(tm); setTimeout(close, 120); });
       return { close: close, refresh: paint };
     },
     qs: function (name) { return new URLSearchParams(location.search).get(name); },

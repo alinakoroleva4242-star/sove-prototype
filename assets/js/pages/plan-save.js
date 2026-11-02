@@ -17,9 +17,17 @@
   var geo = T.geo || window.SOVE_ARRANGE;
   var budget;
   /* бюджет пересчитывается при выборе интерьера из ленты (раздел 14): мебель — по товарам интерьера, строки — «по интерьеру» */
+  /* бюджет — тем же калькулятором, что расчёт и итог блока (demo-flow): ставка состояния и цена капсулы за м² (SOVE.scout.estimate).
+     Без него считалось по нормам budget-norms.js, а там пусто — строки «[сумма] ₽» и нет итога (Валерия 02.11: «бери из калькулятора») */
+  var STATE = { concrete_free: 'concrete', concrete_walls: 'concrete', whitebox: 'pre', finished: 'secondary' };
+  function scoutParams() {
+    var R = window.SOVE && window.SOVE.repair, own = R && R.flats && R.flats.active() && R.get().scoutParams;
+    return own ? Object.assign({}, own) : { stateId: STATE[state] || 'concrete', capsuleId: INT && INT.type === 'capsule' ? INT.id : null, level: 'base',
+      area: Math.round(rooms.reduce(function (a, r) { return a + (r.m2 || 0); }, 0) * 10) / 10 };
+  }
   function compute() {
     var furniture = INT ? FLOW.furnitureSum(T.goods, INT) : T.furniture;
-    budget = B.compute({ geo: geo, rooms: rooms, state: state, type: 'base', interior: INT, kitchenLen: T.kitchenLen, furniture: furniture,
+    budget = B.compute({ scout: scoutParams(), geo: geo, rooms: rooms, state: state, type: 'base', interior: INT, kitchenLen: T.kitchenLen, furniture: furniture,
       partitions: V ? V.partitions : null, accuracy: FL.accuracy || 'примерно' });
   }
   compute();
@@ -60,10 +68,22 @@
       (V ? '<a class="pz-replan" href="adept.html"><b>Дизайнер</b> доведёт вариант ' + esc(V.letter) + ' до чертежей для бригады · промокод 5 000 ₽ · <u>Подробнее ›</u></a>' +
         (T.others && T.others.length ? '<small class="pz-note pz-c">варианты ' + esc(T.others.join(' и ')) + ' останутся в Генерациях · Ваши планировки</small>' : '') : '');
     var slot = document.getElementById('ps-3d');
-    if (slot) { var A = window.SOVE_ARRANGE, g = T.geo || A;
-      P3.create(slot, { geo: { px_per_m: g.px_per_m, rooms: g.rooms, windows: A.windows || [], doors: A.doors || [], outside: A.outside || [], partitions: V ? V.partitions : [] },
-        items: T.items || [], style: 'sizes', height: 300 }); }
+    if (slot) {
+      var opts = { geo: geo3d(), items: T.items || [], style: 'sizes', height: 300 };
+      if (!view3d) view3d = P3.create(slot, opts); else { view3d.mount(slot); view3d.update(opts); }   /* один вид — один WebGL-контекст */
+    }
     bind();
+  }
+  /* 3D «Моей планировки»: свой план — его окна, двери и стены с картинки (walls_2d / doors_2d / windows_2d), как на экране
+     мебели; запись без них (старая) и пример ЖК PRIDE — окна и двери примера, как раньше */
+  var view3d = null, GEO3D = null;
+  function geo3d() {
+    if (GEO3D) return GEO3D;
+    var A = window.SOVE_ARRANGE, g = T.geo || A;
+    GEO3D = { px_per_m: g.px_per_m, rooms: g.rooms, windows: (T.geo && T.geo.windows) || A.windows || [], doors: (T.geo && T.geo.doors) || A.doors || [],
+      outside: (T.geo && T.geo.outside) || A.outside || [], partitions: V ? V.partitions : [] };
+    if (T.geo && T.geo.walls_2d && T.geo.walls_2d.length) { GEO3D.walls_2d = T.geo.walls_2d; GEO3D.doors_2d = T.geo.doors_2d || []; GEO3D.windows_2d = T.geo.windows_2d || []; }
+    return GEO3D;
   }
 
   function bind() {}

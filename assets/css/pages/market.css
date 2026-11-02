@@ -251,3 +251,96 @@
 .mk-tab { padding: 8px 14px; border: 1px solid var(--line); border-radius: var(--pill); background: var(--white);
   font: inherit; font-size: 13px; color: var(--graphite); cursor: pointer; white-space: nowrap; }
 .mk-tab.is-on { background: var(--ink); border-color: var(--ink); color: #fff; font-weight: 600; }
+
+/* «Акции партнёров» (Таня 29.10): сначала плитки категорий таблицы партнёров, внутри — квадратные баннеры брендов.
+   Только сетка, без горизонтальной прокрутки: 2 в ряд на телефоне, 3 от 720 px, 4 от 1100 px.
+   Цвет категории — мягкий оттенок плитки SOVE (--pc-bg) и тёмный тон того же цвета для иконки и скидки (--pc-ink). */
+[data-pc] { --pc-bg: var(--tile); --pc-ink: var(--graphite); }
+[data-pc="otdelka"] { --pc-bg: #efe6db; --pc-ink: #77553a; }
+[data-pc="svet"] { --pc-bg: #f4ead4; --pc-ink: #7f5b1c; }
+[data-pc="rozetki"] { --pc-bg: #ebe5df; --pc-ink: #5b524b; }
+[data-pc="santehnika"] { --pc-bg: #e2eae6; --pc-ink: #3b6255; }
+[data-pc="tehnika"] { --pc-bg: #e8e4e0; --pc-ink: #4a433f; }
+[data-pc="mebel"] { --pc-bg: #f4e6dd; --pc-ink: #8f452f; }
+[data-pc="dveri"] { --pc-bg: #ece3d4; --pc-ink: #684f31; }
+[data-pc="dekor"] { --pc-bg: #f2e4e2; --pc-ink: #83474b; }
+[data-pc="all"] { --pc-bg: var(--dark); --pc-ink: var(--on-dark); }
+
+.mk-pz { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.mk-pcats, .mk-bnrs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+@media (min-width: 720px) { .mk-pcats, .mk-bnrs { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; } }
+@media (min-width: 1100px) { .mk-pcats, .mk-bnrs { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+
+/* плитка категории */
+.mk-pcat { position: relative; display: flex; flex-direction: column; justify-content: space-between; gap: 18px; min-width: 0; min-height: 136px;
+  padding: 14px; border-radius: var(--r); background: var(--pc-bg); color: var(--ink); text-decoration: none; box-shadow: var(--shadow);
+  transition: transform .15s ease, box-shadow .15s ease; }
+.mk-pcat:hover { transform: translateY(-2px); box-shadow: 0 12px 26px -16px rgba(46,31,24,.4); }
+.mk-pcat:focus-visible, .mk-bnr:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.mk-pcat__ic { width: 44px; height: 44px; border-radius: 50%; background: var(--white); color: var(--pc-ink); display: inline-flex; align-items: center; justify-content: center; }
+.mk-pcat__off { position: absolute; top: 14px; right: 12px; padding: 4px 9px; border-radius: var(--pill); background: rgba(255,255,255,.72);
+  color: var(--pc-ink); font-size: 12px; font-weight: 700; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.mk-pcat__text { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.mk-pcat__name { font-size: 16px; font-weight: 700; line-height: 1.2; overflow-wrap: anywhere; hyphens: auto; }
+.mk-pcat__meta { font-size: 12px; color: var(--graphite); }
+.mk-pcat[data-pc="all"] { color: var(--on-dark); }
+.mk-pcat[data-pc="all"] .mk-pcat__ic { background: rgba(255,255,255,.12); color: var(--on-dark); }
+.mk-pcat[data-pc="all"] .mk-pcat__off { background: var(--accent); color: #fff; }
+.mk-pcat[data-pc="all"] .mk-pcat__meta { color: var(--on-dark-2); }
+
+/* шапка внутри категории: «‹ Все разделы» и название */
+.mk-pz__head { display: flex; align-items: center; justify-content: space-between; gap: 8px 12px; flex-wrap: wrap; }
+.mk-pz__back { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 14px 0 10px; border: 1px solid var(--line-2);
+  border-radius: var(--pill); background: var(--white); font: inherit; font-size: 13px; font-weight: 600; color: var(--ink); cursor: pointer; }
+.mk-pz__back:hover { border-color: var(--ink); }
+.mk-pz__title { display: inline-flex; align-items: center; gap: 8px; min-width: 0; font-size: 15px; font-weight: 700; color: var(--ink); }
+.mk-pz__ic { width: 32px; height: 32px; flex-shrink: 0; border-radius: 50%; background: var(--pc-bg); color: var(--pc-ink); display: inline-flex; align-items: center; justify-content: center; }
+.mk-pz__ic svg { width: 18px; height: 18px; }
+.mk-pz__sec { display: flex; flex-direction: column; gap: 10px; }
+.mk-pz__h { display: flex; align-items: baseline; gap: 4px 10px; flex-wrap: wrap; margin: 10px 0 0; font-size: 18px; font-weight: 700; line-height: 1.2; }
+.mk-pz__h a { color: var(--ink); text-decoration: none; }
+.mk-pz__h a:hover { color: var(--accent); }
+.mk-pz__h i { font-style: normal; font-size: 12px; font-weight: 500; color: var(--graphite); }
+
+/* баннер бренда: логотип на белом, скидка крупно, название, число товаров */
+.mk-bnr { aspect-ratio: 1 / 1; display: flex; flex-direction: column; gap: 3px; min-width: 0; overflow: hidden; padding: 10px 10px 12px;
+  border-radius: var(--r); background: var(--pc-bg); color: var(--ink); text-decoration: none; box-shadow: var(--shadow);
+  transition: transform .15s ease, box-shadow .15s ease; }
+.mk-bnr:hover { transform: translateY(-2px); box-shadow: 0 12px 26px -16px rgba(46,31,24,.4); }
+/* высоту плашки задаёт плитка, а не картинка: высокий логотип (LIGHTSTAR, ARTE LAMP) не выталкивает подписи */
+.mk-bnr__logo { position: relative; flex: 1 1 0; min-height: 0; display: flex; align-items: center; justify-content: center; margin-bottom: 6px;
+  border-radius: var(--r-sm); background: var(--white); overflow: hidden; }
+.mk-bnr__logo img { position: absolute; inset: 10px 12px; width: calc(100% - 24px); height: calc(100% - 20px); object-fit: contain; }
+.mk-bnr__letter { font-size: 40px; font-weight: 300; line-height: 1; color: var(--pc-ink); }
+.mk-bnr__off { font-size: 22px; font-weight: 800; line-height: 1.05; letter-spacing: -.01em; color: var(--pc-ink); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.mk-bnr__name { font-size: 13px; font-weight: 700; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mk-bnr__meta { font-size: 12px; line-height: 1.25; color: var(--graphite); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+@media (min-width: 720px) { .mk-bnr { padding: 12px 12px 14px; } .mk-bnr__off { font-size: 26px; } .mk-bnr__name { font-size: 14px; } }
+.mk-promos__note { margin: 4px 0 0; font-size: 12px; color: var(--graphite); }
+
+/* фильтр «Категория» — дерево по таблице партнёров: категория (галочка) и стрелка к подкатегориям */
+.mf__node + .mf__node { border-top: 1px solid var(--line); }
+.mf__row { display: flex; align-items: center; gap: 4px; }
+.mf__row .mf__check { flex: 1 1 auto; min-width: 0; align-items: center; }
+.mf__check .check__box { width: 20px; height: 20px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center;
+  border: 1px solid var(--line-2); border-radius: 6px; background: var(--white); color: transparent; }
+.mf__check input:checked + .check__box { background: var(--ink); border-color: var(--ink); color: var(--white); }
+.mf__check input:focus-visible + .check__box { outline: 2px solid var(--accent); outline-offset: 2px; }
+.mf__check .check__label { flex: 1 1 auto; min-width: 0; color: var(--ink); }
+.mf__check.is-off .check__label { color: var(--stone); }
+.mf__check .check__count { font-size: 12px; color: var(--stone); font-variant-numeric: tabular-nums; }
+.mf__exp { width: 44px; height: 44px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; padding: 0;
+  border: 0; border-radius: var(--pill); background: transparent; color: var(--graphite); cursor: pointer; }
+.mf__exp:hover { background: var(--tile); color: var(--ink); }
+.mf__exp--none, .mf__exp--none:hover { background: transparent; cursor: default; }
+.mf__exp svg { transition: transform .15s ease; }
+.mf__node.is-open .mf__exp svg { transform: rotate(180deg); }
+.mf__subs { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 0 12px 32px; }
+.mf__subs[hidden] { display: none; }
+.mf__sub { min-height: 36px; padding: 6px 12px; border: 1px solid var(--line-2); border-radius: var(--pill); background: var(--white);
+  font: inherit; font-size: 13px; font-weight: 600; color: var(--ink); cursor: pointer; }
+.mf__sub:hover { border-color: var(--ink); }
+.mf__sub i { font-style: normal; font-weight: 500; color: var(--stone); margin-left: 2px; font-variant-numeric: tabular-nums; }
+.mf__sub.is-active { background: var(--ink); border-color: var(--ink); color: var(--white); }
+.mf__sub.is-active i { color: var(--on-dark-2); }
+.mfd__pop .mf__checks { min-width: 300px; }

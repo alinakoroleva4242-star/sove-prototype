@@ -63,3 +63,14 @@
 .tk-bar__text { display: flex; flex-direction: column; min-width: 0; line-height: 1.3; }
 .tk-bar__text b { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 @media (min-width: 960px) { .tk-bar { display: none; } }
+
+/* пакеты по зонам (созвон 28.10): три карточки «что входит», на телефоне одна под другой, от 720px — в ряд */
+.tk-way--wide { grid-column: 1 / -1; }
+.tk-pkgs { display: grid; gap: var(--s3); grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 720px) { .tk-pkgs { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.tk-pkg { flex-direction: column; align-items: stretch; gap: var(--s2); min-height: 0; }
+.tk-pkg__head { display: flex; align-items: center; gap: var(--s3); min-width: 0; }
+.tk-pkg__head .option__title { flex: 1 1 auto; min-width: 0; }
+.tk-pkg__head .tk-opt__price { font-size: 18px; white-space: nowrap; }
+.tk-pkg__list { margin: 0; padding: 0 0 0 var(--s4); display: flex; flex-direction: column; gap: 2px; font-size: 13px; line-height: 1.45; color: var(--graphite); }
+.tk-pkg__list li::marker { color: var(--accent); }

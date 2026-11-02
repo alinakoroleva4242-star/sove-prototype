@@ -42,22 +42,24 @@
       next: { gens: 8, budget: '2 варианта · от 1,2 млн ₽' }
     };
     var r = R.get(f.id), pr = R.progress(f.id), cartT = R.cart.totals(f.id), favN = R.fav.list(f.id).length;
+    /* интерьеры квартиры (созвон 28.10, схема v2): список R.interiors, текущий — первым; комнаты «в цвете» — визуализации ТЕКУЩЕГО интерьера
+       (старые кадры без метки интерьера — тоже) */
+    var ints = R.interiors ? R.interiors.list(f.id) : [], curInt = ints.filter(function (x) { return x.current; })[0] || null, curId = curInt ? curInt.id : null;
     var rooms = R.rooms(f.id).map(function (x) {
-      var list = r.rooms[x.key] || [], main = r.rooms[x.key + ':main'], it = list.filter(function (i) { return i.id === main; })[0] || list[0];
+      var list = (r.rooms[x.key] || []).filter(function (i) { return !curId || !i.interiorId || i.interiorId === curId; }), main = r.rooms[x.key + ':main'], it = list.filter(function (i) { return i.id === main; })[0] || list[0];
       return { key: x.key, name: x.name, src: it ? it.src : null };
     });
     var hero = (r.interior && r.interior.img) || (rooms.filter(function (x) { return x.src; })[0] || {}).src || 'assets/img/capsules/hc/k4-main-2.jpg';
-    /* интерьеры квартиры: сохранённый мудборд, свои рендеры, дальше — капсулы SOVEAPP для выбора */
-    var inter = [];
-    if (r.interior) inter.push({ kind: r.interior.capsuleId ? 'caps' : 'mine', name: r.interior.name || 'Мой интерьер', sub: r.interior.capsuleId ? 'капсула SOVEAPP · выбрана' : 'мой интерьер', img: r.interior.img, href: r.interior.capsuleId ? 'capsule.html?id=' + r.interior.capsuleId : 'my.html?v=visual', fav: true, mine: !r.interior.capsuleId });
-    Object.keys(r.rooms).forEach(function (k) { if (k.indexOf(':') < 0) (r.rooms[k] || []).filter(function (x) { return x.mine && x.from !== 'interior'; }).forEach(function (x) { inter.push({ kind: 'mine', name: 'Мой рендер', sub: 'загружен ' + F.dateLong(x.ts), img: x.src, href: 'my.html?v=visual', mine: true }); }); });
-    ['k2', 'k7', 'k4', 'k1'].forEach(function (id) { var c = D.capsule(id); if (c && inter.length < 4 && !(r.interior && r.interior.capsuleId === id)) inter.push({ kind: 'caps', name: c.name, sub: 'капсула SOVEAPP', img: c.wide || c.cover, href: 'capsule.html?id=' + id }); });
+    var inter = ints.slice().sort(function (a, b) { return (b.current ? 1 : 0) - (a.current ? 1 : 0); }).map(function (x) {
+      return { kind: x.capsuleId ? 'caps' : 'mine', id: x.id, name: x.title, img: x.img, href: 'interior.html?v=b&from=my', current: x.current, mine: !x.capsuleId,
+        sub: x.rooms + ' ' + pl(x.rooms, ['комната', 'комнаты', 'комнат']) + ' · ' + x.renders + ' ' + pl(x.renders, ['визуализация', 'визуализации', 'визуализаций']) };
+    });
     var gensN = R.rendersCount(f.id) + (S.gens ? S.gens.list().length : 0);
     /* полный бюджет любым путём — обычный расчёт, расчёт «из Интерьера», «Узнать» в Планировке: та же цифра, что в Бюджете и полосе */
     var BC = window.SOVE_BUDGET && window.SOVE_BUDGET.current ? window.SOVE_BUDGET.current() : null,
       btot = r.budget && r.budget.total || (BC && BC.full && BC.totals && BC.totals.plan) || 0;
     return {
-      interiors: inter.slice(0, 4),
+      interiors: inter,
       next: { gens: gensN, budget: btot ? 'от ' + (Math.round(btot / 100000) / 10).toFixed(1).replace('.', ',') + ' млн ₽' : 'посчитать за 2 минуты' },
       demo: false, name: f.name || 'Мой ремонт', line: R.flatLine(f), hero: hero,
       steps: [pr.steps[0].done, !!r.interior || R.rendersCount(f.id) > 0, favN > 0 || cartT.count > 0 || !!(r.interior && (r.interior.productIds || []).length), !!btot],
@@ -108,7 +110,7 @@
     var whole = m.hasPlan && !demoPlan;
     var own = m.hasPlan && !m.demo;   /* как на макете: пока своего плана нет — «Заполните план…» и «Загрузить план» */
     return '<section class="mv-card mv-plan"><header class="mv-card__h"><div><h2>План квартиры</h2><p>' + (own ? 'Цветом — комнаты, которые уже сгенерированы' : 'Заполните план — и он появится здесь') + '</p></div>' +
-      '<a class="mv-btn-line" href="my.html?v=object">' + G.ic('upload', 16) + (own ? 'Заменить план' : 'Загрузить план') + '</a></header>' +
+      '<a class="mv-btn-line" href="my.html?v=object" data-plan-up>' + G.ic('upload', 16) + (own ? 'Заменить план' : 'Загрузить план') + '</a></header>' +
       '<div class="mv-plan__stage' + (whole ? ' is-whole' : '') + '"><img class="mv-plan__base" src="' + esc(m.plan) + '" alt="План квартиры">' + layers + labels + '</div></section>';
   }
 
@@ -127,13 +129,27 @@
     return '<section class="mv-sec"><header class="mv-sec__h"><div><h2>Основа квартиры</h2><p>Чем точнее основа — тем точнее бюджет</p></div><a href="my.html?v=object">Все способы ' + G.ic('arrow', 14) + '</a></header>' +
       '<div class="mv-bases">' + BASES.map(function (b) {
         var on = m.level === b.level;
-        return '<a class="mv-base' + (on ? ' is-on' : '') + '" href="my.html?v=object"><span class="mv-base__ic">' + G.ic(b.ic, 16) + '</span><span class="mv-base__h"><b>' + b.t + '</b><small>' + b.s + '</small></span>' +
+        return '<a class="mv-base' + (on ? ' is-on' : '') + '" href="my.html?v=object" data-plan-up="' + b.level + '"><span class="mv-base__ic">' + G.ic(b.ic, 16) + '</span><span class="mv-base__h"><b>' + b.t + '</b><small>' + b.s + '</small></span>' +
           '<span class="mv-base__pic"><img src="' + b.img + '" alt="" loading="lazy"></span><span class="mv-base__go">' + G.ic(on ? 'check' : 'arrow', 16) + '</span></a>';
       }).join('') + '</div></section>';
   }
 
-  var IFILT = [['all', 'Все'], ['caps', 'Капсулы'], ['metod', 'Подборки METOD'], ['mine', 'Мои']], ifilt = 'all';
+  /* «Интерьеры» квартиры: все R.interiors, текущий первым с меткой; тап по другому — «Сделать текущим» и в Интерьер; «+ Новый интерьер» — круг заново */
   function interiorCard(m) {
+    if (m.demo) return interiorCardDemo(m);
+    var list = m.interiors, n = list.length;
+    return '<section class="mv-sec" id="mv-inter"><header class="mv-sec__h"><div><h2>Интерьеры</h2><p>' + (n > 1 ? 'Текущий — первым: по нему материалы, визуализации и бюджет' : 'Один объект можно проработать в нескольких интерьерах') + '</p></div>' +
+      (n ? '<a href="interior.html?v=b&from=my">' + n + ' ' + pl(n, ['интерьер', 'интерьера', 'интерьеров']) + ' ' + G.ic('chev', 14) + '</a>' : '') + '</header>' +
+      '<div class="mv-inter"><a class="mv-up" href="sove-ai.html">' + G.ic('plus', 22) + '<b>Новый интерьер</b><small>капсула или свой рендер</small></a>' +
+      list.map(function (x) {
+        var pic = '<span class="mv-int__pic"><img src="' + esc(x.img) + '" alt="" loading="lazy">' + (x.current ? '<i class="mv-int__cur">ТЕКУЩИЙ</i>' : x.mine ? '<i class="mv-int__mine">МОЙ</i>' : '') + '</span>';
+        return x.current
+          ? '<a class="mv-int is-cur" href="' + esc(x.href) + '" aria-label="' + esc(x.name) + ' — текущий интерьер, открыть">' + pic + '<b>' + esc(x.name) + '</b><small>' + esc(x.sub) + '</small></a>'
+          : '<button type="button" class="mv-int" data-make-current="' + esc(x.id) + '" aria-label="' + esc(x.name) + ' — сделать текущим">' + pic + '<b>' + esc(x.name) + '</b><small>' + esc(x.sub) + '</small></button>';
+      }).join('') + (n ? '' : '<p class="mv-inter__empty">Интерьера пока нет — выбери капсулу или загрузи свой рендер</p>') + '</div></section>';
+  }
+  var IFILT = [['all', 'Все'], ['caps', 'Капсулы'], ['metod', 'Подборки METOD'], ['mine', 'Мои']], ifilt = 'all';
+  function interiorCardDemo(m) {
     var list = m.interiors.filter(function (x) { return ifilt === 'all' || x.kind === ifilt; });
     var savedN = m.interiors.length;
     return '<section class="mv-sec" id="mv-inter"><header class="mv-sec__h"><h2>Интерьер</h2><a href="my.html?v=visual">Сохранённое · ' + savedN + ' ' + G.ic('chev', 14) + '</a></header>' +
@@ -169,6 +185,18 @@
   window.SOVE_MY_HOME = function (root) {
     render(root);
     window.addEventListener('sove:repair', function () { if (document.body.contains(root)) render(root); });
+    /* «Загрузить план» и плитки основы — общее окно «Основа квартиры» (plan-upload.js, созвон 28.10); без модуля — прежний экран объекта */
+    root.addEventListener('click', function (e) {
+      var a = e.target.closest('[data-plan-up]'); if (!a || !S.planUpload) return;
+      e.preventDefault(); S.planUpload.open({ entry: 'my', level: a.getAttribute('data-plan-up') || null });
+    });
     root.addEventListener('click', function (e) { var b = e.target.closest('[data-ifilt]'); if (!b) return; ifilt = b.getAttribute('data-ifilt'); render(root); var sec = document.getElementById('mv-inter'); if (sec) { var f = sec.querySelector('[data-ifilt="' + ifilt + '"]'); if (f) f.focus(); } });
+    /* другой интерьер квартиры → «Сделать текущим» (R.interiors.setCurrent) и в Интерьер; прежний остаётся со своими материалами и визуализациями */
+    root.addEventListener('click', function (e) {
+      var b = e.target.closest('[data-make-current]'); if (!b || !R.interiors) return;
+      var id = b.getAttribute('data-make-current'), it = R.interiors.list().filter(function (x) { return x.id === id; })[0]; if (!it) return;
+      S.ui.confirm({ title: 'Сделать текущим?', text: '«' + it.title + '» станет текущим интерьером квартиры: материалы, визуализации и бюджет — по нему. Прежний останется со своими материалами и визуализациями.',
+        ok: 'Сделать текущим', onOk: function () { R.interiors.setCurrent(id); location.href = 'interior.html?v=b&from=my'; } });
+    });
   };
 })();

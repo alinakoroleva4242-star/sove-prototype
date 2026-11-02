@@ -12,12 +12,28 @@
   var CLAY_H = 2.7, CLAY_SILL = 0.85, CLAY = 0xFFFFFF;
   function isClay(o) { return o.style !== 'interior' && !o.photo; }
 
+  /* ── уборка при пересборке (разбор 30.10: старые объекты убирались со сцены, а их геометрии и материалы оставались
+     в памяти видеокарты — каждая пересборка добавляла новые). Убираемый объект отдаёт геометрии, материалы и свои текстуры;
+     общие текстуры (полы из кэша, фото-рендер, карта шероховатости стен) живут в KEEP и не уничтожаются ── */
+  var KEEP = [];
+  function disposeObj(o) {
+    o.traverse(function (x) {
+      if (x.geometry) x.geometry.dispose();
+      (Array.isArray(x.material) ? x.material : x.material ? [x.material] : []).forEach(function (m) {
+        if (m.map && KEEP.indexOf(m.map) < 0) m.map.dispose();
+        m.dispose();
+      });
+    });
+  }
+  function clear(group) { while (group.children.length) { var o = group.children[0]; group.remove(o); disposeObj(o); } }
+
   /* ── текстуры полов: рисуем на холсте, без файлов ── */
   var texCache = {};
   function canvasTex(key, draw, rep) {
     if (texCache[key]) return texCache[key];
     var c = document.createElement('canvas'); c.width = c.height = 256; draw(c.getContext('2d'));
     var t = new T.CanvasTexture(c); t.wrapS = t.wrapT = T.RepeatWrapping; t.anisotropy = 4; t.encoding = T.sRGBEncoding; t.userData = { rep: rep };
+    KEEP.push(t);
     return (texCache[key] = t);
   }
   /* пол в цвете интерьера: оттенок и светлота дерева из палитры капсулы */
@@ -132,13 +148,13 @@
         g.putImageData(d, 0, 0);
       }
       var t = new T.CanvasTexture(c); t.encoding = T.sRGBEncoding; t.anisotropy = 8;
-      photoCache[key] = t; done(t);
+      KEEP.push(t); photoCache[key] = t; done(t);
     };
     img.src = src;
   }
   View.prototype.buildPhoto = function (geo) {
     var self = this, ph = this.opts.photo, ppm = geo.px_per_m;
-    while (this.root.children.length) this.root.remove(this.root.children[0]);
+    clear(this.root);
     this.bounds = { x1: 0, y1: 0, x2: ph.w, y2: ph.h, ppm: ppm }; this.cx = ph.w / 2; this.cy = ph.h / 2;
     var plane = new T.Mesh(new T.PlaneGeometry(ph.w / ppm, ph.h / ppm), new T.MeshBasicMaterial({ color: 0xffffff }));
     plane.rotation.x = -Math.PI / 2; this.root.add(plane);
@@ -152,11 +168,12 @@
   };
   View.prototype.buildFlat = function (geo) {
     if (this.opts.photo) return this.buildPhoto(geo);
-    var self = this, clay = isClay(this.opts); while (this.root.children.length) this.root.remove(this.root.children[0]);
+    var self = this, clay = isClay(this.opts); clear(this.root);
     this.wallH = clay ? CLAY_H : WALL_H; var WH = this.wallH, SH = clay ? CLAY_SILL : SILL_H;
     /* домик: свет сбоку — у белых стен появляются свет и тень, как у макета */
     this.hemi.intensity = clay ? .5 : .95; this.sun.intensity = clay ? .62 : .55;
     if (clay) this.sun.position.set(-4, 10, 7); else this.sun.position.set(-2, 12, -1.5);   /* у домика солнце сбоку-спереди — две видимые стороны стен разного тона */
+    if (geo.walls_2d && geo.walls_2d.length) return this.buildImage(geo, clay, WH, SH);       /* стены с картинки плана — как на чертеже */
     var ppm = geo.px_per_m, W = Math.round(.25 * ppm), cell = .05 * ppm;
     var rooms = geo.rooms || [], all = rooms.map(function (r) { return r.box; });
     var x1 = Math.min.apply(null, all.map(function (b) { return b[0]; })) - W, y1 = Math.min.apply(null, all.map(function (b) { return b[1]; })) - W;
@@ -219,10 +236,91 @@
     base.rotation.x = -Math.PI / 2; base.position.set(0, -0.01, 0); base.receiveShadow = true; this.root.add(base);
     this.fit();
   };
-  /* окно — полоса стены комнаты на той стороне, где оно стоит (как в 2D-расстановке) */
+  /* ── коробки одной геометрией (разбор 30.10: каждая стена с картинки была отдельным объектом с шестью материалами граней —
+     на листе девочек 98 объектов сцены и ~500 вызовов отрисовки на кадр, 3D тормозило; стало 17 и 11). Стены, перегородки и
+     подоконники — один объект с одним материалом: цвет граней — цветом вершин (верх — срез стены, бока — стена), шероховатость
+     верха 0,9 и боков 0,95 — картой из двух точек; вид тот же, что у прежних коробок. Стёкла — второй объект.
+     list: [{ x0, x1, y0, y1, z0, z1, top, side }] в метрах сцены; colored — с цветами и картой (стены) или без (стёкла) ── */
+  var ROUGH = null;
+  function roughMap() {
+    if (ROUGH) return ROUGH;
+    ROUGH = new T.DataTexture(new Uint8Array([255, 255, 255, 255, 242, 242, 242, 255]), 2, 1, T.RGBAFormat);   /* × 0,95: бока 0,95, верх 0,9 */
+    ROUGH.needsUpdate = true; KEEP.push(ROUGH);
+    return ROUGH;
+  }
+  function boxesGeo(list, colored) {
+    var pos = [], nrm = [], col = [], uv = [], idx = [], n = 0;
+    function rgb(c) { return [(c >> 16 & 255) / 255, (c >> 8 & 255) / 255, (c & 255) / 255]; }
+    list.forEach(function (q) {
+      var dx = q.x1 - q.x0, dy = q.y1 - q.y0, dz = q.z1 - q.z0, top = colored ? rgb(q.top) : null, side = colored ? rgb(q.side) : null;
+      /* грань: угол p, стороны u и v (u × v смотрит наружу), нормаль — как у BoxGeometry: +x, −x, +y (верх), −y, +z, −z */
+      [[[q.x1, q.y0, q.z0], [0, dy, 0], [0, 0, dz], [1, 0, 0]], [[q.x0, q.y0, q.z0], [0, 0, dz], [0, dy, 0], [-1, 0, 0]],
+       [[q.x0, q.y1, q.z0], [0, 0, dz], [dx, 0, 0], [0, 1, 0]], [[q.x0, q.y0, q.z0], [dx, 0, 0], [0, 0, dz], [0, -1, 0]],
+       [[q.x0, q.y0, q.z1], [dx, 0, 0], [0, dy, 0], [0, 0, 1]], [[q.x0, q.y0, q.z0], [0, dy, 0], [dx, 0, 0], [0, 0, -1]]].forEach(function (f, fi) {
+        var p = f[0], u = f[1], v = f[2], c = fi === 2 ? top : side;
+        [[0, 0], [1, 0], [1, 1], [0, 1]].forEach(function (k) {
+          pos.push(p[0] + u[0] * k[0] + v[0] * k[1], p[1] + u[1] * k[0] + v[1] * k[1], p[2] + u[2] * k[0] + v[2] * k[1]);
+          nrm.push(f[3][0], f[3][1], f[3][2]);
+          if (colored) { col.push(c[0], c[1], c[2]); uv.push(fi === 2 ? .75 : .25, .5); }
+        });
+        idx.push(n, n + 1, n + 2, n, n + 2, n + 3); n += 4;
+      });
+    });
+    var g = new T.BufferGeometry();
+    g.setAttribute('position', new T.Float32BufferAttribute(pos, 3));
+    g.setAttribute('normal', new T.Float32BufferAttribute(nrm, 3));
+    if (colored) { g.setAttribute('color', new T.Float32BufferAttribute(col, 3)); g.setAttribute('uv', new T.Float32BufferAttribute(uv, 2)); }
+    g.setIndex(idx); g.computeBoundingSphere();
+    return g;
+  }
+  /* ── стены с картинки плана (сервер 29.10; рамка demo-flow: walls_2d / windows_2d / doors_2d в пикселях) ──
+     те же прямоугольники, что на «Чертеже» (plan-drawing.js fromImage): каждая стена — объём на высоту стен, окно — подоконник
+     и стекло на своём месте в стене, дверь — проём (стены там уже нет). Стены, перегородки и подоконники — один объект,
+     стёкла — второй (boxesGeo). Полы — по рамкам комнат, как без стен с картинки */
+  View.prototype.buildImage = function (geo, clay, WH, SH) {
+    var self = this, ppm = geo.px_per_m, rooms = geo.rooms || [];
+    function ok(b) { return Array.isArray(b) && b.length === 4 && b[2] > b[0] && b[3] > b[1]; }
+    var walls = geo.walls_2d.map(function (w) { return w.box; }).filter(ok);
+    var wins = (geo.windows_2d || []).filter(function (w) { return w && ok(w.box); });
+    var all = walls.concat(wins.map(function (w) { return w.box; }), (geo.doors_2d || []).map(function (d) { return d.box; }).filter(ok), rooms.map(function (r) { return r.box; }));
+    var x1 = Math.min.apply(null, all.map(function (b) { return b[0]; })), y1 = Math.min.apply(null, all.map(function (b) { return b[1]; }));
+    var x2 = Math.max.apply(null, all.map(function (b) { return b[2]; })), y2 = Math.max.apply(null, all.map(function (b) { return b[3]; }));
+    this.bounds = { x1: x1, y1: y1, x2: x2, y2: y2, ppm: ppm };
+    this.cx = (x1 + x2) / 2; this.cy = (y1 + y2) / 2;
+    var SIDE = clay ? CLAY : 0x9c958d, TOP = clay ? CLAY : 0x1e1c1a, PART = 0xa24e32;   /* бока стен, срез, срез новой перегородки */
+    var solid = [], panes = [];
+    function box(b, y0, y1, top) { return { x0: self.wx(b[0]), x1: self.wx(b[2]), y0: y0, y1: y1, z0: self.wz(b[1]), z1: self.wz(b[3]), top: top, side: SIDE }; }
+    walls.forEach(function (b) { solid.push(box(b, 0, WH, TOP)); });
+    (geo.partitions || []).forEach(function (b) { solid.push(box(b, 0, WH, PART)); });     /* перегородки варианта стен */
+    wins.forEach(function (w) {
+      var b = w.box, alongX = w.along === 'x' || (w.along !== 'y' && b[2] - b[0] >= b[3] - b[1]);
+      solid.push(box(b, 0, SH, TOP));
+      var cx = self.wx((b[0] + b[2]) / 2), cz = self.wz((b[1] + b[3]) / 2), gw = (b[2] - b[0]) / ppm, gd = (b[3] - b[1]) / ppm;
+      var hx = (alongX ? gw : gw * .35) / 2, hz = (alongX ? gd * .35 : gd) / 2;
+      panes.push({ x0: cx - hx, x1: cx + hx, y0: SH, y1: WH, z0: cz - hz, z1: cz + hz });
+    });
+    if (solid.length) {
+      var wm = new T.Mesh(boxesGeo(solid, true), new T.MeshStandardMaterial({ color: 0xffffff, vertexColors: true, roughness: .95, roughnessMap: roughMap() }));
+      wm.castShadow = wm.receiveShadow = true; wm.userData.walls = solid.length; this.root.add(wm);
+    }
+    if (panes.length) this.root.add(new T.Mesh(boxesGeo(panes, false), new T.MeshStandardMaterial({ color: 0xbfd6e6, roughness: .2, metalness: .1, transparent: true, opacity: .55 })));
+    rooms.forEach(function (r) {
+      var b = r.box, w = (b[2] - b[0]) / ppm, d = (b[3] - b[1]) / ppm;
+      var mat = clay ? new T.MeshStandardMaterial({ color: 0xCFC5B7, roughness: .95 }) : floorMat(r.type, r.name, self.opts.style !== 'interior', PALETTE[self.opts.interiorId] || PALETTE.own), t = mat.map;
+      if (t) { mat.map = t.clone(); mat.map.needsUpdate = true; mat.map.repeat.set(w / t.userData.rep, d / t.userData.rep); }
+      var f = new T.Mesh(new T.PlaneGeometry(w, d), mat); f.rotation.x = -Math.PI / 2;
+      f.position.set(self.wx((b[0] + b[2]) / 2), 0.001, self.wz((b[1] + b[3]) / 2)); f.receiveShadow = true; self.root.add(f);
+    });
+    var base = new T.Mesh(new T.PlaneGeometry((x2 - x1) / ppm + 1.2, (y2 - y1) / ppm + 1.2), new T.MeshStandardMaterial({ color: 0xf4f2ee, roughness: 1 }));
+    base.rotation.x = -Math.PI / 2; base.position.set(0, -0.01, 0); base.receiveShadow = true; this.root.add(base);
+    this.fit();
+  };
+  /* окно — полоса стены комнаты на той стороне, где оно стоит (как в 2D-расстановке); комната — по room_id, иначе по типу или имени */
   function windowRects(geo, W) {
+    var rooms = (geo.rooms || []).filter(function (x) { return !x.part_of; });
     return (geo.windows || []).map(function (w) {
-      var r = (geo.rooms || []).filter(function (x) { return !x.part_of && (String(x.type || x.name).toLowerCase() === String(w.room).toLowerCase() || String(x.name).toLowerCase() === String(w.room).toLowerCase()); })[0];
+      var r = (w.room_id ? rooms.filter(function (x) { return x.id === w.room_id; })[0] : null) ||
+        rooms.filter(function (x) { return String(x.type || x.name).toLowerCase() === String(w.room).toLowerCase() || String(x.name).toLowerCase() === String(w.room).toLowerCase(); })[0];
       var s = w.box; if (!r) return s;
       var b = r.box;
       if (w.wall === 'west') return [b[0] - W, Math.max(s[1], b[1]), b[0], Math.min(s[3], b[3])];
@@ -239,7 +337,7 @@
   /* ── мебель: коробка по рамке, у кровати и дивана — матрас и спинка ── */
   View.prototype.buildItems = function () {
     var self = this, o = this.opts, ppm = this.bounds.ppm;
-    while (this.items.children.length) this.items.remove(this.items.children[0]);
+    clear(this.items);
     if (o.hideItems || !o.items) return;
     var pal = PALETTE[o.interiorId] || PALETTE.own, sizes = o.style !== 'interior';
     if (o.photo) return this.buildPhotoItems();

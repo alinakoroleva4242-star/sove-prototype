@@ -141,3 +141,8 @@
   .mv-plan__stage { width: 100%; max-width: 520px; margin: 0 auto; }
 }
 @media (max-width: 370px) { .mv-base b { font-size: 10.5px; hyphens: auto; -webkit-hyphens: auto; } }
+
+/* «Интерьеры» квартиры (созвон 28.10): несколько интерьеров, текущий — с меткой, остальные — кнопки «Сделать текущим» */
+button.mv-int { margin: 0; padding: 0; border: 0; background: none; font: inherit; color: inherit; text-align: left; cursor: pointer; }
+.mv-int.is-cur .mv-int__pic { box-shadow: 0 0 0 2px var(--accent); }
+.mv-int__cur { position: absolute; left: 4px; top: 4px; padding: 1px 6px; border-radius: 6px; background: var(--accent); color: #fff; font: 700 9.5px var(--font); font-style: normal; letter-spacing: .3px; }

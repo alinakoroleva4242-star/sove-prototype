@@ -98,17 +98,56 @@
 
   /* ---------- цены ---------- */
   function mode() { return S.metod.active() ? 'metod' : 'rrp'; }
-  function priceFor(p, m) { m = m || mode(); return m === 'metod' ? (p.metod || p.retail) : (p.retail || p.metod); }
+  /* row — строка корзины: у продавца может быть своя наценка к цене товара (seller.priceDelta; у складов DECARO — 0) */
+  function delta(row) { return row && row.seller ? Number(row.seller.priceDelta) || 0 : 0; }
+  function priceFor(p, m, row) { m = m || mode(); return (m === 'metod' ? (p.metod || p.retail) : (p.retail || p.metod)) + delta(row); }
   function sectionFor(p) { return SECTION_BY_CAT[p.category] || 'other'; }
-  function supplierOf(p) { if (p.brand && p.brand !== 'на заказ') return p.brand; var s = p.suppliers && p.suppliers[0]; return s ? s.name : 'Партнёр'; }
+  /* поставщик заказа: продавец строки корзины (склад DECARO · Москва / · Санкт-Петербург, «Поставщик 2»), иначе бренд, как раньше */
+  function supplierOf(x) {
+    if (!x) return 'Партнёр';
+    if (x.seller && x.seller.name) return x.seller.name;
+    var p = x.product || x;
+    if (p.brand && p.brand !== 'на заказ') return p.brand; var s = p.suppliers && p.suppliers[0]; return s ? s.name : 'Партнёр';
+  }
+  /* продавец для строки: объект {id, name, city, delivery, priceDelta}, id продавца (нужен sellers.js) или выбранный по умолчанию;
+     у товара с одним продавцом — null: строка группируется по бренду, как раньше */
+  function sellerFor(p, seller) {
+    var X = S.sellers;
+    try {
+      if (seller && typeof seller === 'object' && seller.name) return { id: seller.id || seller.name, name: seller.name, city: seller.city || '', delivery: seller.delivery || '', priceDelta: Number(seller.priceDelta) || 0 };
+      if (X && p) { var s = seller ? X.get(p, seller) : null; return s ? X.short(s) : X.pick(p); }
+    } catch (e) {}
+    return null;
+  }
 
-  /* ---------- объект ---------- */
+  /* ---------- объект = активная квартира «Моего ремонта» (SOVE.repair.flats.active(); схема «Данные вокруг объекта v2», созвон 28.10) ----------
+     get() собирает анкету {name, city, complex ← jk, area ← m2, rooms, bathrooms ← baths, tier ← budgetType, state, documents} из активной квартиры;
+     set() пишет в квартиру через R.flats.touch (нет квартиры — создаётся черновик: «+ Добавить объект» и анкета — первое действие с данными).
+     Документы — свои (st.object.documents), у каждого flatId; без flatId — документы первой квартиры (сохранены до привязки).
+     Без repair.js (кабинеты партнёра) — прежнее поведение: один объект st.object. Корзина оплаты (basket) объектом не владеет — не трогаем. */
+  var FLAT_MAP = { name: 'name', city: 'city', complex: 'jk', address: 'address', area: 'm2', rooms: 'rooms', bathrooms: 'baths', tier: 'budgetType', state: 'state' };
+  function RP() { var R = S.repair; return R && R.flats && R.flats.touch ? R : null; }
+  function legacyObject() { return st.object || (st.object = { city: null, complex: null, area: null, rooms: null, bathrooms: null, tier: null, documents: [], ts: now() }); }
+  function allDocs() { return (st.object && st.object.documents) || []; }
+  function docsFor(f, R) { var first = (R.flats.list()[0] || {}).id; return allDocs().filter(function (d) { return d.flatId ? d.flatId === f.id : f.id === first; }); }
   var object = {
-    get: function () { return st.object; },
-    set: function (patch) { st.object = Object.assign(st.object || { city: null, complex: null, area: null, rooms: null, bathrooms: null, tier: null, documents: [], ts: now() }, patch, { updated: now() }); if (patch.area) S.my.set({ area: patch.area }); save(); return st.object; },
+    get: function () {
+      var R = RP(), f = R && R.flats.active(); if (!f) return st.object;
+      return { id: f.id, flatId: f.id, name: f.name, city: f.city || null, complex: f.jk || null, address: f.address || null, area: f.m2 || null, rooms: f.rooms == null ? null : f.rooms, bathrooms: f.baths == null ? null : f.baths,
+        tier: f.budgetType || null, state: f.state || null, accuracy: f.accuracy || null, isDraft: !!f.isDraft, documents: docsFor(f, R), ts: f.createdAt || f.ts, updated: f.updated || f.ts };
+    },
+    set: function (patch) {
+      patch = patch || {}; var R = RP();
+      if (R) {
+        var fp = {}; Object.keys(patch).forEach(function (k) { if (FLAT_MAP[k]) fp[FLAT_MAP[k]] = patch[k]; }); fp.updated = now();
+        R.flats.touch(fp); save(); return object.get();
+      }
+      st.object = Object.assign(legacyObject(), patch, { updated: now() }); if (patch.area) S.my.set({ area: patch.area }); save(); return st.object;
+    },
     clear: function () { st.object = null; save(); },
-    addDoc: function (kind, name, size) { var o = object.get() || object.set({}); o.documents.unshift({ id: uid('doc'), kind: kind, name: name, size: size || 0, ts: now() }); save(); },
-    removeDoc: function (id) { var o = object.get(); if (!o) return; o.documents = o.documents.filter(function (d) { return d.id !== id; }); save(); },
+    /* документ — первое действие с данными: квартира появится сама (черновик), файл получит её flatId */
+    addDoc: function (kind, name, size) { var R = RP(), f = R && R.flats.ensure(), o = legacyObject(); if (!o.documents) o.documents = []; o.documents.unshift({ id: uid('doc'), kind: kind, name: name, size: size || 0, ts: now(), flatId: f ? f.id : null }); save(); },
+    removeDoc: function (id) { var o = st.object; if (!o || !o.documents) return; o.documents = o.documents.filter(function (d) { return d.id !== id; }); save(); },
     level: function () { var o = object.get(), best = 'none', rank = { none: 0, developer_plan: 1, measured_plan: 2, design_project: 3 }; ((o && o.documents) || []).forEach(function (d) { if ((rank[d.kind] || 0) > rank[best]) best = d.kind; }); return best; },
     levelLabel: function () { return LEVEL_LABEL[object.level()]; },
     budgetKind: function () { return { design_project: ['Фактический — по спецификации дизайн-проекта', 'Плановый — по чертежам'], measured_plan: ['Плановый, точнее — по реальным размерам', 'Плановый'], developer_plan: ['Плановый — по капсуле или генерации через Scout', 'Плановый'], none: ['Появится после первого документа или расчёта', 'Плановый — по расчёту'] }[object.level()]; },
@@ -139,24 +178,34 @@
   var basket = {
     list: function () { return st.basket.slice(); },
     has: function (id) { return st.basket.some(function (b) { return b.productId === Number(id); }); },
-    add: function (id, source, qty) {
+    /* строка: {id, productId, qty, source, section, payLater, ts, seller?} — seller {id, name, city, delivery, priceDelta} у товара с выбором продавца */
+    add: function (id, source, qty, seller) {
       id = Number(id); var p = D.product(id); if (!p) return null;
-      var row = st.basket.filter(function (b) { return b.productId === id; })[0];
-      if (row) row.qty += (qty || 1); else st.basket.unshift({ id: uid('bk'), productId: id, qty: qty || 1, source: source || 'catalog', section: sectionFor(p), payLater: false, ts: now() });
+      var row = st.basket.filter(function (b) { return b.productId === id; })[0], sl = sellerFor(p, seller);
+      if (row) { row.qty += (qty || 1); if (sl && (!row.seller || seller)) row.seller = sl; }
+      else { var nr = { id: uid('bk'), productId: id, qty: qty || 1, source: source || 'catalog', section: sectionFor(p), payLater: false, ts: now() }; if (sl) nr.seller = sl; st.basket.unshift(nr); }
       save(); return row || st.basket[0];
     },
+    /* другой продавец для товара в корзине (выбор «Где купить» на карточке товара) */
+    setSeller: function (pid, seller) {
+      pid = Number(pid); var p = D.product(pid), sl = sellerFor(p, seller), n = 0;
+      st.basket.forEach(function (b) { if (b.productId === pid) { if (sl) b.seller = sl; else delete b.seller; n++; } });
+      if (n) save(); return n;
+    },
+    sellerOf: function (pid) { var row = st.basket.filter(function (b) { return b.productId === Number(pid); })[0]; return row ? row.seller || null : null; },
     setQty: function (id, qty) { var row = st.basket.filter(function (b) { return b.id === id; })[0]; if (!row) return; if (qty <= 0) return basket.remove(id); row.qty = qty; save(); },
     togglePayLater: function (id) { var row = st.basket.filter(function (b) { return b.id === id; })[0]; if (row) { row.payLater = !row.payLater; save(); } },
     remove: function (id) { st.basket = st.basket.filter(function (b) { return b.id !== id; }); save(); },
     removeProduct: function (pid) { st.basket = st.basket.filter(function (b) { return b.productId !== Number(pid); }); save(); },
     clear: function () { st.basket = []; save(); },
     rows: function () { return st.basket.map(function (b) { var p = D.product(b.productId); return p ? Object.assign({ product: p }, b) : null; }).filter(Boolean); },
+    /* группы = будущие заказы: по продавцу строки (DECARO · Москва и DECARO · Санкт-Петербург — разные), без продавца — по бренду */
     groups: function (m) {
       m = m || mode(); var by = {};
       basket.rows().forEach(function (r) {
-        var key = supplierOf(r.product);
-        var g = by[key] || (by[key] = { brand: key, rows: [], total: 0, payNow: 0 });
-        g.rows.push(r); var line = priceFor(r.product, m) * r.qty; g.total += line; if (!r.payLater) g.payNow += line;
+        var key = supplierOf(r), sl = r.seller || null;
+        var g = by[key] || (by[key] = { brand: key, seller: sl, city: sl ? sl.city || '' : '', delivery: sl ? sl.delivery || '' : '', rows: [], total: 0, payNow: 0 });
+        g.rows.push(r); var line = priceFor(r.product, m, r) * r.qty; g.total += line; if (!r.payLater) g.payNow += line;
       });
       return Object.keys(by).sort().map(function (k) {
         var g = by[k], prof = profiles.get(k), key = detect(g.rows.map(function (r) { return r.product; }), prof.scenario), def = scn(key);
@@ -165,8 +214,8 @@
         return g;
       });
     },
-    totals: function (m) { m = m || mode(); var t = { count: 0, metod: 0, rrp: 0, payNow: 0, later: 0 }; basket.rows().forEach(function (r) { t.count++; t.metod += r.product.metod * r.qty; t.rrp += r.product.retail * r.qty; var line = priceFor(r.product, m) * r.qty; if (r.payLater) t.later += line; else t.payNow += line; }); return t; },
-    bySection: function (m) { m = m || mode(); var out = {}; basket.rows().forEach(function (r) { out[r.section] = (out[r.section] || 0) + priceFor(r.product, m) * r.qty; }); return out; }
+    totals: function (m) { m = m || mode(); var t = { count: 0, metod: 0, rrp: 0, payNow: 0, later: 0 }; basket.rows().forEach(function (r) { var d = delta(r); t.count++; t.metod += (r.product.metod + d) * r.qty; t.rrp += (r.product.retail + d) * r.qty; var line = priceFor(r.product, m, r) * r.qty; if (r.payLater) t.later += line; else t.payNow += line; }); return t; },
+    bySection: function (m) { m = m || mode(); var out = {}; basket.rows().forEach(function (r) { out[r.section] = (out[r.section] || 0) + priceFor(r.product, m, r) * r.qty; }); return out; }
   };
 
   /* ---------- заказы ---------- */
@@ -183,14 +232,16 @@
   var orders = {
     list: function () { return st.orders.slice().sort(function (a, b) { return b.ts - a.ts; }).map(decorate); },
     get: function (id) { var o = st.orders.filter(function (x) { return x.id === id; })[0]; return o ? decorate(o) : null; },
-    /* оформить: позиции «сейчас» → один заказ на поставщика, цена фиксируется (ТЗ, раздел 4) */
+    /* оформить: позиции «сейчас» → один заказ на поставщика (продавца), цена фиксируется (ТЗ, раздел 4).
+       Заказ: brand — имя продавца (DECARO · Санкт-Петербург) или бренд; seller {id, name, city, delivery} и city — у товара с выбором продавца, иначе null */
     place: function (address, m) {
       m = m || mode(); var created = [];
       basket.groups(m).forEach(function (g) {
         var rows = g.rows.filter(function (r) { return !r.payLater; }); if (!rows.length) return;
-        var items = rows.map(function (r) { return { productId: r.productId, name: r.product.name, brand: r.product.brand, category: r.product.category, section: r.section, source: r.source, qty: r.qty, unitPrice: priceFor(r.product, m), img: r.product.img, lineTotal: priceFor(r.product, m) * r.qty }; });
+        var items = rows.map(function (r) { return { productId: r.productId, name: r.product.name, brand: r.product.brand, category: r.product.category, section: r.section, source: r.source, qty: r.qty, unitPrice: priceFor(r.product, m, r), img: r.product.img, lineTotal: priceFor(r.product, m, r) * r.qty }; });
         var total = items.reduce(function (s, it) { return s + it.lineTotal; }, 0);
-        var o = { id: 'o-' + Math.random().toString(16).slice(2, 8), ts: now(), updated: now(), brand: g.brand, scenario: g.scenario, status: 'pending_confirmation', priceMode: m, total: total, address: address || object.title(), items: items, fields: {}, history: [entry('buyer', 'created', { total: total, priceMode: m, scenario: g.scenario })], review: null };
+        var sl = g.seller ? { id: g.seller.id, name: g.seller.name, city: g.seller.city || '', delivery: g.seller.delivery || '' } : null;
+        var o = { id: 'o-' + Math.random().toString(16).slice(2, 8), ts: now(), updated: now(), brand: g.brand, seller: sl, city: sl ? sl.city || null : null, scenario: g.scenario, status: 'pending_confirmation', priceMode: m, total: total, address: address || object.title(), items: items, fields: {}, history: [entry('buyer', 'created', { total: total, priceMode: m, scenario: g.scenario })], review: null };
         st.orders.push(o); created.push(o.id);
         rows.forEach(function (r) { basket.remove(r.id); });
       });

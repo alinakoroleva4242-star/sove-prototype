@@ -36,7 +36,7 @@
     capsules: { k: 'Вдохновение', t: 'Капсулы', d: 'Готовые интерьеры с названиями', href: 'capsules.html', ic: 'albums', img: IMG.capsules },
     adept: { k: 'Адаптация капсулы', t: 'Дизайн-проект', d: 'Капсула в дизайн-проект', href: 'adept.html', ic: 'wand', img: IMG.adept, lock: true, price: 'от ' + F.rub(adeptFrom) + '/м²' },
     track: { k: 'Ремонт под ключ', t: 'Управление ремонтом', d: 'От проекта до ключей', href: 'track.html', ic: 'build', img: IMG.track, lock: true, price: 'работы от ' + F.rub(trackFrom) + '/м²' },
-    metod: { k: 'Подписка', t: 'METOD', d: 'Клуб и скидки партнёров', href: 'metod.html', ic: 'ribbon', lock: true, img: IMG.metod, price: 'от ' + F.rub(D.metodPlans[0].price) + ' в месяц' },
+    metod: { k: 'Лента', t: 'Метод ремонта', d: 'Акции, подборки, концепции', href: 'feed.html', ic: 'ribbon', lock: true, img: IMG.metod, price: 'от ' + F.rub(D.metodPlans[0].price) + ' в месяц' },
     about: { k: 'Экосистема', t: 'О\u00a0SOVEAPP', d: 'Как всё устроено', href: 'about.html', ic: 'info', img: 'assets/img/capsules/k5-main-1.jpg' }
   };
   var PART = [ { t: 'Стать партнёром', d: 'Поставщикам и брендам', href: 'partner.html', ic: 'handshake' }, { t: 'Разместить капсулу', d: 'Дизайнерам: заявки на дизайн-проект', href: 'partner.html?who=designer', ic: 'home' } ];
@@ -396,7 +396,7 @@
     { id: 'scout', k: 'Расчёт бюджета', t: 'Бюджетный просчёт', d: 'Бюджет и спецификация под твою капсулу', href: 'scout.html', ic: 'calc', img: 'assets/img/capsules/k6-main-1.jpg', group: 'Вдохновись и прикинь' },
     { id: 'adept', k: 'Адаптация капсулы', t: 'Дизайн-проект', d: 'Адаптация капсулы в дизайн-проект', href: 'adept.html', ic: 'wand', img: IMG.adept, lock: true, group: 'Сделай по-настоящему' },
     { id: 'track', k: 'Ремонт под ключ', t: 'Управление ремонтом', d: 'Бюджет — проект — реализация', href: 'track.html', ic: 'build', img: 'assets/img/capsules/k3-hall-1.jpg', lock: true, group: 'Сделай по-настоящему' },
-    { id: 'metod', k: 'Подписка', t: 'METOD', d: 'Закрытый клуб с огромными возможностями', href: 'metod.html', ic: 'ribbon', img: 'assets/img/capsules/k3-bed-2.jpg', lock: true, group: 'Клуб и доверие' },
+    { id: 'metod', k: 'Лента', t: 'Метод ремонта', d: 'Акции, подборки, концепции закрытого канала METOD', href: 'feed.html', ic: 'ribbon', img: 'assets/img/capsules/k3-bed-2.jpg', lock: true, group: 'Клуб и доверие' },   /* созвон 28.10: плитка METOD ведёт в ленту «Метод ремонта» (feed.html) */
     { id: 'about', k: 'Экосистема', t: 'Об экосистеме', d: 'Как устроена экосистема выгодного ремонта', href: 'about.html', ic: 'info', img: 'assets/img/capsules/k3-hall-2.jpg', group: 'Клуб и доверие' }
   ];
   function groups() {
@@ -646,7 +646,7 @@
   /* подписи по-русски и по смыслу: человеку должно быть понятно без расшифровки */
   var SQ_FN = {
     ai: 'Генерации', market: 'Каталог товаров', capsules: 'Интерьерные решения', scout: 'Бюджетный просчёт',
-    adept: 'Дизайн-проект', track: 'Управление ремонтом', metod: 'Закрытый клуб METOD Ремонта', about: 'Строительные компании',
+    adept: 'Дизайн-проект', track: 'Управление ремонтом', metod: 'Метод ремонта', about: 'Исполнители',
     sup: 'Поставщикам', des: 'Дизайнерам', bld: 'Строителям'
   };
 
@@ -692,13 +692,14 @@
       '<b class="sq__cap">' + esc(label) + '</b></a>';   /* подсказки при наведении убраны (Вика 23.10) */
   }
   /* Вика 21.10: в ряду «Сделай по-настоящему» «Строительные компании» (бывшая «Экосистема»)
-     идут перед «Закрытым клубом»; подсказка при наведении — по новой подписи квадрата */
+     идут перед «Закрытым клубом»; подсказка при наведении — по новой подписи квадрата.
+     Чат команды 30.10: квадрат стал «Исполнители» и ведёт в маркет исполнителей (executors.html) */
   function swapClubAndBuilders(items) {
     var ids = items.map(function (x) { return x.id; }), a = ids.indexOf('metod'), b = ids.indexOf('about');
     if (a < 0 || b < 0) return items;
     var out = items.slice(), about = {};
     Object.keys(items[b]).forEach(function (k) { about[k] = items[b][k]; });
-    about.t = 'Строительные компании'; about.d = 'Подрядчики и застройщики экосистемы SOVEAPP';
+    about.t = 'Исполнители'; about.d = 'Мастера, строители и дизайнеры'; about.href = 'executors.html';
     out[a] = about; out[b] = items[a];
     return out;
   }
