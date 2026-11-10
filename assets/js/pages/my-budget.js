@@ -32,7 +32,6 @@
           '<div class="fr-total__row"><b class="fr-big">' + rub(fig) + '</b>' + (T.perM2 ? '<span class="fr-per">' + rub(T.perM2) + '/м²</span>' : '') + '</div>' +
           (lock ? '' : '<div class="fr-parts"><span>Комплектация <b>' + rub(T.kit) + '</b></span>' + (T.worksAndRough > 0 ? '<span>Работы <b>' + rub(T.worksAndRough) + '</b></span>' : '') + '</div>') +
           (!lock && T.saving > 0 ? '<div class="fr-save"><span>Экономия с подпиской METOD</span><b>−' + rub(T.saving) + '</b></div>' : '') +
-          '<div class="fr-fact"><span><span>Оплачено <b>' + rub(T.paid) + '</b> · ' + pct + '%</span><span>Осталось <b>' + rub(left) + '</b></span></span><i><i style="width:' + Math.min(100, pct) + '%"></i></i></div>' +
         '</div></div></section>';
   }
   function model() {
@@ -110,7 +109,7 @@
       var pct = o.plan ? Math.round((o.paid || 0) / o.plan * 100) : 0;
       /* строка как на финальной странице расчёта (Алина 10.11): название слева, плановая сумма справа. «Оплачено» и полоска — только когда
          по строке уже что-то оплачено: пока оплат нет, «0 ₽ / … · 0%» только путали */
-      var paid = o.paid > 0;
+      var paid = false;   /* «Оплачено» пока не показываем (Алина 10.11): запускаемся как агрегатор, оплаты не отследить */
       var body = (o.th || '') + '<span class="bg-r__b"><b>' + esc(o.title) + '</b>' +
         (o.lock ? '<small class="is-lock">Посчитаем при расчёте</small>' : paid ? '<small>Оплачено <b>' + rub(o.paid) + '</b> · ' + pct + '%</small><i class="bg-bar"><i style="width:' + Math.min(100, pct) + '%"></i></i>' : '') + '</span>' +
         (o.lock ? '' : '<b class="bg-r__sum">' + rub(o.plan) + '</b>') + '<span class="bg-r__a">' + (o.plain ? '' : o.fin ? (o.open ? '▴' : '▾') : '›') + '</span>';
@@ -238,7 +237,9 @@
           }).join('') +
             (m.saved && !m.roughMat.sum ? '' : row({ th: '<span class="bg-th bg-th--n">＋</span>', title: 'Черновые материалы', plan: m.roughMat.sum, paid: 0, plain: true })) + '</div>' +
           roomsBlock(m) +
-          '<button type="button" class="bg-btn" data-xls>Скачать смету · Excel</button>') +
+          /* общая кнопка «Скачать», потом формат — как на финальной странице расчёта (Алина 10.11); Excel формируется, PDF в прототипе нет */
+          '<div class="fr-dl fr-dl--wide"><button type="button" class="btn btn--ghost" data-dl-toggle aria-expanded="false" aria-haspopup="true">Скачать ▾</button>' +
+            '<div class="fr-dl__menu" hidden><button type="button" data-dl-pdf>PDF</button><button type="button" data-xls>Excel</button></div></div>') +
         favRow() + '</div>';
     }
 
@@ -272,7 +273,9 @@
       var b = e.target.closest('button, a'); if (!b || !root.contains(b)) return;
       if (b.hasAttribute('data-fin')) { var fk = b.getAttribute('data-fin'); if (fk.indexOf('w:') === 0) { fk = fk.slice(2); ui$.works[fk] = !ui$.works[fk]; } else ui$.open[fk] = !ui$.open[fk]; draw(); return; }
       if (b.hasAttribute('data-rm')) { var rk = b.getAttribute('data-rm'); ui$.rooms[rk] = !ui$.rooms[rk]; draw(); return; }
-      if (b.hasAttribute('data-xls')) { xls(model()); return; }
+      if (b.hasAttribute('data-dl-toggle')) { var dm = b.nextElementSibling, dop = b.getAttribute('aria-expanded') === 'true'; b.setAttribute('aria-expanded', String(!dop)); if (dm) dm.hidden = dop; return; }
+      if (b.hasAttribute('data-dl-pdf')) { b.parentNode.hidden = true; S.ui.toast('В прототипе файл не формируется'); return; }
+      if (b.hasAttribute('data-xls')) { if (b.parentNode.classList.contains('fr-dl__menu')) b.parentNode.hidden = true; xls(model()); return; }
       if (b.hasAttribute('data-bud') && b.tagName === 'A') e.preventDefault();
       if (b.hasAttribute('data-bud-type')) setTimeout(draw, 0);   /* сам переключатель — demo-flow (setBudgetType), здесь — перерисовка */
     });
