@@ -1,7 +1,7 @@
 /* Генерации — «+ Создать» по референсу Вики 23.10 («SOVEAPP — Генерации», экраны 2–4):
    Новая генерация (тип, помещение, стиль, палитра, уровень, план/референсы) → 4 варианта → выбранный вариант.
    В демо варианты собираются из капсул SOVEAPP: картинки, материалы и бюджет — настоящие данные капсул,
-   порядок — по стилю и близости палитры. Токены не списываются. Виды: ?v=form | variants | pick. */
+   порядок — по стилю и близости палитры. Генерации не списываются. Виды: ?v=form | variants | pick. */
 (function () {
   var S = window.SOVE, D = S.data, F = S.fmt, esc = F.esc, ui = S.ui, G = window.SOVE_GEN, R = S.repair;
   var root = document.getElementById('gn-root'); if (!root || !G) return;
@@ -108,7 +108,7 @@
       sec(1, 'Тип генерации', false, types) + sec(2, 'Тип помещения', true, rooms) + sec(3, 'Стиль интерьера', false, styles) +
       sec(4, 'Цветовая палитра', false, colors) + sec(5, 'Уровень бюджета', false, levels) + sec(6, 'План / Референсы', true, files, 'gn-files') +
       '<div class="gn-go"><button type="button" class="gn-btn gn-btn--main" data-act="generate">' + G.ic('sparkles', 20) + '<span>' + (st.type === 'plan' ? 'Перейти к плану' : 'Сгенерировать') + '</span></button>' +
-      '<p class="gn-hint">' + (st.type === 'plan' ? 'План → 3D — бесплатно: разметим план и соберём объёмную модель' : 'В демо варианты собираются из капсул SOVEAPP — токены не списываются') + '</p></div>' +
+      '<p class="gn-hint">' + (st.type === 'plan' ? 'План → 3D — бесплатно: разметим план и соберём объёмную модель' : 'В демо варианты собираются из капсул SOVEAPP — генерации не списываются') + '</p></div>' +
       '</div>';
     if (location.hash === '#gn-files') { var fs = document.getElementById('gn-files'); if (fs) setTimeout(function () { fs.scrollIntoView({ block: 'center' }); }, 50); }
   }

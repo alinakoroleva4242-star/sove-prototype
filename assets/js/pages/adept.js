@@ -26,6 +26,8 @@
   var sending = false;
 
   function capsule() { return D.capsule(st.capsuleId); }
+  /* имя капсулы в интерфейсе — короткое, как в Интерьере и окне выбора (SOVE_KB), иначе из data.js; коды К1–К7 не показываем */
+  function capName(x) { var k = x && window.SOVE_KB && window.SOVE_KB.capsule && window.SOVE_KB.capsule(x.id); return (k && k.name) || (x && x.name) || ''; }
   function pack() { return packages.filter(function (p) { return p.id === st.packageId; })[0]; }
   function price() { return Math.round(pack().rate * st.area / 500) * 500; }
   function perMonth() { return Math.round(price() / PARTS); }
@@ -53,14 +55,14 @@
     var c = capsule();
     $('ad-chips').innerHTML = capsules.map(function (x) {
       var on = x.id === st.capsuleId;
-      return '<button type="button" class="chip' + (on ? ' is-active' : '') + '" data-capsule="' + x.id + '" aria-pressed="' + on + '" title="' + esc(x.name) + '">' + esc(x.code) + '</button>';
+      return '<button type="button" class="chip' + (on ? ' is-active' : '') + '" data-capsule="' + x.id + '" aria-pressed="' + on + '" title="' + esc(x.name) + '">' + esc(capName(x)) + '</button>';
     }).join('');
     $('ad-capsule-info').innerHTML = '<b>' + esc(c.name) + '.</b> <span class="muted">' + esc(c.concept) + '</span> <a class="link" href="capsule.html?id=' + c.id + '">Смотреть капсулу</a>';
     var scoutHref = 'scout.html?capsule=' + c.id + (project ? '&project=' + encodeURIComponent(project.id) : '');
     if (scout) {
       var sc = D.capsule(scout.capsuleId), other = scout.capsuleId && scout.capsuleId !== c.id;
-      $('ad-scout').innerHTML = '<div class="notice ad-notice"><span class="stack stack--2"><span class="small">Бюджет из расчёта: <b class="num">' + F.rub(scout.total) + '</b> · <span class="num">' + F.area(scout.area) + '</span>' + (sc ? ' · ' + esc(sc.code) : '') + '</span>' +
-        '<span class="tiny muted">' + (other ? 'Расчёт сделан для ' + esc(sc ? sc.code : 'другой капсулы') + '. Для ' + esc(c.code) + ' бюджет будет другим — пересчитайте бюджет.' : 'Проект «' + esc(project.name) + '». Расчёт передадим дизайнеру вместе с заявкой.') + '</span></span>' +
+      $('ad-scout').innerHTML = '<div class="notice ad-notice"><span class="stack stack--2"><span class="small">Бюджет из расчёта: <b class="num">' + F.rub(scout.total) + '</b> · <span class="num">' + F.area(scout.area) + '</span>' + (sc ? ' · «' + esc(capName(sc)) + '»' : '') + '</span>' +
+        '<span class="tiny muted">' + (other ? 'Расчёт сделан для ' + (sc ? 'капсулы «' + esc(capName(sc)) + '»' : 'другой капсулы') + '. Для «' + esc(capName(c)) + '» бюджет будет другим — пересчитайте бюджет.' : 'Проект «' + esc(project.name) + '». Расчёт передадим дизайнеру вместе с заявкой.') + '</span></span>' +
         '<a class="arrow-link" href="' + scoutHref + '">' + (other ? 'Пересчитать бюджет' : 'Открыть расчёт') + '</a></div>';
     } else {
       $('ad-scout').innerHTML = '<p class="ad-scout-hint"><span>Сначала посчитайте бюджет' + NB + '— дизайнер получит его вместе с заявкой.</span><a class="arrow-link" href="' + scoutHref + '">Посчитать бюджет</a></p>';

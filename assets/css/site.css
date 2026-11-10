@@ -284,7 +284,7 @@ ul, ol { padding: 0; list-style: none; }
 .modal__actions { display: flex; flex-direction: column; gap: var(--s3); }
 @media (max-width: 639px) { .modal-back { align-items: flex-end; padding: 0; } .modal { max-width: none; padding: var(--s6) var(--s4) calc(var(--s6) + env(safe-area-inset-bottom)); } }
 .toasts { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(var(--s6)); z-index: 120; display: flex; flex-direction: column; gap: 8px; width: min(440px, calc(100vw - 32px)); }
-.toast { background: var(--ink); color: var(--white); padding: 14px 18px; font-size: 14px; line-height: 1.4; animation: rise .2s ease-out; }
+.toast { background: var(--ink); color: var(--white); padding: 14px 18px; font-size: 14px; line-height: 1.4; border-radius: 12px; animation: rise .2s ease-out; }
 .toast--ok { background: var(--green); } .toast--error { background: var(--danger); }
 @keyframes rise { from { opacity: 0; transform: translateY(8px); } }
 @media (max-width: 959px) { .toasts { bottom: calc(var(--tabbar-h) + var(--s4)); } }
@@ -498,3 +498,7 @@ body { padding-bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom)); }
 .tok-chip[hidden] { display: none; }
 .appbar .logo + .tok-chip { margin-left: auto; }
 .appbar .tok-chip + .appbar__user { margin-left: 4px; }
+/* шторка «Не хватает генераций / замен»: тариф или докупка строкой, подходящий подсвечен (тарифы генераций, 03.11) */
+.nb-opt { display: flex; flex-direction: row; align-items: center; gap: 12px; text-decoration: none; color: var(--ink); }
+.nb-opt__m { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+.nb-opt__p { flex: none; font-variant-numeric: tabular-nums; }

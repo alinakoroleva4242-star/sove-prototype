@@ -65,7 +65,7 @@
       }).join('') + '</div></div>' +
 
     '<div class="tm-grid">' +
-      '<a class="tm-tile" href="generations.html"><b>Мои генерации</b><span>история подборов и баланс токенов</span></a>' +
+      '<a class="tm-tile" href="generations.html"><b>Мои генерации</b><span>история подборов и баланс генераций</span></a>' +
       '<a class="tm-tile" href="tokens.html"><b>Токены</b><span>пакет или подписка METOD 1:1</span></a>' +
     '</div>';
 

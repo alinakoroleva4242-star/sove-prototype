@@ -25,6 +25,8 @@
   var sending = false, done = false;
 
   function capsule() { return D.capsule(st.capsuleId); }
+  /* имя капсулы в интерфейсе — короткое, как в Интерьере и окне выбора (SOVE_KB), иначе из data.js; коды капсул не показываем (как на АДЕПТ) */
+  function capName(x) { var k = x && window.SOVE_KB && window.SOVE_KB.capsule && window.SOVE_KB.capsule(x.id); return (k && k.name) || (x && x.name) || ''; }
   function kit() { return capsule().pricePerM2 * st.area; }
   function works() { return finish.rate * st.area; }
   function total() { return kit() + works(); }
@@ -50,13 +52,13 @@
     var c = capsule();
     $('tr-chips').innerHTML = capsules.map(function (x) {
       var on = x.id === st.capsuleId;
-      return '<button type="button" class="chip' + (on ? ' is-active' : '') + '" data-capsule="' + x.id + '" aria-pressed="' + on + '" title="' + esc(x.name) + '">' + esc(x.code) + '</button>';
+      return '<button type="button" class="chip' + (on ? ' is-active' : '') + '" data-capsule="' + x.id + '" aria-pressed="' + on + '" title="' + esc(x.name) + '">' + esc(capName(x)) + '</button>';
     }).join('');
     $('tr-capsule-info').innerHTML = '<h3 class="h3">' + esc(c.name) + '</h3><p class="text">' + esc(c.concept) + '</p>' +
       '<div class="tr-materials">' + (c.materials || []).map(function (m) { return '<span class="badge badge--line">' + esc(m) + '</span>'; }).join('') + '</div>' +
       '<p class="small muted">Комплектация от' + NB + '<span class="num">' + F.rub(c.pricePerM2) + '/м²</span> по' + NB + 'ценам METOD</p>' +
       '<a class="arrow-link" href="capsule.html?id=' + c.id + '">Смотреть капсулу</a>';
-    var img = $('tr-capsule-img'); img.src = c.cover; img.alt = 'Интерьер капсулы ' + c.code + ': ' + c.name;
+    var img = $('tr-capsule-img'); img.src = c.cover; img.alt = 'Интерьер «' + capName(c) + '»';
   }
 
   /* ---------- площадь, оценка, этапы ---------- */
@@ -82,7 +84,7 @@
       .concat(project ? [['Проект', project.name]] : []).concat(scout ? [['Расчёт бюджета', nb(F.rub(scout.total))]] : []));
     if (scout) {
       var sc = D.capsule(scout.capsuleId), same = scout.capsuleId === st.capsuleId && clampArea(scout.area) === st.area;
-      $('tr-scout').innerHTML = '<div class="notice tr-notice"><span class="stack stack--2"><span class="small">Бюджет из расчёта: <b class="num">' + F.rub(scout.total) + '</b> · <span class="num">' + F.area(scout.area) + '</span>' + (sc ? ' · ' + esc(sc.code) : '') + '</span>' +
+      $('tr-scout').innerHTML = '<div class="notice tr-notice"><span class="stack stack--2"><span class="small">Бюджет из расчёта: <b class="num">' + F.rub(scout.total) + '</b> · <span class="num">' + F.area(scout.area) + '</span>' + (sc ? ' · «' + esc(capName(sc)) + '»' : '') + '</span>' +
         '<span class="tiny muted">' + (same ? 'Проект «' + esc(project.name) + '». Передадим расчёт менеджеру вместе с заявкой.' : 'Расчёт сделан для других условий. Оценка ниже' + NB + '— для выбранной капсулы и' + NB + 'площади.') + '</span></span>' +
         '<a class="arrow-link" href="' + scoutHref() + '">' + (same ? 'Открыть расчёт' : 'Пересчитать бюджет') + '</a></div>';
     } else $('tr-scout').innerHTML = '';
@@ -188,11 +190,13 @@
 })();
 
 /* трекер и дневник стройки — перенос с сайта (track.tsx, constants/track-data.ts).
-   Цифры демо-проекта: капсула К4, 45 м², как в данных сайта. */
+   Цифры демо-проекта: капсула k4, 45 м², как в данных сайта. В тексте — короткое имя капсулы, без кода. */
 (function () {
   var S = window.SOVE, F = S.fmt, esc = F.esc;
   var box = document.getElementById('tr-tracker'), diary = document.getElementById('tr-diary');
   if (!box && !diary) return;
+  var demoCap = (window.SOVE_KB && window.SOVE_KB.capsule && window.SOVE_KB.capsule('k4')) || (S.data && S.data.capsule && S.data.capsule('k4'));
+  var demoCapName = demoCap && demoCap.name ? demoCap.name : '';
   var BUDGET = { total: 4870552, adept: 267000, works: 2250000, complect: 2353552 };
   var DIARY = [
     { fresh: true, week: 'Недели 5–6 · 2 дек', t: 'Черновые работы, 63 %', d: 'Выровняли стены и стяжку пола во всех комнатах. Развели черновую электрику по проекту. Начали штробить под сантехнику в санузле.', photos: '3 фото прогресса' },
@@ -213,7 +217,7 @@
         '<div class="pb-item"><b>Строительные работы</b><span>' + F.rub(BUDGET.works) + '</span></div>' +
         '<div class="pb-item"><b>Комплектация</b><span>' + F.rub(BUDGET.complect) + '</span></div>' +
       '</div>' +
-      '<p class="small muted">Пример по капсуле К4 на 45 м² — те же цифры, что в демо-проекте на сайте.</p>' +
+      '<p class="small muted">Пример' + (demoCapName ? ' по капсуле «' + esc(demoCapName) + '»' : '') + ' на 45 м² — те же цифры, что в демо-проекте на сайте.</p>' +
     '</section>';
 
   if (diary) diary.innerHTML = '<div class="stack stack--4">' + DIARY.map(function (e) {

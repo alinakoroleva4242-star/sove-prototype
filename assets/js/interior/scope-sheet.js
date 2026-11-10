@@ -19,7 +19,7 @@
       '<b class="ss-t" id="ss-t">Для чего собираем?</b>' +
       opt('flat', 'Вся квартира', 'все 12 материалов отделки · полный бюджет') +
       opt('room', 'Только эта комната', o.room + ' · можно достроить потом') +
-      (enough ? '<button type="button" class="mt-btn" data-build>Собрать доску · ' + UI.fmtTokens(cost) + '</button>'
+      (enough ? '<button type="button" class="mt-btn" data-build>Собрать доску</button>'
         : '<a class="mt-btn" href="tokens.html?returnTo=' + encodeURIComponent('interior.html') + '">Пополнить</a>') +
       '<small class="ss-note">у тебя ' + window.SOVE.fmt.tokens(o.balance) + ' · ' + (enough ? 'готово за 10 секунд' : 'не хватает ' + window.SOVE.fmt.tokens((cost - o.balance)) + '') + '</small>';
   };

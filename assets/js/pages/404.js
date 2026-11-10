@@ -2,5 +2,5 @@
 (function () {
   var S = window.SOVE, lead = document.getElementById('nf-lead');
   if (!S || !lead || !S.auth.isIn()) return;
-  lead.innerHTML = 'Возможно, ссылка устарела или в адресе опечатка. Ваши проекты и токены на месте — они <a class="link" href="account.html">в кабинете</a>.';
+  lead.innerHTML = 'Возможно, ссылка устарела или в адресе опечатка. Ваши проекты и генерации на месте — они <a class="link" href="account.html">в кабинете</a>.';
 })();

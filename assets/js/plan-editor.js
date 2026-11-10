@@ -1267,7 +1267,7 @@
       var h = { rooms: {}, delta: {}, ghost: m.segments().filter(function (s) { return (s.A === A && s.B === B) || (s.A === B && s.B === A); }).map(function (s) { return strip(s.o, s.ea, s.eb, s.from, s.to); }) };
       h.rooms[big.id] = 1; h.delta[big.id] = res.model.area(big) - m.area(m.room(big.id));
       commit(res.model, { who: 'app', text: 'Стена между ' + form(m.room(A), 'ins') + ' и ' + form(m.room(B), 'ins') + ' снесена: ' + form(big, 'nom') + ' — ' + m2txt(res.model.area(big)) + ' м².',
-        notes: ['Несущую стену сносить нельзя: какая стена несущая, видно в техпаспорте БТИ.'], geom: true, undoLabel: 'снос стены' }, h);
+        notes: ['Несущую стену сносить нельзя: какая стена несущая, видно в документах БТИ.'], geom: true, undoLabel: 'снос стены' }, h);
     }
     function pairDoors(m, A, B) { return m.doors.filter(function (d) { return (d.a === A && d.b === B) || (d.a === B && d.b === A); }); }
     function doorAdd(cmd) {

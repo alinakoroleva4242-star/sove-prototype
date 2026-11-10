@@ -273,6 +273,47 @@
     return { rooms: rooms, typical: typical, works: tot('works'), kit: tot('kit'), total: tot('total') };
   }
 
-  window.SOVE_BUDGET = { compute: compute, areas: areas, fromScout: fromScout, view: view, current: current, paidMap: paidMap, KIT: KIT, WORKS: WORKS,
+  /* ── витрина позиций бюджета (Алина 10.11): категории и комнаты раскрываются карточками, как каталог Маркета — фото, цена METOD, ♡ и 🛒.
+     Одна на «Бюджет» Моего ремонта и на финальную страницу расчёта. Позиции — товары каталога, привязанные к капсуле (p.capsules);
+     где их в каталоге нет — материалы капсулы из базы отделки (нужен SOVE_MATUI, на странице расчёта его нет — там только каталог).
+     По комнатам раскладываем по разделу товара: ПРИМЕР правила (ROOM_OF), пока в каталоге нет привязки товара к комнате ── */
+  var CAT_KEY = { 'Отделка': 'finish', 'Освещение': 'light', 'Сантехника': 'plumbing', 'Мебель': 'furniture', 'Техника': 'appliances', 'Текстиль и декор': 'decor' };
+  var DRY = ['kitchenLiving', 'bedroom', 'hall'];
+  var ROOM_OF = { 'Кровати': ['bedroom'], 'Тумбы': ['bedroom'], 'Кресла': ['kitchenLiving'], 'Диваны': ['kitchenLiving'], 'Столы': ['kitchenLiving'], 'Стулья': ['kitchenLiving'],
+    'Керамогранит': ['bathroom', 'hall'], 'Плитка': ['bathroom'], 'Напольные покрытия': DRY, 'Краска': DRY, 'Панели': ['kitchenLiving', 'bedroom'], 'Люстры': ['kitchenLiving'], 'Подвесы': ['bedroom', 'hall'] };
+  var SLOT_ROOM = { floor: DRY, floorTile: ['bathroom'], bathWalls: ['bathroom'], apron: ['kitchenLiving'], plumbing: ['bathroom'], walls: DRY, accentWall: ['kitchenLiving', 'bedroom'] };
+  function capsuleGoods(cid, key, type) {
+    var W = window.SOVE, D = W && W.data, KB = window.SOVE_KB, UI = window.SOVE_MATUI, out = [];
+    if (!cid || !D) return out;
+    D.products.forEach(function (p) { if ((p.capsules || []).indexOf(cid) >= 0 && CAT_KEY[p.category] === key) out.push({ p: p, sub: p.subcat || p.brand || '', rooms: ROOM_OF[p.subcat] || (key === 'plumbing' ? ['bathroom'] : null) }); });
+    var kc = !out.length && KB && KB.capsule && UI ? KB.capsule(cid) : null;
+    if (kc && kc.slots) KB.SLOTS.filter(function (x) { return x.budgetCat === key; }).forEach(function (x) {
+      var sl = kc.slots[x.key], sku = sl && (typeof sl === 'string' ? sl : (type === 'premium' && sl.premium) || sl.base), it = sku && KB.item(sku);
+      if (it) out.push({ p: UI.product(it), bg: UI.tileBg(it, 160, 120), sub: x.name, rooms: SLOT_ROOM[x.key] || null });
+    });
+    return out;
+  }
+  function roomGoods(cid, zone, type) {
+    var out = [];
+    KIT.forEach(function (k) { capsuleGoods(cid, k[0], type).forEach(function (g) { if (!g.rooms || g.rooms.indexOf(zone) >= 0) out.push(g); }); });
+    return out;
+  }
+  function goodsHtml(list, empty) {
+    var W = window.SOVE, R = W && W.repair, F = W.fmt, esc = F.esc;
+    function rub(n) { return F.num(Math.round(n)) + ' ₽'; }
+    if (!list.length) return '<small class="bg-mk__no">' + (empty || 'Позиции появятся после подбора') + '</small>';
+    return '<div class="bg-mk">' + list.map(function (g) {
+      var p = g.p, old = p.retail && p.metod && p.retail > p.metod;
+      return '<div class="bg-mc"><span class="bg-mc__pic" style="' + (g.bg ? 'background:' + g.bg : 'background-image:url(' + esc(p.img) + ')') + '"></span>' +
+        '<span class="bg-mc__b"><small>' + esc(g.sub || '') + '</small><b>' + esc(p.name) + '</b>' +
+          (p.metod ? '<span class="bg-mc__pr">' + (old ? '<s>' + rub(p.retail) + '</s>' : '') + '<em>' + rub(p.metod) + '</em><small>цена METOD</small></span>' : '') + '</span>' +
+        (R && R.btns ? '<span class="bg-mc__a">' + R.btns(p, 'budget') + '</span>' : '') + '</div>';
+    }).join('') + '</div>';
+  }
+  /* работы этапа построчно — на весь объект (примеры работ этапа из договора, WORKS[3]) */
+  function workLines(key) { var w = WORKS.filter(function (x) { return x[0] === key; })[0]; return w ? w[3].slice() : []; }
+  function linesHtml(lines) { var esc = window.SOVE.fmt.esc; return '<div class="fr-lines">' + lines.map(function (t) { return '<div class="fr-line">' + esc(t) + '</div>'; }).join('') + '</div>'; }
+
+  window.SOVE_BUDGET = { capsuleGoods: capsuleGoods, roomGoods: roomGoods, goodsHtml: goodsHtml, workLines: workLines, linesHtml: linesHtml, compute: compute, areas: areas, fromScout: fromScout, view: view, current: current, paidMap: paidMap, KIT: KIT, WORKS: WORKS,
     byRooms: byRooms, typicalRooms: typicalRooms, kitKey: kitKey, zoneOf: zoneOf, ZONE_NAME: ZONE_NAME, ROOM_RULES: ROOM_RULES };
 })();

@@ -1,4 +1,5 @@
-/* Страница капсулы: capsule.html?id=k1…k6 */
+/* Страница капсулы: capsule.html?id=k1…k7. Коды К1–К7 в интерфейсе не показываем: в заголовке и тексте — полное имя из data.js,
+   в крошках и подписях кадров — короткое (SOVE_KB, как в Интерьере и окне выбора) */
 (function () {
   /* цена интерьера сразу в липкой панели — иначе на первом экране её нет */
   (function () {
@@ -25,10 +26,12 @@
 
   function plural(n, one, few, many) { var a = Math.abs(n) % 100, b = a % 10; return (a > 10 && a < 20) ? many : b === 1 ? one : (b >= 2 && b <= 4) ? few : many; }
   function crumbs(last) { return '<nav class="crumbs cap-crumbs wrap" aria-label="Вы здесь"><a href="index.html">Главная</a><span aria-hidden="true">/</span><a href="capsules.html">Капсулы</a><span aria-hidden="true">/</span><span>' + esc(last) + '</span></nav>'; }
+  /* «Другие капсулы» — карточки как в каталоге: короткое имя (SOVE_KB), как в каталоге, окне выбора и полоске объекта */
+  function shortOf(o) { var k = window.SOVE_KB && window.SOVE_KB.capsule && window.SOVE_KB.capsule(o.id); return (k && k.name) || o.name; }
   function others(list, title) {
     return '<section class="wrap" aria-labelledby="cap-others-title"><div class="cap-block stack stack--8">' +
       '<div class="cap-block__head"><h2 class="h2" id="cap-others-title">' + title + '</h2><a class="btn btn--link" href="capsules.html">Все капсулы</a></div>' +
-      '<div class="grid grid--5 grid--gap-lg cap-others">' + list.map(function (o) { return S.ui.capsuleCard(o); }).join('') + '</div></div></section>';
+      '<div class="grid grid--5 grid--gap-lg cap-others">' + list.map(function (o) { return S.ui.capsuleCard(Object.assign({}, o, { name: shortOf(o) })); }).join('') + '</div></div></section>';
   }
 
   /* ---------- капсула не найдена ---------- */
@@ -42,7 +45,8 @@
     return;
   }
 
-  document.title = c.code + ' · ' + c.name + ' — SOVEAPP';
+  var short = (function () { var k = window.SOVE_KB && window.SOVE_KB.capsule && window.SOVE_KB.capsule(c.id); return (k && k.name) || c.name; })();
+  document.title = short + ' — SOVEAPP';   /* имя капсулы короткое и одно на всех экранах (как в полоске и окне выбора) */
   var soon = !!c.soon || !c.pricePerM2;
   var gallery = (c.gallery && c.gallery.length) ? c.gallery : [{ room: 'Интерьер', src: c.cover }];
 
@@ -68,9 +72,9 @@
   var many = gallery.length > 1;
 
   var galHtml =
-    '<div class="cap-gal" id="cap-gal" role="group" aria-roledescription="галерея" aria-label="Фотографии капсулы ' + esc(c.code) + '">' +
+    '<div class="cap-gal" id="cap-gal" role="group" aria-roledescription="галерея" aria-label="Фотографии капсулы «' + esc(c.name) + '»">' +
     '<button type="button" class="cap-gal__frame" id="gal-frame"' + (many ? ' aria-label="Показать следующее фото"' : ' aria-label="Фото капсулы" disabled') + '>' +
-    '<img id="gal-img" src="' + esc(gallery[0].src) + '" alt="Капсула ' + esc(c.code) + ', ' + esc(gallery[0].room.toLowerCase()) + '" width="1120" height="1400"></button>' +
+    '<img id="gal-img" src="' + esc(gallery[0].src) + '" alt="Капсула «' + esc(c.name) + '», ' + esc(gallery[0].room.toLowerCase()) + '" width="1120" height="1400"></button>' +
     '<div class="cap-gal__cap"><p class="cap-gal__room" aria-live="polite"><b id="gal-room">' + esc(gallery[0].room) + '</b><span class="tiny muted num" id="gal-count">1 / ' + gallery.length + '</span>' +
     (many ? '<span class="tiny muted cap-gal__hint">листайте стрелками ← →</span>' : '') + '</p>' +
     (many ? '<div class="cap-gal__nav"><button type="button" id="gal-prev" aria-label="Предыдущее фото">' + arrowL + '</button><button type="button" id="gal-next" aria-label="Следующее фото">' + arrowR + '</button></div>' : '') + '</div>' +
@@ -80,8 +84,7 @@
     '</div>';
 
   var headHtml = '<div class="cap-head"><span class="eyebrow">' + esc(c.style) + (soon ? ' · скоро' : '') + '</span>' +
-    '<span class="cap-code" aria-hidden="true">' + esc(c.code) + '</span>' +
-    '<h1 class="cap-title"><span class="vh">Капсула ' + esc(c.code) + '. </span>' + esc(c.name) + '</h1></div>';
+    '<h1 class="cap-title">' + esc(short) + '</h1></div>';
 
   var linkedProject = S.auth.isIn() ? S.projects.list().filter(function (p) { return p.capsuleId === c.id; })[0] : null;
 
@@ -107,7 +110,7 @@
   }
   infoHtml += '</div>';
 
-  var html = crumbs(c.code) + '<section class="wrap cap-hero">' + headHtml + galHtml + infoHtml + '</section>';
+  var html = crumbs(short) + '<section class="wrap cap-hero">' + headHtml + galHtml + infoHtml + '</section>';
 
   /* ---------- ДНК капсулы ---------- */
   var mats = c.materials || [];
@@ -139,12 +142,12 @@
     var worksMin = Math.min.apply(null, D.scout.states.map(function (s) { return s.rate; }));
     var paths = [
       { t: 'Примерить на своё фото', d: 'Загрузите фото комнаты или рендер — найдём похожие предметы в каталоге.', m: 'по фото — ' + F.tokens(D.costs.photo) + ', по рендеру — ' + F.tokens(D.costs.render), href: 'ai.html', a: 'Открыть Генерации' },
-      { t: 'Посчитать бюджет', d: 'Разложим работы по этапам и посчитаем комплектацию ' + c.code + ' по вашей планировке.', m: 'комплектация от ' + F.rub(c.pricePerM2) + '/м²', href: 'scout.html?capsule=' + c.id, a: 'К расчёту' },
+      { t: 'Посчитать бюджет', d: 'Разложим работы по этапам и посчитаем комплектацию этой капсулы по вашей планировке.', m: 'комплектация от ' + F.rub(c.pricePerM2) + '/м²', href: 'scout.html?capsule=' + c.id, a: 'К расчёту' },
       { t: 'Дизайн-проект', d: 'Дизайнер адаптирует капсулу под вашу квартиру: планировка, визуализации, чертежи.', m: 'Дизайн-проект · от ' + F.rub(adeptMin) + '/м²', href: 'adept.html?capsule=' + c.id, a: 'О дизайн-проекте' },
       { t: 'Ремонт под ключ', d: 'Команда делает ремонт по капсуле. Этапы, акты и оплаты видны в кабинете.', m: 'Управление ремонтом · работы от ' + F.rub(worksMin) + '/м²', href: 'track.html?capsule=' + c.id, a: 'Об управлении ремонтом' }
     ];
     html += '<section class="wrap" aria-labelledby="cap-next-title"><div class="cap-block stack stack--8">' +
-      '<div class="cap-block__head"><div class="stack stack--3"><span class="eyebrow">Следующий шаг</span><h2 class="h2" id="cap-next-title">Что дальше</h2></div><p class="small muted">Начать можно с любого шага — капсула ' + esc(c.code) + ' перейдёт вместе с вами.</p></div>' +
+      '<div class="cap-block__head"><div class="stack stack--3"><span class="eyebrow">Следующий шаг</span><h2 class="h2" id="cap-next-title">Что дальше</h2></div><p class="small muted">Начать можно с любого шага — капсула перейдёт вместе с вами.</p></div>' +
       '<div class="grid grid--4 grid--gap-lg cap-paths">' + paths.map(function (p, i) {
         return '<a class="cap-path rule-top" href="' + p.href + '"><span class="cap-path__n" aria-hidden="true">0' + (i + 1) + '</span><h3 class="h4">' + esc(p.t) + '</h3><p class="small muted">' + esc(p.d) + '</p><span class="tiny muted num" style="white-space:normal">' + esc(p.m) + '</span><span class="arrow-link">' + esc(p.a) + '</span></a>';
       }).join('') + '</div></div></section>';
@@ -159,7 +162,7 @@
       '<p class="small muted">Те же материалы и палитра в разных помещениях — так капсула выглядит в собранных проектах.</p></div></div>' +
       '<div class="lane cap-rooms">' + c.slides.slice(0, 6).map(function (sl) {
         var m = /(living|bed|bath|hall|dress|work|other)/.exec(sl.src) || [];
-        return '<figure class="cap-room"><img src="' + sl.src + '" alt="' + esc(c.code) + ', ' + esc(ROOM[m[1]] || 'интерьер') + '" loading="lazy">' +
+        return '<figure class="cap-room"><img src="' + sl.src + '" alt="' + esc(short) + ', ' + esc(ROOM[m[1]] || 'интерьер') + '" loading="lazy">' +
           '<figcaption>' + esc(ROOM[m[1]] || 'интерьер') + '</figcaption></figure>';
       }).join('') + '</div></div></section>';
   }
@@ -182,7 +185,7 @@
     img.classList.add('is-swap');
     clearTimeout(swapTimer);
     swapTimer = setTimeout(function () {
-      img.src = g.src; img.alt = 'Капсула ' + c.code + ', ' + g.room.toLowerCase();
+      img.src = g.src; img.alt = 'Капсула «' + c.name + '», ' + g.room.toLowerCase();
       var done = function () { img.classList.remove('is-swap'); };
       if (img.complete) done(); else { img.onload = done; img.onerror = done; }
     }, 120);

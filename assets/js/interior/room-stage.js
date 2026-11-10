@@ -30,7 +30,7 @@
       var p = sp.obj[i]; if (!p || !x) return '';
       return '<button type="button" class="rh-pill is-item' + (o.sel === 'obj:' + x.kind ? ' is-sel' : '') + '" data-object="' + esc(x.kind) + '" style="left:' + p[1] + '%;top:' + p[2] + '%"><i></i><span>' + esc(x.short) + '</span><b>⇄</b></button>';
     }).join('');
-    var stale = o.staleText ? '<span class="rh__stale"><span><b>!</b> ' + esc(o.staleText) + ' — рендер показывает старый</span><button type="button" data-rerender="' + r.zone + '">Обновить · ' + UI.fmtTokens(o.price) + '</button></span>' : '';
+    var stale = o.staleText ? '<span class="rh__stale"><span><b>!</b> ' + esc(o.staleText) + ' — рендер показывает старый</span><button type="button" data-rerender="' + r.zone + '">Обновить</button></span>' : '';
     return '<div class="rh rh--b"><img src="' + esc(r.img) + '" alt="' + esc(r.room) + '">' +
       '<span class="rh__lbl">' + esc(String(r.room).toUpperCase()) + ' · ' + (o.label || ('РАКУРС ' + (o.angle + 1) + ' ИЗ ' + o.angles)) + '</span>' + mats + objs + stale + '</div>';
   };
@@ -49,7 +49,7 @@
     o = o || {};
     var b = '';
     for (var i = 0; i < n; i++) b += '<button type="button" class="ac' + (i === cur ? ' is-on' : '') + '" data-angle="' + i + '" aria-pressed="' + (i === cur) + '">Ракурс ' + (i + 1) + '</button>';
-    return '<div class="acs">' + b + (o.canAdd ? '<button type="button" class="ac" data-angle-add>＋ ракурс · ' + UI.fmtTokens(o.price) + '</button>' : '') + '</div>';
+    return '<div class="acs">' + b + (o.canAdd ? '<button type="button" class="ac" data-angle-add>＋ ракурс</button>' : '') + '</div>';
   };
 
   UI.roomCards = function (cards, o) {
@@ -59,7 +59,7 @@
       var sum = c.sum ? F.rub(c.sum) : '';
       if (c.busy) return '<span class="rc rc--add rc--busy"><b>' + esc(c.room) + '</b><small>собираем рендер…</small></span>';
       if (c.todo) return '<button type="button" class="rc rc--add rc--todo" data-room="' + c.zone + '"><b>＋ ' + esc(c.room) + '</b><small>не проработана</small>' + (sum ? '<small>материалы уже есть · ' + sum + '</small>' : '') + '</button>';
-      if (!c.img) return '<button type="button" class="rc rc--add" data-room="' + c.zone + '"><b>＋ ' + esc(c.room) + '</b><small>рендер · ' + UI.fmtTokens(o.price) + '</small>' + (sum ? '<small>материалы уже есть · ' + sum + '</small>' : '') + '</button>';
+      if (!c.img) return '<button type="button" class="rc rc--add" data-room="' + c.zone + '"><b>＋ ' + esc(c.room) + '</b><small>рендер</small>' + (sum ? '<small>материалы уже есть · ' + sum + '</small>' : '') + '</button>';
       return '<button type="button" class="rc" data-room="' + c.zone + '" style="background-image:url(' + esc(c.img) + ')"><span class="rc__n"><b>' + esc(c.room) + '</b>' + (sum ? '<small>' + sum + '</small>' : '') + '</span>' +
         (c.stale ? '<span class="rc__b is-bad">! обновить</span>' : c.example ? '<span class="rc__b">пример капсулы</span>' : '') + '</button>';
     }).join('') + '</div>';

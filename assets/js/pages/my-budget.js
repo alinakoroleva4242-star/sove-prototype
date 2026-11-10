@@ -18,6 +18,23 @@
   function plural(n, a, b, c) { var m = n % 100, k = n % 10; return m > 10 && m < 20 ? c : k === 1 ? a : k >= 2 && k <= 4 ? b : c; }
 
   /* модель экрана: свой бюджет (план есть) или пример; figure — та же цифра, что в полосе «Бюджет» (budgetLayers) */
+  /* карточка итога — та же, что на финальной странице расчёта (budget-view.css): фото интерьера, параметры квартиры, плановый бюджет; ниже — оплачено / осталось */
+  function hero(m, fig, T, pct, left, lock) {
+    var D = S.data, f = R.flats.active() || {}, it = R.get().interior, cid = (it && it.capsuleId) || f.capsuleId, c = cid && D.capsule(cid);
+    var kb = c && window.SOVE_KB && window.SOVE_KB.capsule ? window.SOVE_KB.capsule(c.id) : null, name = c ? (kb && kb.name) || c.name : (it && it.name) || f.name || 'Моя квартира';
+    var img = c ? (c.wide || c.cover) : (it && it.imageUrl) || '';
+    var stId = m.state || (S.my && S.my.get().stateId), stt = stId && D.scout ? D.scout.states.filter(function (x) { return x.id === stId; })[0] : null;
+    var chips = [m.type === 'premium' ? 'Премиум' : 'База', m.area ? F.area(m.area) : '', f.city || '', stt ? stt.name : ''].filter(Boolean);
+    return '<section class="sq-card fr-hero">' + (img ? '<span class="fr-hero__pic"><img src="' + esc(img) + '" alt="" loading="lazy"></span>' : '') +
+      '<div class="fr-hero__b"><div class="fr-hero__top"><small class="fr-k">Интерьер</small><b class="fr-hero__name">' + esc(name) + '</b></div>' +
+        '<div class="fr-chips">' + chips.map(function (t) { return '<span>' + esc(t) + '</span>'; }).join('') + '</div>' +
+        '<div class="fr-hero__sum"><small class="fr-k">Плановый бюджет</small>' +
+          '<div class="fr-total__row"><b class="fr-big">' + rub(fig) + '</b>' + (T.perM2 ? '<span class="fr-per">' + rub(T.perM2) + '/м²</span>' : '') + '</div>' +
+          (lock ? '' : '<div class="fr-parts"><span>Комплектация <b>' + rub(T.kit) + '</b></span>' + (T.worksAndRough > 0 ? '<span>Работы <b>' + rub(T.worksAndRough) + '</b></span>' : '') + '</div>') +
+          (!lock && T.saving > 0 ? '<div class="fr-save"><span>Экономия с подпиской METOD</span><b>−' + rub(T.saving) + '</b></div>' : '') +
+          '<div class="fr-fact"><span><span>Оплачено <b>' + rub(T.paid) + '</b> · ' + pct + '%</span><span>Осталось <b>' + rub(left) + '</b></span></span><i><i style="width:' + Math.min(100, pct) + '%"></i></i></div>' +
+        '</div></div></section>';
+  }
   function model() {
     var B = window.SOVE_BUDGET, C = B && B.current ? B.current() : null;
     /* до расчёта: если собран Интерьер — показываем, что уже известно (строки ИНТЕРЬЕР), остальное серым и «Досчитать весь бюджет» (Алина 26.10) */
@@ -84,16 +101,20 @@
     return R.LINK.market + (k.key === 'appliances' ? '?cat=' + encodeURIComponent('Техника') : '');
   }
 
-  var ui$ = { open: { finish: true }, rooms: {} };   /* раскрытые категории; rooms — раскрытые комнаты блока «По комнатам» */
+  var ui$ = { open: { finish: true }, rooms: {}, works: {} };   /* раскрытые категории; rooms — раскрытые комнаты блока «По комнатам» */
   window.SOVE_MY_BUDGET = function (root) {
     if (new URLSearchParams(location.search).get('seg') === 'w') setTimeout(function () { var h = root.querySelectorAll('.bg-h')[1]; if (h) h.scrollIntoView({ block: 'start' }); }, 60);   /* &seg=w — сразу к работам */
     /* строка как на рендере «Бюджет» (Алина 25.10, «проще, меньше текста»): круглая миниатюра · название · «оплачено / план» · полоска · % · ›.
        Метки источника, легенду и плашку-правило убрали; куда ведёт строка — тот же блок-источник */
     function row(o) {
       var pct = o.plan ? Math.round((o.paid || 0) / o.plan * 100) : 0;
-      var body = (o.th || '') + '<span class="bg-r__b"><b>' + esc(o.title) + (o.fin ? ' <em>' + (o.open ? '▴' : '▾') + '</em>' : '') + '</b>' +
-        (o.lock ? '<small class="is-lock">посчитаем при расчёте</small>' : '<small><b>' + rub(o.paid || 0) + '</b> / ' + rub(o.plan) + '</small><i class="bg-bar"><i style="width:' + Math.min(100, pct) + '%"></i></i>') + '</span>' +
-        (o.lock ? '' : '<small class="bg-r__p">' + pct + '%</small>') + '<span class="bg-r__a">›</span>';
+      /* строка как на финальной странице расчёта (Алина 10.11): название слева, плановая сумма справа. «Оплачено» и полоска — только когда
+         по строке уже что-то оплачено: пока оплат нет, «0 ₽ / … · 0%» только путали */
+      var paid = o.paid > 0;
+      var body = (o.th || '') + '<span class="bg-r__b"><b>' + esc(o.title) + '</b>' +
+        (o.lock ? '<small class="is-lock">Посчитаем при расчёте</small>' : paid ? '<small>Оплачено <b>' + rub(o.paid) + '</b> · ' + pct + '%</small><i class="bg-bar"><i style="width:' + Math.min(100, pct) + '%"></i></i>' : '') + '</span>' +
+        (o.lock ? '' : '<b class="bg-r__sum">' + rub(o.plan) + '</b>') + '<span class="bg-r__a">' + (o.plain ? '' : o.fin ? (o.open ? '▴' : '▾') : '›') + '</span>';
+      if (o.plain) return '<div class="bg-r">' + body + '</div>';   /* строка без перехода (этапы работ) */
       return o.fin ? '<button type="button" class="bg-r" data-fin="' + o.fin + '" aria-expanded="' + !!o.open + '">' + body + '</button>'
         : '<a class="bg-r" href="' + (o.lock && !o.go ? '#' : o.go || o.href) + '"' + (o.lock && !o.go ? ' data-bud="buy"' : '') + '>' + body + '</a>';
     }
@@ -109,19 +130,27 @@
         var ids = rows.length ? rows.map(function (x) { return x.product.id; }) : (KB && b && KB.capsule(b.capsuleId || b.baseCapsuleId || '') || { decor: [] }).decor;
         ids.forEach(function (id) { var p = D.product(id); if (p) out.push({ p: p, sub: p.brand || '', sum: p.metod }); });
       }
+      /* бюджет посчитан по капсуле (расчёт, без доски Интерьера и расстановки): каждая категория раскрывается позициями капсулы с фото из каталога
+         (Алина 10.11) — товары каталога этой капсулы; где их в каталоге нет (двери, розетки) — материалы капсулы из базы отделки. Цена — METOD за позицию */
+      if (!out.length) {
+        var f = R.flats.active() || {}, cid = (b && (b.capsuleId || b.baseCapsuleId)) || f.capsuleId || '';
+        var CAT = { 'Отделка': 'finish', 'Освещение': 'light', 'Сантехника': 'plumbing', 'Мебель': 'furniture', 'Техника': 'appliances', 'Текстиль и декор': 'decor' };
+        if (cid) D.products.forEach(function (p) { if ((p.capsules || []).indexOf(cid) >= 0 && CAT[p.category] === k.key) out.push({ p: p, sub: p.subcat || p.brand || '', sum: p.metod }); });
+        var kc = !out.length && cid && KB && KB.capsule ? KB.capsule(cid) : null;
+        if (kc && kc.slots && UI) KB.SLOTS.filter(function (x) { return x.budgetCat === k.key; }).forEach(function (x) {
+          var sl = kc.slots[x.key], sku = sl && (typeof sl === 'string' ? sl : (m.type === 'premium' && sl.premium) || sl.base), it = sku && KB.item(sku);
+          if (it) out.push({ p: UI.product(it), bg: UI.tileBg(it, 160, 120), sub: x.name, sum: null });
+        });
+      }
       return out;
     }
+    /* категория раскрывается на месте витриной, как каталог Маркета (Алина 10.11): карточки с фото, ценой METOD, ♡ и 🛒 — заказать можно прямо отсюда.
+       Никуда не уводим: строка — кнопка «раскрыть», карточка — не ссылка, ссылок «в Интерьер / в Маркет» нет */
     function kitRow(k, m, lock) {
       var goods = lock ? [] : goodsOf(k, m), open = !!ui$.open[k.key];
-      var html = row({ th: thumb(k, m), title: k.title + (goods.length ? ' · ' + goods.length : ''), plan: k.plan, paid: k.paid, href: hrefOf(k) || 'interior.html?v=b&from=budget', fin: goods.length ? k.key : null, lock: lock, open: open });
-      if (!goods.length || !open) return html;
-      return html + '<div class="bg-goods">' + goods.map(function (g) {
-        var p = g.p;
-        return '<div class="bg-p"><a class="bg-p__pic" href="product.html?id=' + p.id + '" style="' + (g.bg ? 'background:' + g.bg : 'background-image:url(' + esc(p.img) + ')') + '"></a>' +
-          '<a class="bg-p__b" href="product.html?id=' + p.id + '"><small>' + esc(g.sub) + '</small><b>' + esc(p.name) + '</b><em>' + rub(g.sum) + '</em></a><span class="bg-p__a">' + R.btns(p, 'budget') + '</span></div>';
-      }).join('') +
-        (k.key === 'finish' && k.rooms ? '<div class="bg-rooms">' + k.rooms.map(function (r) { return '<a href="interior.html?v=b&room=' + r.id + '&from=budget"><span>' + esc(r.name) + '</span><span><b>' + rub(r.plan) + '</b><i>›</i></span></a>'; }).join('') + '</div>' : '') +
-        '<a class="bg-goods__go" href="' + (hrefOf(k) || 'interior.html?v=b&from=budget') + '">' + (k.source === 'interior' ? 'Заменить в Интерьере ›' : k.source === 'planirovka' ? 'Изменить в Планировке ›' : 'В Маркет ›') + '</a></div>';
+      var html = row({ th: thumb(k, m), title: k.title + (goods.length ? ' · ' + goods.length : ''), plan: k.plan, paid: k.paid, fin: lock ? null : k.key, lock: lock, open: open, href: '#' });
+      if (lock || !open) return html;
+      return html + '<div class="bg-goods">' + window.SOVE_BUDGET.goodsHtml(goods, 'Позиции этой категории появятся после подбора') + '</div>';
     }
     /* «По комнатам» (созвон 28.10): те же цифры, что в строках выше, разложенные по комнатам плана в одном стиле (SOVE_BUDGET.byRooms, budget.js).
        Комнаты — из расчёта (rp.scoutParams.byRooms), иначе из плана квартиры (R.planZones), иначе типовые зоны по площади с пометкой.
@@ -142,8 +171,10 @@
       var typical = o.typical || src.some(function (x) { return x.typical; });   /* типовые зоны расчёта (плана нет) — та же пометка, что в Расчёте */
       if (o.total !== T.plan) console.warn('По комнатам: Σ комнат ' + o.total + ' ≠ план ' + T.plan);
       var seen = {}, titles = {}; m.kit.forEach(function (k) { titles[k.key] = k.title; });
+      var ff = R.flats.active() || {}, itx = R.get().interior, capId = (itx && (itx.capsuleId || itx.baseCapsuleId)) || ff.capsuleId || '';
       function vals(x) {
-        return '<span class="bg-rm__vals"><span class="bg-rm__v"><small>Работы</small><b>' + rub(x.works) + '</b></span><span class="bg-rm__v"><small>Материалы и комплектация</small><b>' + rub(x.kit) + '</b></span><span class="bg-rm__v bg-rm__v--t"><small>Итого</small><b>' + rub(x.total) + '</b></span></span>';
+        /* по комнатам — только комплектация; работы — одна сумма на объект (Алина 10.11, как на финальной странице расчёта) */
+        return '<b class="bg-rm__sum">' + rub(x.kit) + '</b>';
       }
       var rows = o.rooms.map(function (x, i) {
         seen[x.zone] = (seen[x.zone] || 0) + 1; var key = seen[x.zone] === 1 ? x.zone : x.zone + '-' + seen[x.zone];   /* как в R.planZones: первая комната типа — ключ зоны, дальше тип-2 */
@@ -151,13 +182,12 @@
         var cats = Object.keys(x.byCat).filter(function (k) { return x.byCat[k] > 0; }).map(function (k) { return '<div class="bg-rm__c"><span>' + esc(titles[k] || k) + '</span><b>' + rub(x.byCat[k]) + '</b></div>'; }).join('');
         return '<div class="bg-rm' + (open ? ' is-open' : '') + '">' +
           '<button type="button" class="bg-rm__r" data-rm="' + i + '" aria-expanded="' + open + '">' +
-            '<span class="bg-rm__n"><b>' + esc(x.name) + '</b><small>' + esc(x.zoneName.toLowerCase()) + ' · ' + F.area(x.area) + '</small></span>' + vals(x) + '<span class="bg-rm__a">' + (open ? '▴' : '▾') + '</span></button>' +
-          (open ? '<div class="bg-rm__cats">' + (cats || '<div class="bg-rm__c"><span>Комплектации в этой комнате нет</span></div>') + '<div class="bg-rm__c bg-rm__c--sum"><span>Комплектация комнаты</span><b>' + rub(x.kit) + '</b></div></div>' : '') +
-          '<div class="bg-rm__foot"><a href="' + href + '">Заменить материалы ›</a></div>' +
+            '<span class="bg-rm__n"><b>' + esc(x.name) + '</b><small>' + F.area(x.area) + '</small></span>' + vals(x) + '<span class="bg-rm__a">' + (open ? '▴' : '▾') + '</span></button>' +
+          (open ? '<div class="bg-goods">' + B.goodsHtml(B.roomGoods(capId, x.zone, m.type), 'Позиции этой комнаты появятся после подбора') + '</div>' : '') +
         '</div>';
       }).join('');
       var n = o.rooms.length;
-      return '<div class="bg-h"><b>По комнатам</b><small>' + n + ' ' + plural(n, 'комната', 'комнаты', 'комнат') + ' · один стиль</small></div>' +
+      return '<div class="fr-h"><b class="sq-group">По комнатам</b><span>' + rub(o.kit) + '</span></div>' +
         (typical ? '<small class="bg-note bg-note--l">Типовые зоны · загрузите план, чтобы считать точно</small>' : '') +
         '<div class="bg-list bg-rms">' + rows + '<div class="bg-rm bg-rm--sum"><span class="bg-rm__n"><b>Вся квартира</b><small>' + (m.area ? F.area(m.area) : '') + '</small></span>' + vals(o) + '<span class="bg-rm__a"></span></div></div>';
     }
@@ -185,26 +215,28 @@
       if (m.empty) {
         root.innerHTML = '<header class="bg-head"><a href="my.html?v=center" aria-label="Назад в Мой ремонт">‹</a><h1>Бюджет</h1><span></span></header><div class="bg-body">' +
           '<div class="bg-empty"><b>Бюджет появится после расчёта ремонта</b><small>Посчитаем работы и комплектацию по твоей квартире</small>' +
-          (m.plan ? '<button type="button" class="bg-btn" data-bud="buy">Рассчитать бюджет</button>' : '<a class="bg-btn" href="scout.html?from=budget">Рассчитать бюджет</a>') + '</div>' + favRow() + '</div>';
+          (m.plan ? '<button type="button" class="bg-btn" data-bud="buy">✦ Рассчитать бюджет</button>' : '<a class="bg-btn" href="scout.html?from=budget">✦ Рассчитать бюджет</a>') + '</div>' + favRow() + '</div>';   /* «✦» — расчёт бюджета тоже генерация, как в Бюджете (scout.js) */
         return;
       }
       var T = m.totals, fig = m.figure, lock = false;
       if (m.kit[0].rooms) { var rs = sum(m.kit[0].rooms, 'plan'); if (rs !== m.kit[0].plan) console.warn('Отделка: комнаты ' + rs + ' ≠ строке ' + m.kit[0].plan); }
       var pct = fig ? Math.round(T.paid / fig * 100) : 0, left = fig === null ? null : Math.max(0, fig - T.paid);
-      root.className = 'bg';
+      root.className = 'bg fr';
       root.innerHTML =
         '<header class="bg-head"><a href="my.html?v=center" aria-label="Назад в Мой ремонт">‹</a><h1>Бюджет</h1><span></span></header>' +
         '<div class="bg-body">' +
         /* план и факт (Алина 25.10): «Фактический» — это оплачено по Заказам; полоски — доля от плана */
-        '<div class="bg-cards"><div class="bg-card"><small>Плановый бюджет</small><b>' + rub(fig) + '</b><i class="bg-bar"><i style="width:' + Math.min(100, pct) + '%"></i></i><small>Использовано ' + pct + '%</small><b class="bg-card__s">' + rub(T.paid) + '</b></div>' +
-          '<div class="bg-card"><small>Фактический бюджет</small><b>' + rub(T.paid) + '</b><i class="bg-bar"><i style="width:' + Math.min(100, pct) + '%"></i></i><small>Осталось</small><b class="bg-card__s">' + rub(left) + ' <em>' + (100 - Math.min(100, pct)) + '%</em></b></div></div>' +
-        (!lock && T.saving > 0 ? '<div class="bg-save"><b>Экономия с подпиской METOD</b><b>−' + rub(T.saving) + '</b></div>' : '') +
-        '<div class="bg-h"><b>По категориям</b>' + (m.full ? '<span class="bg-type" role="group" aria-label="Тип бюджета"><button type="button" data-bud-type="base" aria-pressed="' + (m.type !== 'premium') + '">База</button><button type="button" data-bud-type="premium" aria-pressed="' + (m.type === 'premium') + '">Премиум</button></span>' : '') + '</div>' +
+        hero(m, fig, T, pct, left, lock) +
+        '<div class="fr-h"><b class="sq-group">По категориям</b>' + (m.full ? '<span class="bg-type" role="group" aria-label="Тип бюджета"><button type="button" data-bud-type="base" aria-pressed="' + (m.type !== 'premium') + '">База</button><button type="button" data-bud-type="premium" aria-pressed="' + (m.type === 'premium') + '">Премиум</button></span>' : '') + '</div>' +
         '<div class="bg-list">' + m.kit.map(function (k) { return kitRow(k, m, lock && k.key !== 'furniture'); }).join('') + '</div>' +
-        '<div class="bg-h"><b>Работы</b>' + (lock ? '' : '<small>' + rub(T.worksAndRough) + '</small>') + '</div>' +
+        '<div class="fr-h"><b class="sq-group">Строительные работы</b>' + (lock ? '' : '<span>' + rub(T.worksAndRough) + '</span>') + '</div>' +
         (lock ? '<button type="button" class="bg-btn" data-bud="buy">✦ Узнать весь бюджет</button>' :
-          '<div class="bg-list">' + m.works.map(function (w) { return row({ th: '<span class="bg-th bg-th--n">' + (w.done ? '✓' : w.n) + '</span>', title: w.title, plan: w.plan, paid: 0, href: 'scout.html?from=budget&stage=' + w.key }); }).join('') +
-            (m.saved && !m.roughMat.sum ? '' : row({ th: '<span class="bg-th bg-th--n">＋</span>', title: 'Черновые материалы', plan: m.roughMat.sum, paid: 0, href: 'scout.html?from=budget' })) + '</div>' +
+          '<div class="bg-list">' + m.works.map(function (w) {
+            var wo = !!ui$.works[w.key], lines = window.SOVE_BUDGET.workLines(w.key);
+            return row({ th: '<span class="bg-th bg-th--n">' + (w.done ? '✓' : w.n) + '</span>', title: w.title, plan: w.plan, paid: 0, fin: lines.length ? 'w:' + w.key : null, plain: !lines.length, open: wo }) +
+              (wo && lines.length ? '<div class="bg-goods">' + window.SOVE_BUDGET.linesHtml(lines) + '</div>' : '');
+          }).join('') +
+            (m.saved && !m.roughMat.sum ? '' : row({ th: '<span class="bg-th bg-th--n">＋</span>', title: 'Черновые материалы', plan: m.roughMat.sum, paid: 0, plain: true })) + '</div>' +
           roomsBlock(m) +
           '<button type="button" class="bg-btn" data-xls>Скачать смету · Excel</button>') +
         favRow() + '</div>';
@@ -238,7 +270,7 @@
     }
     root.addEventListener('click', function (e) {
       var b = e.target.closest('button, a'); if (!b || !root.contains(b)) return;
-      if (b.hasAttribute('data-fin')) { var fk = b.getAttribute('data-fin'); ui$.open[fk] = !ui$.open[fk]; draw(); return; }
+      if (b.hasAttribute('data-fin')) { var fk = b.getAttribute('data-fin'); if (fk.indexOf('w:') === 0) { fk = fk.slice(2); ui$.works[fk] = !ui$.works[fk]; } else ui$.open[fk] = !ui$.open[fk]; draw(); return; }
       if (b.hasAttribute('data-rm')) { var rk = b.getAttribute('data-rm'); ui$.rooms[rk] = !ui$.rooms[rk]; draw(); return; }
       if (b.hasAttribute('data-xls')) { xls(model()); return; }
       if (b.hasAttribute('data-bud') && b.tagName === 'A') e.preventDefault();

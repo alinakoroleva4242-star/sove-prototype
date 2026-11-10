@@ -1039,7 +1039,9 @@
 
   function render() {
     st.problems = validate(st.items);
-    collectLite();
+    /* мебель и бюджет считаются по этой расстановке: изменились товары или сумма мебели (сменили интерьер — окно уже перерисовало
+       полосу по прежним товарам) — полоса «Бюджет» над меню перерисовывается, цифра та же, что в карточке бюджета (одна цифра итого) */
+    if (collectLite() && S.repair && S.repair.renderStrip) S.repair.renderStrip();
     /* лента «Выбери интерьер»: варианты стен и A5а — пока интерьер не выбран (раздел 14) */
     FLOW.interiorStrip({ chosen: !!INT, onPick: function (it) { if (st.walls) { INT = it; FL = FLOW.load(); shots = {}; wallShots(render); } else setInterior(it); } });
     if (st.walls) { root.innerHTML = viewWalls(); bind(); return; }
@@ -1068,16 +1070,28 @@
   function kitchenLenNow() {
     return Math.round(st.items.filter(function (it) { return KITCHEN.test(it.label); }).reduce(function (a, it) { return a + Math.max(w_m(it.box), d_m(it.box)); }, 0) * 10) / 10;
   }
-  /* лёгкая запись без картинки — чтобы мебель и бюджет на экране считались по текущей расстановке */
+  /* лёгкая запись без картинки — чтобы мебель и бюджет на экране считались по текущей расстановке.
+     true — товары или сумма мебели изменились (полосе «Бюджет» пора перерисоваться) */
   function collectLite() {
     var prev = FLOW.load().toSave || {}, g = goods(), kl = kitchenLenNow();
-    FLOW.save({ toSave: Object.assign({}, prev, { flat: SRC.flat, live: !!LIVE, arrangement: planName(PLANS[planIdx].name || ''),
+    var next = Object.assign({}, prev, { flat: SRC.flat, live: !!LIVE, arrangement: planName(PLANS[planIdx].name || ''),
       items: st.items.map(function (it) { return { label: it.label, box: it.box }; }), count: st.items.length, furniture: goodsSum(),
       kitchenLen: kl,
       goods: g.filter(function (x) { return x.p; }).map(function (x) { return { label: x.it.label, room: x.room, id: x.p.id, metod: x.p.metod }; }),
       variant: VAR ? { id: VAR.id, letter: VLET[VAR.id], name: VAR.name, text: VAR.text, approval: VAR.approval, partitions: VAR.partitions } : null,
       geo: savedGeo(),
-      volumes: null }) });                 /* объёмов по плану в Планировке больше нет (28.10) — старые не оставляем расчёту */
+      volumes: volumesOut(kl) });
+    FLOW.save({ toSave: next });
+    /* сменились товары, сумма мебели или длина кухни (от неё объёмы работ по плану) — бюджет другой, полосе пора перерисоваться */
+    return prev.furniture !== next.furniture || prev.kitchenLen !== next.kitchenLen || JSON.stringify(prev.goods || null) !== JSON.stringify(next.goods || null);
+  }
+  /* объёмы работ по плану (plan-volumes.js) — бюджет считается по планировке, а не ставкой × м² (Алина 02.11: «с ИИ бюджет
+     нужно считать по планировке, всё остальное фигня» — сверка Scout 684: 4 комнаты вместо 2, 50 м² вместо 52,3).
+     Геометрия — и у своего плана, и у примера PRIDE (рамки комнат, двери, окна); высота потолка — из сценария, по умолчанию 2,8 */
+  function volumesOut(kitchenLen) {
+    var V = window.SOVE_VOLUMES; if (!V || !SRC || !SRC.rooms) return null; var f = FLOW.load();
+    try { return V.fromGeo({ px_per_m: SRC.px_per_m, rooms: SRC.rooms, doors: SRC.doors || [], windows: SRC.windows || [] },
+      { h: f.ceiling_m || 2.8, state: f.state, kitchenLen: kitchenLen, bath: f.brief && f.brief.bath }); } catch (e) { return null; }
   }
   /* расстановку, картинку плана и мебель — в состояние сценария (для A6, сохранения, PDF и визуализаций) */
   function collect() {
@@ -1090,7 +1104,8 @@
       goods: g.filter(function (x) { return x.p; }).map(function (x) { return { label: x.it.label, room: x.room, id: x.p.id, metod: x.p.metod }; }),
       variant: VAR ? { id: VAR.id, letter: VLET[VAR.id], name: VAR.name, text: VAR.text, approval: VAR.approval, partitions: VAR.partitions } : null,
       others: VAR ? WALLS.filter(allowed).filter(function (w) { return w.id !== VAR.id; }).map(function (w) { return VLET[w.id]; }) : [],
-      geo: savedGeo()
+      geo: savedGeo(),
+      volumes: volumesOut(kitchenLen)
     } });
   }
   /* план для «Моей планировки» (plan-save.js): свой план — рамки комнат и его же окна, двери и стены с картинки, чтобы 3D там
@@ -1107,7 +1122,7 @@
     /* после «Сохранить» остаёмся здесь: тост «Сохранено в Мой ремонт · Открыть · Дальше: визуализации» (отдельный экран A6 убран) */
     /* Алина: в «Ещё ⋯» — перепланировка («Хочешь отдельную комнату? Поменять стены» при подсказке из анкеты),
        пока вариант стен не выбран; ведёт через то же окно списания на «Варианты стен». Для своего плана стен нет */
-    var more = FL.wallVariant || !WALLS.length ? [] : [{ label: ((FL.layoutHints || {}).roomHint ? 'Хочешь отдельную комнату? Поменять стены · ' + FLOW.priceTxt() : 'Перепланировка · ' + FLOW.priceTxt(true)), onClick: replanSheet }];
+    var more = FL.wallVariant || !WALLS.length ? [] : [{ label: ((FL.layoutHints || {}).roomHint ? 'Хочешь отдельную комнату? Поменять стены' : 'Перепланировка'), onClick: replanSheet }];
     return FLOW.planFinish({ before: collect, more: more, after: function () { render(); },
       getImg: function () { return photoNow() && !VAR ? PHOTO.src : (view3d ? view3d.snapshot() : null); } });
   }
@@ -1119,7 +1134,9 @@
   /* «Хочешь поменять стены?» на A5: включает переключатель и ведёт на «Варианты стен» через то же окно списания */
   function replanSheet() { FLOW.replanSheet(function () { FLOW.setReplan(true); openWalls(); }); }
   function openWalls() { st.walls = true; st.picked = null; wallShots(function () { render(); window.scrollTo(0, 0); }); }
+  /* смена интерьера: в объект — через общее окно выбора капсулы (FLOW.useInterior: то же второй раз не пишет), потом экран */
   function setInterior(it) {
+    if (it && FLOW.useInterior) FLOW.useInterior(it);
     INT = it; FL = FLOW.save({ interior: it }); st.picked = null; st.swap = null; render(); window.scrollTo(0, 0);
   }
 
@@ -1303,6 +1320,8 @@
       var ids = goods().filter(function (g) { return g.p; }).map(function (g) { return g.p.id; });
       S.repair.cart.addMany(ids.filter(function (v, i) { return ids.indexOf(v) === i; }), 'market'); render();
     }
+    /* «сменить интерьер» — общее окно выбора капсулы (все капсулы, «База | Премиум», «＋ Свой»); без него — прежняя сетка */
+    if (a === 'change-int' && FLOW.openPicker) { FLOW.openPicker({ current: INT && INT.type === 'capsule' ? INT.id : undefined, onPick: setInterior }); return; }
     if (a === 'change-int') {
       var m = S.ui.modal({ eyebrow: 'Интерьер', title: 'Сменить интерьер', html: FLOW.interiorTiles(INT), actions: [{ label: 'Отмена', kind: 'link' }] });
       m.el.querySelectorAll('[data-cap]').forEach(function (b) { b.addEventListener('click', function () { m.close(); setInterior(FLOW.capsuleInterior(b.dataset.cap)); }); });

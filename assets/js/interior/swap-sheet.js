@@ -23,6 +23,6 @@
         '<span class="sw-sub"><i style="background:' + (c ? c.hex : '#ccc') + '"></i>цвет ДНК — ' + esc(c ? c.name.toLowerCase() : '') + qty + '</span></span>' +
         '<button type="button" class="sw-x" data-sw-close aria-label="Закрыть">✕</button></div>' +
       lane('premium', 'ПРЕМИУМ') + lane('base', 'БАЗА') +
-      '<div class="sw-foot"><small>выбери — доска и бюджет обновятся' + (st.price ? ' · ' + UI.fmtTokens(st.price) : '') + '</small><a href="market.html?q=' + encodeURIComponent(s.name.toLowerCase()) + '" data-market="' + slot + '">Ещё в Маркете ›</a></div>';
+      '<div class="sw-foot"><small>выбери — доска и бюджет обновятся' + (window.SOVE.auth.isIn() && window.SOVE.tokens.swaps ? '<br>осталось ' + window.SOVE.fmt.swaps(window.SOVE.tokens.swaps()) : '') + '</small><a href="market.html?q=' + encodeURIComponent(s.name.toLowerCase()) + '" data-market="' + slot + '">Ещё в Маркете ›</a></div>';
   };
 })();

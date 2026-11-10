@@ -47,7 +47,7 @@
     show('<span class="pay-status">Платёж не найден</span>' +
       '<h1 class="pay-title">Не нашли такой заказ</h1>' +
       '<p class="text">Ссылка устарела или открыта в другом браузере. Деньги по ней не списывались. Соберите заказ заново — это минута.</p>' +
-      '<div class="pay-actions"><a class="btn btn--primary btn--block" href="tokens.html">Выбрать пакет или подписку</a><a class="btn btn--ghost btn--block" href="my.html">В «Мой ремонт»</a></div>', 'notfound');
+      '<div class="pay-actions"><a class="btn btn--primary btn--block" href="tokens.html">Выбрать тариф или подписку</a><a class="btn btn--ghost btn--block" href="my.html">В «Мой ремонт»</a></div>', 'notfound');
   }
 
   function needLogin() {
@@ -94,7 +94,7 @@
 
   function success(pm, fresh) {
     var it = pm.item, big, sub, back = safeReturn(pm.returnTo) || 'account.html';
-    if (it.kind === 'pack') { big = 'Готово: +' + F.tokens(it.tokens); sub = (fresh ? 'Баланс: ' : 'Сейчас на балансе: ') + F.tokens(S.tokens.balance()); }
+    if (it.kind === 'pack') { big = 'Готово: ' + [it.tokens ? '+' + F.tokens(it.tokens) : '', it.swaps ? '+' + F.swaps(it.swaps) : ''].filter(Boolean).join(' и '); sub = (fresh ? 'Баланс: ' : 'Сейчас на балансе: ') + '✦ ' + F.num(S.tokens.balance()) + ' · ⇄ ' + F.num((S.tokens.swaps ? S.tokens.swaps() : 0)); }
     else if (it.kind === 'package') {
       var chip = S.tokens.packageChip ? S.tokens.packageChip() : null;
       big = 'Пакет «' + it.title + '» активен';
@@ -102,7 +102,7 @@
     }
     else if (it.kind === 'metod') {
       big = S.metod.active() ? 'METOD активен до ' + dateYear(S.metod.until()) : 'Подписка METOD оплачена';
-      sub = S.metod.active() ? 'Контакты всех поставщиков открыты, один интерьер в подарок — все комнаты, замены включены. Осталось дней: ' + S.metod.daysLeft() + '.' : 'Срок этой подписки уже закончился.';
+      sub = S.metod.active() ? 'Контакты всех поставщиков открыты' + (it.months >= 6 ? ', «Твоя квартира» в подарок: 16 генераций и 12 замен' : '') + '. Осталось дней: ' + S.metod.daysLeft() + '.' : 'Срок этой подписки уже закончился.';
     } else if (it.kind === 'scout') {
       big = 'Расчёт открыт';
       sub = 'Параметры расчёта сохранены. Вернитесь к расчёту — сразу покажем результат. Пересчёты по этой капсуле и типу ремонта больше не оплачиваются.';
@@ -120,7 +120,7 @@
   }
 
   function failed(pm) {
-    var what = pm.item.kind === 'pack' ? 'Токены не зачислены.' : pm.item.kind === 'package' ? 'Пакет не активирован.' : pm.item.kind === 'metod' ? 'Подписка не включена.' : pm.item.kind === 'scout' ? 'Расчёт не открыт.' : pm.item.kind === 'order' ? 'Заказ остаётся подтверждённым и ждёт оплаты.' : 'Контакт не открыт.';
+    var what = pm.item.kind === 'pack' ? 'Генерации не зачислены.' : pm.item.kind === 'package' ? 'Пакет не активирован.' : pm.item.kind === 'metod' ? 'Подписка не включена.' : pm.item.kind === 'scout' ? 'Расчёт не открыт.' : pm.item.kind === 'order' ? 'Заказ остаётся подтверждённым и ждёт оплаты.' : 'Контакт не открыт.';
     document.title = 'Оплата не прошла — SOVEAPP';
     show('<span class="pay-status pay-status--error">Банк отказал</span>' +
       '<h1 class="pay-title">Оплата не прошла. Деньги не списаны</h1>' +

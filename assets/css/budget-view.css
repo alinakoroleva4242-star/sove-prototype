@@ -1,0 +1,95 @@
+/* Вид бюджета — один на финальную страницу расчёта (scout.html, шаг 3) и на «Бюджет» Моего ремонта (my.html?v=budget) (Алина 10.11):
+   карточка итога с интерьером и параметрами квартиры, заголовки групп, списки «название — сумма». Подключать после CSS страницы.
+   .sq-card / .sq-group / .sq-note — те же значения, что в scout.css (анкета Бюджета), чтобы на my.html они выглядели так же */
+.sq-card { background: var(--white, #fff); border-radius: 14px; padding: 12px; display: grid; gap: 10px; min-width: 0; }
+.sq-group { font-size: 10px; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase; color: #A24E32; margin: 6px 2px -4px; }
+.sq-note { font-size: 10px; line-height: 1.4; color: var(--graphite, #6B655F); }
+
+/* карточка итога: фото выбранного интерьера, параметры квартиры, плановый бюджет */
+.fr-hero { padding: 0; gap: 0; overflow: hidden; box-shadow: var(--shadow, 0 6px 18px -10px rgba(41,36,33,.25)); }
+.fr-hero__pic { display: block; position: relative; aspect-ratio: 2.2; background: var(--surface-2, #EFEAE3); }
+.fr-hero__pic img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+.fr-hero__b { display: grid; gap: 10px; padding: 14px; }
+.fr-hero__top { display: grid; gap: 2px; }
+.fr-hero__name { font: 600 24px/1.1 var(--font-display, 'Cormorant Garamond', Georgia, serif); color: var(--ink, #1E1C1A); }
+.fr-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.fr-chips span { padding: 4px 9px; border-radius: 999px; background: #F4F2EE; font-size: 11px; font-weight: 600; line-height: 1.2; color: var(--ink, #1E1C1A); white-space: nowrap; }
+.fr-hero__sum { display: grid; gap: 6px; padding-top: 10px; border-top: 1px solid var(--line, #E6E1DA); }
+.fr-fact { display: grid; gap: 4px; font-size: 12px; color: var(--graphite, #6B655F); }
+.fr-fact > span { display: flex; justify-content: space-between; gap: 8px; }
+.fr-fact b { font-weight: 600; color: var(--ink, #1E1C1A); }
+.fr-fact i { display: block; height: 4px; border-radius: 2px; background: #EFEAE3; overflow: hidden; }
+.fr-fact i i { height: 100%; background: #A24E32; }
+
+/* итог, группы и списки */
+.fr-total { gap: 8px; padding: 14px; }
+.fr-k { font-size: 12px; color: var(--graphite); }
+.fr-total__row { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 12px; }
+.fr-big { font: 600 34px/1 var(--font-display); color: var(--ink); }
+.fr-per { font-size: 13px; color: var(--graphite); white-space: nowrap; }
+.fr-parts { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 13px; color: var(--graphite); }
+.fr-parts b { font-weight: 600; color: var(--ink); }
+.fr-save { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; padding: 8px 10px; border-radius: 10px; background: var(--green-soft); color: var(--green); font-size: 13px; }
+.fr-save b { font-weight: 600; white-space: nowrap; }
+.fr-h { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin: 6px 2px -4px; }
+.fr-h .sq-group { margin: 0; }
+.fr-h > span { font-size: 13px; font-weight: 600; color: var(--ink); }
+.fr-note { margin: 0 2px -4px; }
+.fr-list { gap: 0; padding: 4px 12px; }
+.fr-list > .sq-note { padding: 6px 0 2px; }
+.fr-it { border-top: 1px solid var(--line); }
+.fr-it:first-child, .fr-list > .sq-note + .fr-it { border-top: 0; }
+.fr-r { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 44px; padding: 6px 0; border: 0; background: none; font: inherit; color: var(--ink); text-align: left; }
+button.fr-r { cursor: pointer; }
+.fr-r__n { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.fr-r__n b { font-size: 14px; font-weight: 500; line-height: 1.25; overflow-wrap: anywhere; }
+.fr-r__n small { font-size: 11px; color: var(--graphite); }
+.fr-r__v { flex: none; font-size: 14px; font-weight: 600; white-space: nowrap; }
+.fr-r__a { flex: none; width: 14px; text-align: center; font-size: 11px; color: var(--graphite); transition: transform .15s; }
+.fr-r[aria-expanded="true"] .fr-r__a { transform: rotate(180deg); }
+.fr-r__num { flex: none; width: 22px; height: 22px; border-radius: 50%; background: var(--surface-2); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; color: var(--graphite); }
+.fr-kids { padding: 0 22px 8px 0; display: grid; gap: 4px; }
+.fr-kid { display: flex; justify-content: space-between; gap: 8px; font-size: 12px; color: var(--graphite); }
+.fr-kid b { font-weight: 500; color: var(--ink); white-space: nowrap; }
+.fr-list .scout-plan { border-top: 1px solid var(--line); padding: 8px 0; }
+.fr-acts { display: grid; gap: 8px; justify-items: start; }
+.fr-acts > .btn { width: 100%; }
+.fr-acts__row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; width: 100%; }
+.fr-acts__row .btn { min-width: 0; padding-inline: 8px; }
+.fr-r:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
+@media (prefers-reduced-motion: reduce) { .fr-r__a { transition: none; } }
+
+/* ── витрина позиций, как каталог Маркета (Алина 10.11): карточки — фото, раздел, название, цена METOD, ♡ и 🛒 ── */
+.bg-mk { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.bg-mc { position: relative; display: flex; flex-direction: column; min-width: 0; border-radius: 12px; overflow: hidden; background: #F4F2EE; }
+.bg-mc__pic { display: block; aspect-ratio: 1.25; background: #fff center / cover no-repeat; }
+.bg-mc__b { display: flex; flex-direction: column; gap: 3px; padding: 8px 8px 10px; min-width: 0; }
+.bg-mc__b > small { font-size: 9px; letter-spacing: .5px; text-transform: uppercase; color: #6B655F; }
+.bg-mc__b > b { font-size: 12px; font-weight: 600; line-height: 1.25; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.bg-mc__pr { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 6px; margin-top: 2px; }
+.bg-mc__pr s { font-size: 11px; color: #6B655F; }
+.bg-mc__pr em { font-style: normal; font-size: 13px; font-weight: 700; color: #1E1C1A; }
+.bg-mc__pr small { flex: 0 0 100%; font-size: 9px; font-weight: 600; color: #2E6B4E; }
+.bg-mc__a { position: absolute; top: 6px; right: 6px; display: flex; gap: 4px; }
+.bg-mk__no { display: block; padding: 4px 0 2px; font-size: 11px; color: #6B655F; }
+@media (min-width: 560px) { .bg-mk { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+/* работы этапа построчно */
+.fr-lines { display: grid; gap: 0; }
+.fr-line { padding: 7px 0; border-top: 1px solid #EFEAE3; font-size: 12px; line-height: 1.35; color: #1E1C1A; }
+.fr-line:first-child { border-top: 0; }
+.fr-kids--goods { padding: 0 0 10px; display: block; }
+/* «Скачать ▾» — одна кнопка с выбором формата */
+.fr-dl { position: relative; min-width: 0; }
+.fr-dl > .btn { width: 100%; }
+.fr-dl__menu { position: absolute; left: 0; right: 0; bottom: calc(100% + 6px); z-index: 5; display: grid; padding: 4px; border-radius: 12px; background: #fff; box-shadow: 0 10px 28px -10px rgba(41,36,33,.35), 0 0 0 1px #E6E1DA; }
+.fr-dl__menu[hidden] { display: none; }
+.fr-dl__menu button { min-height: 40px; padding: 0 12px; border: 0; border-radius: 8px; background: none; font: 600 14px var(--font, inherit); color: #1E1C1A; text-align: left; cursor: pointer; }
+.fr-dl__menu button:hover, .fr-dl__menu button:focus-visible { background: #F4F2EE; outline: 0; }
+.fr-acts__row .btn { white-space: normal; line-height: 1.2; min-height: 48px; text-align: center; }
+.fr-acts__note { justify-self: end; margin-top: -4px; }
+/* «Дальше» — сжатые строки-ссылки */
+.fr-nx { display: flex; align-items: center; gap: 8px; min-height: 48px; padding: 7px 0; border-top: 1px solid var(--line, #E6E1DA); color: inherit; text-decoration: none; }
+.fr-nx:first-child { border-top: 0; }
+.fr-nx__a { flex: none; width: 14px; text-align: center; font-size: 16px; font-weight: 700; color: #A24E32; }
+.fr-nx:focus-visible { outline: 2px solid var(--accent, #A24E32); outline-offset: 2px; border-radius: 6px; }
+.fr-restart { justify-self: start; padding: 6px 2px; }

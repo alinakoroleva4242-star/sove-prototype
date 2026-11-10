@@ -1,4 +1,4 @@
-/* SOVEAPP — прототип. Общая логика: состояние в браузере, шапка, подвал, окна, токены.
+/* SOVEAPP — прототип. Общая логика: состояние в браузере, шапка, подвал, окна, баланс генераций.
    Страницы НЕ меняют этот файл. Своё — в assets/js/pages/<page>.js
    В настоящем сайте всё, что здесь делает SOVE.tokens / SOVE.auth / SOVE.pay, делает сервер. */
 (function () {
@@ -32,9 +32,11 @@
     area: function (n) { return (Math.round(n * 10) / 10).toString().replace('.', ',') + ' м²'; },
     date: function (ts) { var d = new Date(ts); return ('0' + d.getDate()).slice(-2) + '.' + ('0' + (d.getMonth() + 1)).slice(-2); },
     dateLong: function (ts) { return new Date(ts).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' }); },
-    tokens: function (n) { var a = Math.abs(n) % 100, b = a % 10; var w = (a > 10 && a < 20) ? 'токенов' : b === 1 ? 'токен' : (b >= 2 && b <= 4) ? 'токена' : 'токенов'; return fmt.num(n) + ' ' + w; },
-    /* цена действия словами: fmtTokens(10) → «+10 токенов»; значков 🎟 🎁 нет (ТЗ Интерьера и Моего ремонта, 26.10) */
-    fmtTokens: function (n) { return '+' + fmt.tokens(n); },
+    /* баланс словами: «16 генераций» / «3 замены». Слово «токены» не используем (тарифы генераций, 03.11) */
+    tokens: function (n) { var a = Math.abs(n) % 100, b = a % 10; var w = (a > 10 && a < 20) ? 'генераций' : b === 1 ? 'генерация' : (b >= 2 && b <= 4) ? 'генерации' : 'генераций'; return fmt.num(n) + ' ' + w; },
+    swaps: function (n) { var a = Math.abs(n) % 100, b = a % 10; var w = (a > 10 && a < 20) ? 'замен' : b === 1 ? 'замена' : (b >= 2 && b <= 4) ? 'замены' : 'замен'; return fmt.num(n) + ' ' + w; },
+    /* кнопки чистые: ни цен, ни чисел генераций (тарифы генераций, 03.11) — подпись цены действия пустая */
+    fmtTokens: function () { return ''; },
     phone: function (p) { var d = (p || '').replace(/\D/g, ''); return d.length >= 11 ? '+7 ' + d.slice(1, 4) + ' ··· ' + d.slice(7, 9) + ' ' + d.slice(9, 11) : p; },
     esc: function (s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   };
@@ -67,11 +69,9 @@
       var gifted = false;
       if (!state.gifted[key]) {
         state.gifted[key] = Date.now();
-        /* «после оплаты подписки бесплатных токенов нет» (созвон 28.10): при активной METOD подарок не начисляется, попытка помечена */
-        if (!(state.metodUntil && state.metodUntil > Date.now())) {
-          state.ledger.push({ id: uid('op'), ts: Date.now(), type: 'gift', amount: D.gift.tokens, reason: 'Подарок за регистрацию', expires: Date.now() + D.gift.days * 864e5 });
-          gifted = true;
-        }
+        /* подарок: 1 генерация, один раз на номер, не сгорает (тарифы генераций, 03.11) */
+        state.ledger.push({ id: uid('op'), ts: Date.now(), type: 'gift', amount: D.gift.tokens, reason: 'Подарок за регистрацию' });
+        gifted = true;
       }
       save();
       return { gifted: gifted };
@@ -112,121 +112,37 @@
     }
   };
 
-  /* ---------- токены: журнал операций, резерв → списание / возврат ---------- */
+  /* ---------- баланс: ✦ генерации и ⇄ замены (документ «Генерации SOVE — тарифы и экономика», 03.11) ----------
+     Журнал операций: op.cur 'gen' (по умолчанию) или 'swap'. Каждое действие — 1 единица своего баланса, бюджет по своему ДП — 5 ✦.
+     Платим только за готовое: резерв → списание или возврат. Не хватает — действие не запускается, ухода в минус нет. Имя объекта tokens оставлено для экранов. */
+  function curOf(op) { return op.cur === 'swap' ? 'swap' : 'gen'; }
+  function sumOf(cur) { if (!state.user) return 0; var sum = 0; state.ledger.forEach(function (op) { if (curOf(op) === cur) sum += op.amount; }); return sum; }
   var tokens = {
-    balance: function () {
-      if (!state.user) return 0;
-      var sum = 0; state.ledger.forEach(function (op) { sum += op.amount; });
-      return sum;
-    },
+    balance: function () { return sumOf('gen'); },
+    swaps: function () { return sumOf('swap'); },
     history: function () { return state.ledger.slice().sort(function (a, b) { return b.ts - a.ts; }); },
-    giftExpires: function () { var g = state.ledger.filter(function (o) { return o.type === 'gift' && !o.burned; })[0]; return g ? g.expires : null; },
-    /* подарочные токены сгорают при оплате подписки (созвон 28.10). Токены неразличимы, считаем, что подарок тратится первым:
-       остаток подарка = баланс − купленные (topup); его и списываем операцией «expire», подарок помечаем burned и снимаем срок */
-    burnGift: function () {
-      var gifts = state.ledger.filter(function (o) { return o.type === 'gift' && !o.burned; }); if (!gifts.length) return 0;
-      var giftSum = 0, topups = 0;
-      gifts.forEach(function (g) { giftSum += g.amount; });
-      state.ledger.forEach(function (o) { if (o.type === 'topup') topups += o.amount; });
-      var burn = Math.max(0, Math.min(giftSum, tokens.balance() - topups));
-      gifts.forEach(function (g) { g.burned = true; delete g.expires; });
-      if (burn > 0) state.ledger.push({ id: uid('op'), ts: Date.now(), type: 'expire', amount: -burn, reason: 'Подарочные токены сгорели · подписка METOD', ref: 'metod' });
-      return burn;
-    },
-    canAfford: function (cost) { return tokens.balance() >= cost; },
-    /* резерв: токены сразу уходят с баланса, но операция помечена «в резерве» */
-    reserve: function (cost, reason, ref) {
-      if (!tokens.canAfford(cost)) return null;
-      var op = { id: uid('op'), ts: Date.now(), type: 'reserve', amount: -cost, reason: reason, ref: ref || null };
+    giftExpires: function () { return null; },   /* генерации и замены не сгорают */
+    burnGift: function () { return 0; },
+    canAfford: function (cost, cur) { return (cur === 'swap' ? tokens.swaps() : tokens.balance()) >= cost; },
+    /* резерв: единицы сразу уходят с баланса, операция помечена «в резерве»; cur — 'gen' | 'swap' */
+    reserve: function (cost, reason, ref, cur) {
+      if (!tokens.canAfford(cost, cur)) return null;
+      var op = { id: uid('op'), ts: Date.now(), type: 'reserve', cur: cur === 'swap' ? 'swap' : 'gen', amount: -cost, reason: reason, ref: ref || null };
       state.ledger.push(op); save(); return op.id;
     },
     commit: function (opId) { var op = find(state.ledger, opId); if (op && op.type === 'reserve') { op.type = 'spend'; save(); } },
     refund: function (opId, why) {
-      if (packages.undo(opId)) return;   /* списание из пакета зон — зона возвращается в пакет */
       var op = find(state.ledger, opId); if (!op || op.refunded) return;
       op.type = 'spend'; op.refunded = true;
-      state.ledger.push({ id: uid('op'), ts: Date.now() + 1, type: 'refund', amount: -op.amount, reason: 'Возврат · ' + (why || 'операция не удалась'), ref: op.ref });
+      state.ledger.push({ id: uid('op'), ts: Date.now() + 1, type: 'refund', cur: curOf(op), amount: -op.amount, reason: 'Возврат · ' + (why || 'операция не удалась'), ref: op.ref });
       save();
     },
-    credit: function (amount, reason, ref) { state.ledger.push({ id: uid('op'), ts: Date.now(), type: 'topup', amount: amount, reason: reason, ref: ref || null }); save(); }
+    credit: function (amount, reason, ref, cur) { if (!amount) return; state.ledger.push({ id: uid('op'), ts: Date.now(), type: 'topup', cur: cur === 'swap' ? 'swap' : 'gen', amount: amount, reason: reason, ref: ref || null }); save(); },
+    /* пакеты по зонам (созвон 28.10) заменены тарифами генераций: экраны, которые их спрашивают, получают «не покрыто» */
+    packages: function () { return []; }, packagesActive: function () { return []; }, packageChip: function () { return null; },
+    canCover: function () { return false; }, consume: function () { return null; }, grantPackage: function () { return null; }, zoneCovered: function () { return false; }
   };
   function find(arr, id) { return arr.filter(function (x) { return x.id === id; })[0] || null; }
-
-  /* ---------- пакеты по зонам и бонус подписки (решение созвона 28.10; схема v2 Алины: оплата за интерьер или зоны, замены входят в пакет) ----------
-     Запись пакета: {id, packageId ('zone1'|'zones3'|'flat'|'metod-interior'), kind ('zones'|'interior'), title, zonesTotal (null — без ограничения),
-       zonesLeft, paid {'<flatId>|<зона>': ts} — открытые зоны, flatId — квартира, к которой привязан безлимит (при первом списании), swapsIncluded: true, ts, ref, ops []}.
-     Правила: зона открывается из пакета один раз (первые материалы / визуализация комнаты); повторные действия в открытой зоне — замены,
-       ракурсы, обновление рендера, смена интерьера — бесплатно («замены входят в пакет»). Замена в неоткрытой зоне зону из пакета не берёт —
-       это токены (1 токен), чтобы не списать целую зону за мелочь. Безлимит («Вся квартира», «1 интерьер») покрывает все зоны одной квартиры.
-     API для экранов: S.tokens.packages() · S.tokens.canCover(action, {zone|zones, flatId}) · S.tokens.consume(action, {zone|zones, flatId, reason}) → id операции | null. */
-  var OPEN_ACTIONS = { capsule: 1, roomMaterials: 1, roomVisual: 1, render: 1, ownRoom: 1, ownFlat: 1, angle: 1, rerender: 1 };   /* capsule — первая комната капсулы = материалы одной зоны */
-  var REPEAT_ACTIONS = { materialSwap: 1, objectSwap: 1, changeCapsule: 1, rerender: 1, angle: 1, render: 1 };
-  function pkList() { if (!state.packages) state.packages = []; return state.packages; }
-  function pkKey(flatId, zone) { return (flatId || '') + '|' + zone; }
-  function pkUnlimited(p) { return p.zonesTotal === null || p.zonesTotal === undefined; }
-  function pkAlive(p) { return pkUnlimited(p) ? !p.closed : p.zonesLeft > 0 || Object.keys(p.paid || {}).length > 0; }
-  /* пакет покрывает зону: она уже открыта из него или это безлимит этой (или ещё не привязанной) квартиры */
-  function pkCovers(p, flatId, zone) {
-    if (p.paid && p.paid[pkKey(flatId, zone)]) return true;
-    return pkUnlimited(p) && (!p.flatId || p.flatId === (flatId || null));
-  }
-  var packages = {
-    list: function () { return pkList().slice(); },
-    active: function () { return pkList().filter(function (p) { return pkAlive(p) && (pkUnlimited(p) || p.zonesLeft > 0); }); },
-    /* чип в шапке: «1 интерьер» / «2 зоны из 3» / «Вся квартира»; null — пакетов нет, показываем токены */
-    chipLabel: function () {
-      var list = packages.active(); if (!list.length) return null;
-      var p = list.sort(function (a, b) { return (pkUnlimited(b) ? 1 : 0) - (pkUnlimited(a) ? 1 : 0) || a.ts - b.ts; })[0];
-      if (p.kind === 'interior') return '1 интерьер';
-      if (pkUnlimited(p)) return 'Вся квартира';
-      var w = function (n) { var a = n % 100, b = n % 10; return (a > 10 && a < 20) ? 'зон' : b === 1 ? 'зона' : (b >= 2 && b <= 4) ? 'зоны' : 'зон'; };
-      return p.zonesTotal === 1 ? '1 зона' : p.zonesLeft + ' ' + w(p.zonesLeft) + ' из ' + p.zonesTotal;
-    },
-    /* покупка пакета (pay.confirm) или бонус подписки (metod.activate) */
-    grant: function (o) {
-      var rec = { id: uid('pk'), packageId: o.packageId, kind: o.kind || 'zones', title: o.title, zonesTotal: o.zones === undefined ? null : o.zones, zonesLeft: o.zones || 0,
-        paid: {}, flatId: null, swapsIncluded: true, ts: Date.now(), ref: o.ref || null, ops: [] };
-      pkList().push(rec); save(); return rec;
-    },
-    isCovered: function (flatId, zone) { return pkList().some(function (p) { return pkAlive(p) && pkCovers(p, flatId, zone); }); },
-    /* o: {zone | zones, flatId}. Покрыто, если каждая зона либо уже открыта, либо (для открывающего действия) есть кому её открыть */
-    canCover: function (action, o) {
-      o = o || {}; var zs = o.zones ? o.zones.slice() : o.zone ? [o.zone] : [];
-      if (!zs.length) return false;
-      var need = zs.filter(function (z) { return !packages.isCovered(o.flatId, z); });
-      if (!need.length) return !!(OPEN_ACTIONS[action] || REPEAT_ACTIONS[action]);
-      if (!OPEN_ACTIONS[action]) return false;
-      var left = 0; pkList().forEach(function (p) { if (!pkUnlimited(p) && p.zonesLeft > 0) left += p.zonesLeft; });
-      return left >= need.length;
-    },
-    /* списание: открывает новые зоны из пакетов (безлимит — привязывается к квартире), повтор — бесплатно. Возвращает id операции (для refund) или null */
-    consume: function (action, o) {
-      if (!packages.canCover(action, o)) return null;
-      var zs = o.zones ? o.zones.slice() : [o.zone], opId = uid('pkop'), opened = [], touched = {};
-      zs.forEach(function (z) {
-        var key = pkKey(o.flatId, z);
-        var have = pkList().filter(function (p) { return pkAlive(p) && pkCovers(p, o.flatId, z); }).sort(function (a, b) { return (pkUnlimited(b) ? 1 : 0) - (pkUnlimited(a) ? 1 : 0); })[0];
-        if (have) { if (pkUnlimited(have) && !have.flatId) { have.flatId = o.flatId || null; touched[have.id] = have; } if (!have.paid[key]) { have.paid[key] = Date.now(); opened.push(z); touched[have.id] = have; } return; }
-        var p = pkList().filter(function (x) { return !pkUnlimited(x) && x.zonesLeft > 0; }).sort(function (a, b) { return a.ts - b.ts; })[0];
-        p.zonesLeft -= 1; p.paid[key] = Date.now(); opened.push(z); touched[p.id] = p;
-      });
-      Object.keys(touched).forEach(function (id) { touched[id].ops.push({ id: opId, ts: Date.now(), action: action, zones: zs, opened: opened, flatId: o.flatId || null, reason: o.reason || '' }); });
-      save(); return opId;
-    },
-    /* откат списания (ошибка генерации, «Отменить»): открытые этой операцией зоны возвращаются в пакет */
-    undo: function (opId) {
-      if (!opId || String(opId).indexOf('pkop-') !== 0) return false;
-      var hit = false;
-      pkList().forEach(function (p) {
-        var op = (p.ops || []).filter(function (x) { return x.id === opId && !x.undone; })[0]; if (!op) return;
-        op.undone = true; hit = true;
-        op.opened.forEach(function (z) { var key = pkKey(op.flatId, z); if (p.paid[key]) { delete p.paid[key]; if (!pkUnlimited(p)) p.zonesLeft += 1; } });
-      });
-      if (hit) save(); return hit;
-    }
-  };
-  tokens.packages = packages.list; tokens.packagesActive = packages.active; tokens.packageChip = packages.chipLabel;
-  tokens.canCover = packages.canCover; tokens.consume = packages.consume; tokens.grantPackage = packages.grant; tokens.zoneCovered = packages.isCovered;
 
   /* ---------- демо для гостя ---------- */
   var demo = {
@@ -240,12 +156,11 @@
     active: function () { return !!(state.user && state.metodUntil && state.metodUntil > Date.now()); },
     until: function () { return state.metodUntil; },
     daysLeft: function () { return metod.active() ? Math.ceil((state.metodUntil - Date.now()) / 864e5) : 0; },
-    /* оплата подписки: срок + бонус «один интерьер» (D.metodBonus) за каждую оплату; подарочные токены сгорают — бесплатных токенов при подписке нет (созвон 28.10) */
+    /* оплата подписки: срок; на 6 месяцев — «Твоя квартира» в подарок (16 ✦ + 8 ⇄) один раз за оплату, 1 и 3 месяца — без подарка (тарифы генераций, 03.11) */
     activate: function (months) {
       var from = metod.active() ? state.metodUntil : Date.now(); state.metodUntil = from + months * 30 * 864e5;
-      tokens.burnGift();
-      var B = D.metodBonus || { interiors: 1 };
-      for (var i = 0; i < (B.interiors || 0); i++) packages.grant({ packageId: 'metod-interior', kind: 'interior', title: 'METOD · один интерьер', zones: null, ref: 'metod' });
+      var B = D.metodBonus;
+      if (B && months >= B.minMonths) { tokens.credit(B.gens, 'Подарок METOD · «Твоя квартира»', 'metod'); tokens.credit(B.swaps, 'Подарок METOD · «Твоя квартира»', 'metod', 'swap'); }
       save();
     },
     hasContact: function (productId) { return metod.active() || state.access.indexOf(Number(productId)) >= 0; },
@@ -404,8 +319,7 @@
     confirm: function (id) {
       var pm = find(state.payments, id); if (!pm || pm.status === 'paid') return pm;
       pm.status = 'paid'; pm.paidAt = Date.now();
-      if (pm.item.kind === 'pack') tokens.credit(pm.item.tokens, 'Пополнение · ' + pm.item.title, pm.id);
-      if (pm.item.kind === 'package') packages.grant({ packageId: pm.item.id, kind: 'zones', title: pm.item.title, zones: pm.item.zones === undefined ? null : pm.item.zones, ref: pm.id });
+      if (pm.item.kind === 'pack') { tokens.credit(pm.item.tokens, 'Пополнение · ' + pm.item.title, pm.id); tokens.credit(pm.item.swaps || 0, 'Пополнение · ' + pm.item.title, pm.id, 'swap'); }
       if (pm.item.kind === 'metod') metod.activate(pm.item.months);
       if (pm.item.kind === 'contact') metod.grantContact(pm.item.productId);
       if (pm.item.kind === 'scout') scout.open(pm.item.capsuleId, pm.item.level);
@@ -437,6 +351,7 @@
     my: '<path d="M4 20V9l8-5 8 5v11M9 20v-6h6v6"/>',
     cam: '<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>',
     user: '<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/>',
+    team: '<path d="M4 14h16v3H4z"/><path d="M7 14v-2a5 5 0 0 1 10 0v2"/><path d="M12 7V5"/>',
     svc: '<path d="M12 3l2.5 5.5L20 9l-4 4 1 6-5-2.7L7 19l1-6-4-4 5.5-.5z"/>',
     back: '<path d="M15 5l-7 7 7 7"/>',
     calc: '<rect x="5" y="3" width="14" height="18"/><path d="M8 7h8M8 11h3M13 11h3M8 15h3M13 15h3"/>'
@@ -444,23 +359,25 @@
   function icon(name, size) { return '<svg viewBox="0 0 24 24" width="' + (size || 22) + '" height="' + (size || 22) + '" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true">' + IC[name] + '</svg>'; }
   /* нижнее меню — строго 5 вкладок по документу Вики (SOVE_Supplier_Handoff_Package, п. 1; Вика 21.10: «у нас пять»): Главная · Капсулы · Мой ремонт · Маркет · Профиль; подвал одинаковый на всех экранах, включая кабинеты; заказы и корзина — экраны «Мой ремонт» и строки профиля */
   /* подвал: пять вкладок, как перечислила Вика 21.10 (Валерия подтвердила 22.10): старый формат, «Заказы» вместо «Капсул»; корзина — плиткой в «Моём ремонте» и строкой в профиле */
-  var TABS = [ { key: 'home', label: 'Главная', href: 'index.html', ic: 'home' }, { key: 'orders', label: 'Заказы', href: 'my.html?v=orders', ic: 'box' }, { key: 'my', label: 'Мой ремонт', href: 'my.html', ic: 'my' }, { key: 'market', label: 'Маркет', href: 'market.html', ic: 'cart' }, { key: 'profile', label: 'Профиль', href: 'account.html', ic: 'user' } ];
+  /* структура «Б · Квартира в центре» + маркет «Исполнители» (Алина 03.11): Заказы — в Профиле */
+  var TABS = [ { key: 'home', label: 'Главная', href: 'index.html', ic: 'home' }, { key: 'market', label: 'Маркет', href: 'market.html', ic: 'cart' }, { key: 'my', label: 'Мой ремонт', href: 'my.html', ic: 'my' }, { key: 'executors', label: 'Исполнители', href: 'executors.html', ic: 'team' }, { key: 'profile', label: 'Профиль', href: 'account.html', ic: 'user' } ];
   /* Планировка (первый экран, шаги, сохранение) подсвечивает «Мой ремонт» — как в макете Вики 28.10 */
-  var TABMAP = { 'partner-cabinet': 'profile', home: 'home', capsules: 'home', capsule: 'home', market: 'market', product: 'market', ai: 'market', services: 'home', metod: 'home', adept: 'home', track: 'my', gen: 'home', scout: 'home', my: 'my', account: 'profile', project: 'my', generations: 'profile', generation: 'profile', tokens: 'profile', 'sove-ai': 'home', 'plan-demo': 'my', arrange: 'my', 'plan-save': 'my', 'gen-new': 'home', interior: 'home', materialy: 'home', moodboard: 'home', about: 'home', partner: 'home', pay: 'profile', auth: 'profile', executors: 'home' };
+  var TABMAP = { 'partner-cabinet': 'profile', home: 'home', capsules: 'home', capsule: 'home', market: 'market', product: 'market', ai: 'market', services: 'home', metod: 'home', adept: 'home', track: 'my', gen: 'home', scout: 'home', my: 'my', account: 'profile', project: 'my', generations: 'profile', generation: 'profile', tokens: 'profile', 'sove-ai': 'home', 'plan-demo': 'my', arrange: 'my', 'plan-save': 'my', 'gen-new': 'home', interior: 'home', materialy: 'home', moodboard: 'home', about: 'home', partner: 'home', pay: 'profile', auth: 'profile', executors: 'executors' };
 
   var SVC = [ { href: 'metod.html', label: 'METOD', small: 'подписка: скидки и партнёры' }, { href: 'adept.html', label: 'Дизайн-проект', small: 'по вашей капсуле' }, { href: 'sove-ai.html', label: 'Генерации', small: 'поиск по фото и рендер' }, { href: 'track.html', label: 'Управление ремонтом', small: 'ремонт под ключ' } ];
   /* число позиций в корзине для бейджа в меню: orders.js на части страниц не подключён, читаем его хранилище напрямую */
-  /* баланс токенов в шапке на любом экране (решения 21.10, шаг 1); экраны со своей шапкой берут его через SOVE.ui.tokenChip() */
-  /* текст чипа: при активном пакете зон — «1 интерьер» / «2 зоны из 3» / «Вся квартира» (созвон 28.10), иначе баланс токенов */
-  function chipText() { return packages.chipLabel() || fmt.tokens(tokens.balance()); }
-  function tokenChip() { var t = chipText(); return '<a class="tok-chip" data-tok href="tokens.html?returnTo=' + encodeURIComponent(location.pathname.split('/').pop() + location.search) + '" aria-label="' + (packages.chipLabel() ? 'Пакет: ' + t + '. Токены и пакеты' : 'Баланс: ' + t + '. Пополнить') + '">' + t + '</a>'; }
+  /* баланс генераций в шапке на любом экране: «✦ 16», обновляется сам; тап — Профиль → Баланс (тарифы генераций, 03.11).
+     Экраны со своей шапкой берут его через SOVE.ui.tokenChip() */
+  /* счётчик замен ⇄ — только на экране Интерьера: «✦ 16 · ⇄ 12» (Алина 03.11) */
+  function chipText() { return '✦ ' + fmt.num(tokens.balance()) + (document.body.getAttribute('data-page') === 'interior' ? ' · ⇄ ' + fmt.num(tokens.swaps()) : ''); }
+  function tokenChip() { var t = chipText(); return '<a class="tok-chip" data-tok href="account.html?v=tokens" aria-label="Баланс: ' + fmt.tokens(tokens.balance()) + ', ' + fmt.swaps(tokens.swaps()) + '">' + t + '</a>'; }
   function syncTokenChips() { var t = auth.isIn() ? chipText() : ''; document.querySelectorAll('[data-tok]').forEach(function (el) { el.textContent = t; el.hidden = !t; }); }
   function renderHeader() {
     var host = document.getElementById('site-header'); if (!host) return;
     var page = document.body.getAttribute('data-page') || '';
     var tabKey = TABMAP[page] || '';
     var vq = new URLSearchParams(location.search).get('v') || ''; /* экраны заказов кабинета — своя вкладка «Заказы» */
-    if (page === 'my' && /^(orders|order|doc)$/.test(vq)) tabKey = 'orders';
+    if (page === 'my' && /^(orders|order|doc)$/.test(vq)) tabKey = 'my';   /* Заказы живут в Моём ремонте (03.11) */
     var inn = auth.isIn();
     var rt = encodeURIComponent(location.pathname.split('/').pop() + location.search);
     var title = document.body.getAttribute('data-title') || (document.title.split(' — ')[0] || 'SOVEAPP');
@@ -478,12 +395,18 @@
       '<a class="logo side__logo" href="index.html" aria-label="SOVEAPP"><img class="logo__img" src="assets/img/logo-sapp-trim.png" alt="SOVEAPP" width="611" height="713"></a>' +
       '<nav class="side__nav">' + tabs + '</nav>' +
       '<div class="side__group"><span class="side__cap">Услуги</span>' + SVC.map(function (x) { return '<a href="' + x.href + '"' + (location.pathname.split('/').pop() === x.href ? ' class="is-active" aria-current="page"' : '') + '>' + fmt.esc(x.label) + '<small>' + fmt.esc(x.small) + '</small></a>'; }).join('') + '</div>' +
-      '<div class="side__group"><a href="ai.html"' + (page === 'ai' ? ' class="is-active"' : '') + '>Поиск по фото<small>найти такой же предмет</small></a><a href="capsules.html"' + (page === 'capsules' ? ' class="is-active"' : '') + '>Интерьеры<small>капсулы К1–К7</small></a></div>' +
+      '<div class="side__group"><a href="ai.html"' + (page === 'ai' ? ' class="is-active"' : '') + '>Поиск по фото<small>найти такой же предмет</small></a><a href="capsules.html"' + (page === 'capsules' ? ' class="is-active"' : '') + '>Интерьеры<small>готовые капсулы</small></a></div>' +
       '<div class="side__foot"><button type="button" class="side__reset" data-reset>Сбросить данные прототипа</button></div>' +
       '</aside>' +
       '<nav class="tabbar" aria-label="Разделы">' + tabs + '</nav>';
     var back = host.querySelector('[data-back]');
-    if (back) back.addEventListener('click', function () { if (history.length > 1 && document.referrer.indexOf(location.host) >= 0) history.back(); else location.href = 'index.html'; });
+    /* вернулись со скана Планировки (plan-demo.html?…scan=… заменил себя этой страницей): запись «до скана» — тот же экран,
+       «‹» её перешагивает (сверка 02.11: первое нажатие открывало тот же Бюджет, на главную вело только второе) */
+    if (back) back.addEventListener('click', function () {
+      var ref = document.referrer, same = ref.indexOf(location.host) >= 0;
+      if (history.length > 2 && same && /plan-demo\.html\?[^#]*\bscan=/.test(ref)) history.go(-2);
+      else if (history.length > 1 && same) history.back(); else location.href = 'index.html';
+    });
     var r = host.querySelector('[data-reset]');
     if (r) r.addEventListener('click', function () { if (confirm('Стереть все данные прототипа в этом браузере?')) { localStorage.removeItem(KEY); location.href = 'index.html'; } });
   }
@@ -503,6 +426,8 @@
     },
     /* o: {title, html | text, actions:[{label, kind:'primary'|'ghost'|'dark'|'link', href?, onClick?, close?}], onClose} → {close()} */
     modal: function (o) {
+      /* тосты прошлых действий не закрывают кнопки окна (сверка 02.11: «Сделать текущим?» — главную кнопку закрывал тост) */
+      var tb = document.querySelector('.toasts'); if (tb) tb.innerHTML = '';
       var back = document.createElement('div'); back.className = 'modal-back';
       var prev = document.activeElement;
       back.innerHTML = '<div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title"><button class="modal__close" type="button" aria-label="Закрыть">×</button>' +
@@ -530,20 +455,31 @@
       return api;
     },
     confirm: function (o) { return ui.modal({ title: o.title, text: o.text, actions: [ { label: o.ok || 'Да', kind: 'primary', onClick: o.onOk }, { label: o.cancel || 'Отмена', kind: 'ghost' } ] }); },
-    /* окно «не хватает токенов»: две равные кнопки, контекст сохраняет вызывающая страница */
-    needTokens: function (cost, returnTo) {
+    /* шторка «Не хватает генераций»: 3 тарифа + докупка «1 · 49 ₽» и «5 · 229 ₽», подсвечен подходящий (самый дешёвый, которого хватит);
+       «Не хватает замен»: замены на зону и на квартиру. Действие не запускается; после оплаты вернём на тот же экран (тарифы генераций, 03.11) */
+    needTokens: function (cost, returnTo) { return ui.needBalance('gen', cost, returnTo); },
+    needSwaps: function (cost, returnTo) { return ui.needBalance('swap', cost || 1, returnTo); },
+    needBalance: function (cur, cost, returnTo) {
       var rt = encodeURIComponent(returnTo || (location.pathname.split('/').pop() + location.search));
-      return ui.modal({ eyebrow: 'Не хватает токенов', title: 'Нужно ' + fmt.tokens(cost) + ', на балансе ' + fmt.tokens(tokens.balance()),
-        text: 'Фото и параметры мы сохранили. Продолжить можно пакетом по зонам или токенами, а в подписку METOD входит один интерьер — все комнаты, замены включены. После оплаты вернём вас на этот экран.',
-        actions: [ { label: 'Пакеты и токены', kind: 'primary', href: 'tokens.html?returnTo=' + rt },
-          { label: 'Оформить METOD', kind: 'ghost', href: 'metod.html?returnTo=' + rt },
-          { label: 'Не сейчас', kind: 'link' } ] });
+      var isGen = cur !== 'swap', have = isGen ? tokens.balance() : tokens.swaps(), lack = Math.max(1, (cost || 1) - have);
+      var opts = isGen
+        ? D.genPlans.map(function (p) { return { id: p.id, t: p.title, s: fmt.tokens(p.gens) + ' + ' + fmt.swaps(p.swaps), n: p.gens, price: p.price }; })
+            .concat(D.genTopups.filter(function (p) { return p.gens; }).map(function (p) { return { id: p.id, t: 'Докупка · ' + p.gens, s: fmt.tokens(p.gens), n: p.gens, price: p.price }; }))
+        : D.genTopups.filter(function (p) { return p.swaps; }).map(function (p) { return { id: p.id, t: p.id === 's3' ? 'Замены на зону' : 'Замены на квартиру', s: fmt.swaps(p.swaps), n: p.swaps, price: p.price }; });
+      var fit = opts.filter(function (o) { return o.n >= lack; }).sort(function (a, b) { return a.price - b.price; })[0];
+      var html = '<div class="stack stack--2">' + opts.map(function (o) {
+        var on = fit && o.id === fit.id;
+        return '<a class="option nb-opt' + (on ? ' is-active' : '') + '" href="tokens.html?pack=' + o.id + '&returnTo=' + rt + '"><span class="nb-opt__m"><span class="option__title">' + fmt.esc(o.t) + '</span><span class="option__note">' + fmt.esc(o.s) + (on ? ' · подойдёт' : '') + '</span></span><b class="nb-opt__p">' + fmt.rub(o.price) + '</b></a>';
+      }).join('') + '</div>';
+      return ui.modal({ eyebrow: isGen ? 'Не хватает генераций' : 'Не хватает замен', title: isGen ? 'Пополните генерации' : 'Пополните замены',
+        text: 'Сейчас ' + (isGen ? fmt.tokens(have) : fmt.swaps(have)) + '. Всё, что вы сделали, сохранено — после оплаты вернём на этот экран.',
+        html: html, actions: [ { label: 'Не сейчас', kind: 'link' } ] });
     },
     /* окно «войдите»: после кода вернём на returnTo */
     needAuth: function (why, returnTo) {
       var rt = encodeURIComponent(returnTo || (location.pathname.split('/').pop() + location.search));
-      /* обещание подарка — только пока нет оплаченной подписки: «после оплаты подписки бесплатных токенов нет» */
-      var giftNote = state.metodUntil && state.metodUntil > Date.now() ? '' : ' Новым пользователям дарим ' + fmt.tokens(D.gift.tokens) + ' на генерации.';
+      /* подарок новому пользователю — 1 генерация (тарифы генераций, 03.11) */
+      var giftNote = ' Новым пользователям дарим 1 генерацию.';
       return ui.modal({ eyebrow: 'Нужен вход', title: why || 'Войдите, чтобы продолжить', text: 'Вход по коду из SMS.' + giftNote + ' Всё, что вы уже сделали, сохранится.',
         actions: [ { label: 'Войти или зарегистрироваться', kind: 'primary', href: 'auth.html?returnTo=' + rt }, { label: 'Не сейчас', kind: 'ghost' } ] });
     },
@@ -904,7 +840,7 @@
   }
   /* ссылка на якорь внутри закрытого блока раскрывает его */
   function openAcc(hash) {
-    if (!hash || hash.charAt(0) !== '#') return false;
+    if (!hash || hash.charAt(0) !== '#' || hash.length < 2) return false;   /* «#» — кнопка-ссылка, не якорь */
     var el = document.querySelector(hash); if (!el) return false;
     var d = el.closest ? el.closest('details') : null; if (d && !d.open) d.open = true;
     setTimeout(function () { el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 30);
@@ -917,7 +853,8 @@
     if (q.get('noframe')) { try { sessionStorage.setItem('sove.noframe', '1'); } catch (e) {} }
     var off = false; try { off = sessionStorage.getItem('sove.noframe') === '1'; } catch (e) {}
     if (window.top === window && !off && window.innerWidth >= 760 && document.body.getAttribute('data-page') !== 'phone') {
-      location.replace('phone.html?p=' + encodeURIComponent(location.pathname.split('/').pop() + location.search + location.hash));
+      /* адрес папки («/app/?card=3») — это index.html: без имени файла рамка отбрасывала хвост ссылки и открывала главную без него */
+      location.replace('phone.html?p=' + encodeURIComponent((location.pathname.split('/').pop() || 'index.html') + location.search + location.hash));
     }
   })();
   function boot() { renderHeader(); renderFooter(); renderFunnel(); listeners.push(function () { renderHeader(); syncTokenChips(); }); }

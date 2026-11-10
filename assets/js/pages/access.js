@@ -23,7 +23,7 @@
       '<div class="ac-sum">' +
         '<div class="ac-sum__box ac-sum__box--gain"><span>Ваша выгода по METOD</span><b>' + F.rub(gain) + '</b>' +
         '<span class="small muted">разница розница − METOD по открытым доступам</span></div>' +
-        '<div class="ac-sum__box"><span>Баланс токенов</span><b>' + F.num(balance) + '</b>' +
+        '<div class="ac-sum__box"><span>Баланс генераций</span><b>' + F.num(balance) + '</b>' +
         '<span class="small muted">' + (mine ? 'подписка METOD активна, ещё ' + S.metod.daysLeft() + ' дн.' : 'подписка не активна') + '</span></div>' +
       '</div>' +
 
@@ -43,7 +43,7 @@
       '</div>' +
 
       '<div class="stack stack--3"><a class="btn btn--ghost btn--block" href="market.html">Открыть каталог</a>' +
-        '<a class="btn btn--link" href="tokens.html">Пополнить токены</a></div>' +
+        '<a class="btn btn--link" href="account.html?v=tokens">Пополнить генерации</a></div>' +
       '<p class="small muted">Прототип: доступы и баланс хранятся только в этом браузере.</p>';
   }
   paint();

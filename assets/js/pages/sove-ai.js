@@ -18,13 +18,9 @@
   }
   function count(h) { return h.plan.length + h.materials.length + h.visual.length; }
 
-  function price(g) {
-    var p = CFG.GEN_PRICES[g];
-    if (p === 0) return 'бесплатно';
-    if (p === null || p === undefined) return '[N] токенов';
-    return (CFG.fromPrice && CFG.fromPrice[g] ? 'от ' : '') + F.tokens(p) + (CFG.perFrame[g] ? (g === 'g5' ? ' за комнату' : ' за кадр') : '');
-  }
-  function tokensLabel() { return S.auth.isIn() ? F.tokens(S.tokens.balance()) : F.tokens(CFG.giftTokens) + ' 🎁'; }
+  /* кнопки и карточки чистые: без цен и чисел генераций (тарифы генераций, 03.11); баланс — «✦ N» в шапке */
+  function price() { return ''; }
+  function tokensLabel() { return S.auth.isIn() ? '✦ ' + F.num(S.tokens.balance()) : ''; }
 
   /* куда ведёт каждая генерация */
   /* Планировка всегда открывается с первой продающей страницы (ТЗ-planirovka 18.0, Алина), а не сразу с мебели */

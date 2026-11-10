@@ -176,3 +176,9 @@ body[data-page="sove-ai"] .appbar { display: none; }
   .gai-plan { grid-template-columns: 1fr; }
   .gai-plan__side { padding: 12px; }
 }
+
+/* нейтральные подложки (Алина 03.11: «убери на странице генераций оранжевые подложки»):
+   кружки с номерами блоков и кнопки-пилюли — на светло-сером, рамка серая; текст кнопок остаётся терракотовым */
+.gai-blk__n { background: #f1efec; }
+.gai-pill { background: #f6f5f3; border-color: rgba(41,36,33,.16); }
+.gai-pill:hover { background: #eeece8; }

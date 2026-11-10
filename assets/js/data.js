@@ -6,7 +6,10 @@
   var IMG = 'assets/img/';
 
   var capsules = [
-    { id: 'k1', code: 'К1', name: 'Бургундский камень в арт‑классике', style: 'Арт-классика', pricePerM2: 51000,
+    /* pricePerM2Premium k1–k6 (02.11): База демо × соотношение Премиум/База из «Калькулятор MOD», лист «Итог», строка «Цена за кв.»
+       (METOD: k1 69 453/47 169, k2 64 461/42 839, k3 65 762/43 940, k4 75 010/44 829, k5 68 720/41 811, k6 65 842/45 178), округлено до 1 000;
+       k7 — из админки платформы (50 000 / 83 000). Команде показать на проверку */
+    { id: 'k1', code: 'К1', name: 'Бургундский камень в арт‑классике', style: 'Арт-классика', pricePerM2: 51000, pricePerM2Premium: 75000,
       concept: 'Светлая классика с лепниной, в которую врезан бордовый мрамор и тёмно-красные акценты.',
       forWhom: 'Для тех, кто хочет парадный интерьер без музейности.',
       materials: ['Мрамор бордо', 'Дуб светлый, ёлочка', 'Латунь', 'Букле'],
@@ -14,7 +17,7 @@
       slides: [ { room: 'Гостиная-кухня', src: IMG + 'slides/k1-living-1.jpg' }, { room: 'Спальня', src: IMG + 'slides/k1-bed-1.jpg' }, { room: 'Прихожая', src: IMG + 'slides/k1-hall-1.jpg' }, { room: 'Санузел', src: IMG + 'slides/k1-bath-1.jpg' } ],
       gallery: [ { room: 'Гостиная', src: IMG + 'capsules/k1-living.jpg' }, { room: 'Кухня', src: IMG + 'capsules/k1-kitchen.jpg' }, { room: 'Гостиная', src: IMG + 'capsules/k1-main-2.jpg' }, { room: 'Спальня', src: IMG + 'capsules/k1-bed-1.jpg' }, { room: 'Санузел', src: IMG + 'capsules/k1-bath-1.jpg' }, { room: 'Прихожая', src: IMG + 'capsules/k1-hall-1.jpg' } ],
       dna: [1, 2, 3, 4].map(function (i) { return IMG + 'mat/k1-mat-' + i + '.jpg'; }) },
-    { id: 'k2', code: 'К2', name: 'Изумрудная неоклассика в орехе', style: 'Неоклассика', pricePerM2: 46000,
+    { id: 'k2', code: 'К2', name: 'Изумрудная неоклассика в орехе', style: 'Неоклассика', pricePerM2: 46000, pricePerM2Premium: 69000,
       concept: 'Тёплый орех, зелёный камень и глубокие оливковые ткани. Вечерний, собранный интерьер.',
       forWhom: 'Для тех, кто любит тёмное дерево и приглушённый свет.',
       materials: ['Орех американский', 'Зелёный мрамор', 'Бронза', 'Велюр оливковый'],
@@ -22,7 +25,7 @@
       slides: [ { room: 'Гостиная-кухня', src: IMG + 'slides/k2-living-1.jpg' }, { room: 'Спальня', src: IMG + 'slides/k2-bed-1.jpg' }, { room: 'Прихожая', src: IMG + 'slides/k2-hall-1.jpg' }, { room: 'Санузел', src: IMG + 'slides/k2-bath-1.jpg' } ],
       gallery: [ { room: 'Гостиная', src: IMG + 'capsules/k2-main-1.jpg' }, { room: 'Гостиная', src: IMG + 'capsules/k2-main-2.jpg' }, { room: 'Спальня', src: IMG + 'capsules/k2-bed-1.jpg' }, { room: 'Санузел', src: IMG + 'capsules/k2-bath-1.jpg' }, { room: 'Прихожая', src: IMG + 'capsules/k2-hall-1.jpg' } ],
       dna: [1, 2, 3, 4].map(function (i) { return IMG + 'mat/k2-mat-' + i + '.jpg'; }) },
-    { id: 'k3', code: 'К3', name: 'Минимализм с голубым и хромом', style: 'Минимализм', pricePerM2: 47000,
+    { id: 'k3', code: 'К3', name: 'Минимализм с голубым и хромом', style: 'Минимализм', pricePerM2: 47000, pricePerM2Premium: 70000,
       concept: 'Белые объёмы, хром и один холодный синий акцент. Много воздуха и света.',
       forWhom: 'Для тех, кому важны простор и порядок.',
       materials: ['Микроцемент', 'Хром', 'Стекло', 'Букле белое'],
@@ -30,7 +33,7 @@
       slides: [ { room: 'Спальня', src: IMG + 'slides/k3-bed-1.jpg' }, { room: 'Прихожая', src: IMG + 'slides/k3-hall-1.jpg' }, { room: 'Санузел', src: IMG + 'slides/k3-bath-1.jpg' } ],
       gallery: [ { room: 'Гостиная', src: IMG + 'capsules/k3-main-1.jpg' }, { room: 'Гостиная', src: IMG + 'capsules/k3-main-2.jpg' }, { room: 'Спальня', src: IMG + 'capsules/k3-bed-1.jpg' }, { room: 'Санузел', src: IMG + 'capsules/k3-bath-1.jpg' }, { room: 'Прихожая', src: IMG + 'capsules/k3-hall-1.jpg' } ],
       dna: [1, 2, 3, 4].map(function (i) { return IMG + 'mat/k3-mat-' + i + '.jpg'; }) },
-    { id: 'k4', code: 'К4', name: 'Тёплая классика с терракотом', style: 'Классика', pricePerM2: 48000,
+    { id: 'k4', code: 'К4', name: 'Тёплая классика с терракотом', style: 'Классика', pricePerM2: 48000, pricePerM2Premium: 80000,
       concept: 'Молочные стены с молдингами, тёмный паркет ёлочкой и терракотовые детали.',
       forWhom: 'Для семьи: спокойно, тепло, без резких решений.',
       materials: ['Дуб тёмный, ёлочка', 'Мрамор светлый', 'Латунь', 'Велюр горчичный'],
@@ -38,7 +41,7 @@
       slides: [ { room: 'Гостиная-кухня', src: IMG + 'slides/k4-living-1.jpg' }, { room: 'Спальня', src: IMG + 'slides/k4-bed-1.jpg' }, { room: 'Прихожая', src: IMG + 'slides/k4-hall-1.jpg' }, { room: 'Санузел', src: IMG + 'slides/k4-bath-1.jpg' } ],
       gallery: [ { room: 'Гостиная', src: IMG + 'capsules/k4-main-1.jpg' }, { room: 'Гостиная', src: IMG + 'capsules/k4-main-2.jpg' }, { room: 'Гостиная', src: IMG + 'capsules/k4-main-3.jpg' }, { room: 'Спальня', src: IMG + 'capsules/k4-bed-1.jpg' }, { room: 'Санузел', src: IMG + 'capsules/k4-bath-1.jpg' }, { room: 'Прихожая', src: IMG + 'capsules/k4-hall-1.jpg' } ],
       dna: [1, 2, 3, 4].map(function (i) { return IMG + 'mat/k4-mat-' + i + '.jpg'; }) },
-    { id: 'k5', code: 'К5', name: 'Органика в песочном минимализме', style: 'Органика', pricePerM2: 45000,
+    { id: 'k5', code: 'К5', name: 'Органика в песочном минимализме', style: 'Органика', pricePerM2: 45000, pricePerM2Premium: 74000,
       concept: 'Арки, шпон и песочные оттенки. Мягкие формы и рассеянный свет.',
       forWhom: 'Для тех, кто хочет тихий, природный интерьер.',
       materials: ['Шпон ореха', 'Травертин', 'Лён', 'Бумажные светильники'],
@@ -46,7 +49,7 @@
       slides: [ { room: 'Гостиная-кухня', src: IMG + 'slides/k5-living-1.jpg' }, { room: 'Спальня', src: IMG + 'slides/k5-bed-1.jpg' }, { room: 'Прихожая', src: IMG + 'slides/k5-hall-1.jpg' }, { room: 'Санузел', src: IMG + 'slides/k5-bath-1.jpg' } ],
       gallery: [ { room: 'Гостиная', src: IMG + 'capsules/k5-main-1.jpg' }, { room: 'Гостиная', src: IMG + 'capsules/k5-main-2.jpg' }, { room: 'Спальня', src: IMG + 'capsules/k5-bed-1.jpg' }, { room: 'Санузел', src: IMG + 'capsules/k5-bath-1.jpg' }, { room: 'Прихожая', src: IMG + 'capsules/k5-hall-1.jpg' } ],
       dna: [1, 2, 3, 4].map(function (i) { return IMG + 'mat/k5-mat-' + i + '.jpg'; }) },
-    { id: 'k6', code: 'К6', name: 'Оливковая классика с тёмным деревом', style: 'Классика', pricePerM2: 50000,
+    { id: 'k6', code: 'К6', name: 'Оливковая классика с тёмным деревом', style: 'Классика', pricePerM2: 50000, pricePerM2Premium: 73000,
       concept: 'Современная классика в природной палитре: оливковые стены, тёмное дерево, латунь.',
       forWhom: 'Для тех, кто хочет глубокий, спокойный интерьер с характером.', materials: ['Дуб тёмный', 'Оливковая краска', 'Латунь', 'Мрамор'],
       cover: IMG + 'capsules/k6-main-1.jpg',
@@ -147,7 +150,9 @@
       seen[p.subcat] = 1; pick.push(p);
     });
     pick.forEach(function (p, i) {
-      PROMO[p.id] = { until: ['26.09', '27.09', '28.09', '30.09'][i % 4], partner: p.brand || 'партнёр' };
+      /* срок акции — через 7–21 день от сегодня (прежние «до 26–30.09» к ноябрю выглядели просроченными) */
+      var end = new Date(Date.now() + [7, 10, 14, 21][i % 4] * 864e5);
+      PROMO[p.id] = { until: ('0' + end.getDate()).slice(-2) + '.' + ('0' + (end.getMonth() + 1)).slice(-2), partner: p.brand || 'партнёр' };
     });
   })();
 
@@ -162,31 +167,45 @@
     products: products,
 
     /* цены функций — на сайте придут с сервера из конфига */
-    costs: { photo: 0, render: 10 },
+    costs: { photo: 1, render: 1 },
     demoLimit: 3,
-    gift: { tokens: 50, days: 30 },
+    /* подарок новому пользователю — 1 генерация, один раз на номер, не сгорает (Генерации SOVE — тарифы и экономика, 03.11) */
+    gift: { tokens: 1, days: null },
 
-    tokenPacks: [ { id: 'p100', tokens: 100, price: 990 }, { id: 'p300', tokens: 300, price: 2490 }, { id: 'p1000', tokens: 1000, price: 6990 } ],
-    /* ⚠️ ПРИМЕР ЦЕН — не утверждены. Решение созвона 28.10: оплата за зоны или за интерьер, замены входят в пакет (схема v2 Алины, package_id).
-       Пакет по зонам: материалы + визуализации одной комнаты (зоны плана), замены и обновления рендера в оплаченной зоне — бесплатно.
-       zones: число зон; null — вся квартира (все зоны одного интерьера). Старые пакеты токенов (tokenPacks) остаются как «токены поштучно». */
-    packages: [
-      { id: 'zone1', kind: 'zones', zones: 1, title: '1 зона', note: 'одна комната', price: 490, includes: ['материалы одной комнаты', 'визуализации комнаты · все ракурсы', 'замены материалов и предметов включены'] },
-      { id: 'zones3', kind: 'zones', zones: 3, title: '3 зоны', note: 'три комнаты на выбор', price: 1190, includes: ['материалы трёх комнат', 'визуализации каждой · все ракурсы', 'замены включены'] },
-      { id: 'flat', kind: 'zones', zones: null, title: 'Вся квартира', note: 'все комнаты одного интерьера', price: 1990, includes: ['материалы всех комнат', 'визуализации всех комнат · все ракурсы', 'замены и смена интерьера включены'] }
+    /* ✦ генерации и ⇄ замены (документ «Генерации SOVE — тарифы и экономика», 03.11): два баланса, каждое действие — 1 единица своего баланса,
+       исключение — бюджет по своему дизайн-проекту = 5 ✦. Слово «токены» в интерфейсе не используем. */
+    genPlans: [
+      { id: 'room', title: 'Твоя комната', price: 249, gens: 6, swaps: 3, swapsNote: '1 зона', perGen: 41 },
+      { id: 'flat', title: 'Твоя квартира', price: 590, gens: 16, swaps: 8, swapsNote: '4 зоны', perGen: 37 },
+      { id: 'flat3', title: 'Квартира в 3 интерьерах', price: 1290, gens: 36, swaps: 18, swapsNote: '3 интерьера × 4 зоны', perGen: 36, main: true }
     ],
-    /* бонус подписки METOD: «один интерьер · один круг» — все зоны одного интерьера один раз, замены включены; бесплатных токенов при подписке нет (созвон 28.10) */
-    metodBonus: { interiors: 1, label: 'один интерьер · один круг', note: 'все комнаты одного интерьера, замены включены' },
+    genTopups: [
+      { id: 'g1', title: '1 генерация', price: 49, gens: 1, swaps: 0 },
+      { id: 'g5', title: '5 генераций', price: 229, gens: 5, swaps: 0 },
+      { id: 's3', title: 'Замены на 1 зону', price: 49, gens: 0, swaps: 3 },
+      { id: 's12', title: 'Замены на квартиру · 4 зоны', price: 179, gens: 0, swaps: 12 }
+    ],
+    genActions: [
+      ['План: распознавание, чертёж, 3D, расстановка и правки', '1 ✦'], ['Материалы 1 зоны · база и премиум', '1 ✦'], ['Бюджет по капсуле', '1 ✦'],
+      ['Бюджет по своему дизайн-проекту · до 15 рендеров, больше — +1 ✦ за каждые 3 рендера', '5 ✦'], ['Комната в интерьере · 1 ракурс', '1 ✦'], ['Ещё ракурс', '1 ✦'],
+      ['Обновить комнату после замен', '1 ✦'], ['Поиск товара по фото', '1 ✦'], ['Замена материала на доске или предмета на картинке', '1 ⇄'], ['Маркет: каталог, поиск, корзина', 'бесплатно']
+    ],
+    budgetOwnProject: 5,
+    tokenPacks: [ { id: 'g1', tokens: 1, price: 49 }, { id: 'g5', tokens: 5, price: 229 } ],
+    /* пакеты по зонам (созвон 28.10) заменены тарифами генераций (genPlans) — 03.11 */
+    packages: [],
+    /* подарок METOD: тариф «Твоя квартира» (16 ✦ + 8 ⇄) — только при оплате на 6 месяцев или «Навсегда», один раз за оплату; 1 и 3 месяца — без подарка */
+    metodBonus: { minMonths: 6, gens: 16, swaps: 8, label: '«Твоя квартира» в подарок · 16 ✦ + 8 ⇄', note: 'при оплате на 6 месяцев' },
     metodPlans: [ { id: 'm1', months: 1, price: 4400 }, { id: 'm3', months: 3, price: 6200 }, { id: 'm6', months: 6, price: 9800 } ],
     /* разовый доступ к контакту: цен в ТЗ нет — в интерфейсе показывать «цена уточняется» */
     singleAccess: null,
 
     scout: {
       states: [
-        { id: 'secondary', name: 'Вторичка', note: 'нужно всё снимать', rate: 65000, estimate: true },
-        { id: 'concrete', name: 'Бетон', note: 'новостройка без отделки', rate: 60000, estimate: false },
-        { id: 'pre', name: 'Предчистовая отделка', note: 'стяжка и штукатурка есть', rate: 55000, estimate: true },
-        { id: 'finish', name: 'Чистовая отделка', note: 'переделаем под интерьер', rate: 50000, estimate: false }
+        { id: 'secondary', name: 'Вторичка', note: 'Нужен демонтаж', rate: 65000, estimate: true },
+        { id: 'concrete', name: 'Бетон', note: 'Новостройка без отделки', rate: 60000, estimate: false },
+        { id: 'pre', name: 'Предчистовая отделка (White box)', note: 'Без перепланировки', rate: 55000, estimate: true },
+        { id: 'finish', name: 'Чистовая отделка (от застройщика)', note: 'Комплектация под интерьер', rate: 50000, estimate: false }
       ],
       stages: [ ['Демонтаж', 10], ['Стены и перегородки', 20], ['Водоснабжение и канализация', 20], ['Электрика, свет, двери', 15], ['Полы', 15], ['Потолки', 10], ['Финальная сдача', 10] ],
       /* доли комплектации по категориям — пример, для показа структуры */
@@ -221,10 +240,13 @@
           { n: 3, name: 'Панель, зелёный мрамор', box: [10, 44, 36, 17], items: [ { id: 307, match: 'exact' } ] },
           { n: 4, name: 'Стулья у острова', box: [30, 47, 17, 16], items: [ { id: 106, match: 'near' } ] }
         ] },
+        /* сверено глазами 02.11 по кадру: бумажная люстра, диван букле, круглый столик, паркет ёлочкой (прежние «подвесы» и «кресло»
+           стояли не на своих вещах) — товары похожие из каталога демо */
         k4: { src: IMG + 'slides/k4-living-1.jpg', objects: [
-          { n: 1, name: 'Подвесы над кухней', box: [62, 12, 30, 17], items: [ { id: 204, match: 'exact' } ] },
-          { n: 2, name: 'Кресло на ножке', box: [38, 60, 23, 26], items: [ { id: 101, match: 'exact' } ] },
-          { n: 3, name: 'Пол, инженерная доска', box: [8, 78, 34, 16], items: [ { id: 301, match: 'near' } ] }
+          { n: 1, name: 'Люстра из бумаги', box: [64, 18, 31, 15], items: [ { id: 205, match: 'near' } ] },
+          { n: 2, name: 'Диван, букле', box: [44, 59, 18, 14], items: [ { id: 203274, match: 'near' } ] },   /* точка — на подлокотнике, не на цветах */
+          { n: 3, name: 'Столик журнальный круглый', box: [58, 72, 40, 14], items: [ { id: 202770, match: 'near' } ] },
+          { n: 4, name: 'Пол, инженерная доска', box: [8, 78, 34, 16], items: [ { id: 301, match: 'near' } ] }
         ] },
         k3: { src: IMG + 'slides/k3-bed-1.jpg', objects: [
           { n: 1, name: 'Люстра с хрустальной бахромой', box: [44, 26, 24, 22], items: [ { id: 201, match: 'near' } ] },
@@ -280,8 +302,8 @@
     chats: [
       { kind: 'support', title: 'Поддержка SOVEAPP', sub: 'техвопросы · оплаты · аккаунт', accent: '#6FA8C9',
         seed: [ { text: 'Здравствуйте! Это поддержка SOVEAPP. Чем помочь?' },
-                { me: true, text: 'Как работает возврат токенов?' },
-                { text: 'Подарочные токены действуют 30 дней, купленные — бессрочно. По подписке METOD токены начисляются 1:1.' } ] },
+                { me: true, text: 'Как работает возврат генераций?' },
+                { text: 'Генерации и замены не сгорают. Не получилась генерация — она сама вернётся на баланс.' } ] },
       { kind: 'partner', title: 'Партнёр', sub: 'первое касание · дальше во внешнем мессенджере', accent: '#C9C46A', locked: false, first: true, seed: [] },
       { kind: 'designer', title: 'Дизайнер · дизайн-проект', sub: 'дизайн-проект · внутри проекта', accent: '#9B7FC9', locked: true,
         seed: [ { text: 'Чат с дизайнером открывается после оформления дизайн-проекта.' } ] },

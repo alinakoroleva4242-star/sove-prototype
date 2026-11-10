@@ -1,4 +1,4 @@
-/* «Исполнители» (executors.html): плашки разделов, чипы видов работ, карточки исполнителей.
+/* «Строители, дизайнеры и мастера» (executors.html): плашки разделов, чипы видов работ, карточки специалистов с ♡.
    Без горизонтальной прокрутки: плашки — сетка в три колонки, чипы переносятся строками. */
 .xs-head { margin-bottom: 4px; }
 
@@ -53,3 +53,30 @@
   border-radius: var(--r); background: var(--surface-2); }
 .xs-join b { font-size: 14px; }
 .xs-join span { font-size: 13px; color: var(--graphite); margin-bottom: 8px; }
+
+/* шапка: полное название раздела не обрезаем — у вошедшего (чип токенов) переносится на вторую строку */
+body[data-page="executors"] .appbar__title { white-space: normal; text-overflow: clip; line-height: 1.25; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+@media (max-width: 420px) { body[data-page="executors"] .appbar__title { font-size: 16px; } }
+/* 350 px и уже: у вошедшего рядом чип токенов — название целиком в три строки, без многоточия */
+@media (max-width: 350px) { body[data-page="executors"] .appbar__title { font-size: 15px; line-height: 1.2; -webkit-line-clamp: 3; } }
+
+/* «В Избранном · N» под лидом — путь к сохранённым специалистам */
+.xs-favbox:empty { display: none; }
+.xs-fav { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; align-self: flex-start; font-size: 13.5px; font-weight: 600; color: var(--accent); }
+.xs-fav svg { width: 16px; height: 16px; fill: currentColor; stroke: none; }
+.xs-fav:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: var(--r-xs); }
+
+/* действия карточки: «Оставить заявку» и ♡ (как .rp-ic карточки товара, область нажатия 44 px) */
+.xc__acts { display: flex; align-items: center; gap: 8px; }
+.xc__acts .xc__cta { flex: 1 1 auto; min-width: 0; }
+.xc__fav { flex: 0 0 44px; width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center; padding: 0;
+  border: 1px solid var(--line-2); border-radius: 50%; background: var(--white); color: var(--graphite); cursor: pointer; transition: color .15s, border-color .15s, background-color .15s; }
+.xc__fav svg { fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+@media (hover: hover) { .xc__fav:not(.is-on):hover { border-color: var(--accent); color: var(--accent); } }
+.xc__fav.is-on { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); }
+.xc__fav.is-on svg { fill: currentColor; }
+.xc__fav:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* тост «Специалист в Избранном · Открыть» (SOVE.repair.toast): на этой странице нет my-repair.css */
+.rp-toast { display: flex; align-items: center; justify-content: space-between; gap: 12px; border-radius: var(--r-sm); }
+.rp-toast a, .rp-toast button { color: var(--white); font: inherit; font-weight: 700; text-decoration: underline; background: none; border: 0; cursor: pointer; white-space: nowrap; }

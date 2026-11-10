@@ -1,0 +1,21 @@
+/* «Избранное» (favorites.html): секция «Специалисты» (♡ из раздела «Строители, дизайнеры и мастера») и папки товаров без прокрутки вбок.
+   Токены — app-theme.css: скругления 12/16, мягкая тень, Manrope. Подключается только на favorites.html, после extra.css и my-repair.css. */
+
+/* папки: переносом строк, а не лентой (правило прототипа — горизонтальной прокрутки нет) */
+.fav-folders { flex-wrap: wrap; overflow: visible; }
+
+/* специалисты */
+#fv-pros { scroll-margin-top: calc(var(--header-h, 56px) + var(--ob-h, 0px) + 12px); }
+.fv-pros { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
+@media (min-width: 640px) { .fv-pros { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.fv-pro { display: flex; flex-direction: column; gap: 10px; min-width: 0; padding: 12px; border-radius: var(--r); background: var(--white); box-shadow: var(--shadow); }
+.fv-pro__top { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; gap: 10px; align-items: start; color: inherit; text-decoration: none; }
+.fv-pro__top:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: var(--r-xs); }
+.fv-pro__ava { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; background: var(--surface-2); color: var(--accent); font-size: 13px; font-weight: 700; letter-spacing: .02em; }
+.fv-pro__t { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.fv-pro__t b { font-size: 14px; font-weight: 700; line-height: 1.25; overflow-wrap: anywhere; }
+.fv-pro__t small { font-size: 12px; line-height: 1.35; color: var(--graphite); }
+.fv-pro__disc { align-self: start; padding: 4px 9px; border-radius: var(--pill); background: var(--green-soft); color: var(--green); font-size: 12px; font-weight: 700; white-space: nowrap; }
+.fv-pro__acts { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.fv-pro__acts .btn--link { min-height: 40px; }
+.fv-pros__all { align-self: flex-start; }

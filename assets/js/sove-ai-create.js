@@ -16,20 +16,16 @@
       { g: 'g2', t: 'Своя картинка → капсула', img: 'k1-living.jpg', href: function () { return 'interior.html'; } },
       { g: 'g5', t: 'Комнаты · рендеры', img: 'k5.jpg', href: function () { return 'interior.html?tab=rooms'; } }] }
   ];
-  function price(g) {
-    var p = CFG.GEN_PRICES[g];
-    if (p === 0) return 'бесплатно';
-    if (p === null || p === undefined) return '[N] токенов';
-    return (CFG.fromPrice && CFG.fromPrice[g] ? 'от ' : '') + F.tokens(p) + (CFG.perFrame[g] ? (g === 'g5' ? ' за комнату' : ' за кадр') : '');
-  }
-  function tokens() { return S.auth.isIn() ? F.tokens(S.tokens.balance()) : F.tokens(CFG.giftTokens) + ' 🎁'; }
+  /* без цен и чисел (тарифы генераций, 03.11): баланс «✦ N», тап — Профиль → Баланс */
+  function price() { return ''; }
+  function tokens() { return S.auth.isIn() ? '✦ ' + F.num(S.tokens.balance()) : ''; }
 
   var el = null, prevFocus = null;
   function html() {
     return '<div class="saic__back" data-saic-close></div>' +
       '<div class="saic__sheet" role="dialog" aria-modal="true" aria-labelledby="saic-t">' +
       '<span class="saic__grip"></span>' +
-      '<div class="saic__hd"><b id="saic-t">Создать</b><span>' + esc(tokens()) + ' · <a href="tokens.html" data-saic-topup>пополнить</a></span></div>' +
+      '<div class="saic__hd"><b id="saic-t">Создать</b><span>' + (tokens() ? esc(tokens()) + ' · ' : '') + '<a href="account.html?v=tokens">пополнить</a></span></div>' +
       '<span class="saic__sub">всё сохранится в историю генераций</span>' +
       GROUPS.map(function (gr) {
         return '<div class="saic__g">' + gr.t + '</div><div class="saic__grid">' + gr.items.map(function (it) {
@@ -52,7 +48,6 @@
     el.addEventListener('click', function (e) {
       var go = e.target.closest('[data-saic-go]');
       if (go) { var h = go.getAttribute('data-saic-go'); close(); location.href = h; return; }
-      if (e.target.closest('[data-saic-topup]') && CFG.topupStub) { e.preventDefault(); S.ui.toast('Пополнение токенов — скоро'); return; }
       if (e.target.closest('[data-saic-close]')) close();
     });
   }

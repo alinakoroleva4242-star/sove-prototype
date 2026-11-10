@@ -32,7 +32,7 @@
   function head() {
     var f = R.flats.active(), r = R.get(), line = R.flatLine(f), lvl = R.level(), bt = r.budget ? r.budget.type : (f && f.budgetType);
     return '<header class="rh"><div class="rh__top"><button type="button" class="rh__flat" data-flats aria-haspopup="dialog">' + esc(f ? f.name : 'Моя квартира') + ' ' + ic('down', 18) + '</button>' +
-      '<a class="rh__tok" href="tokens.html" aria-label="Баланс токенов">' + ic('spark', 16) + F.num(S.tokens.balance()) + '</a></div>' +
+      '<a class="rh__tok" href="account.html?v=tokens" aria-label="Баланс генераций">' + ic('spark', 16) + F.num(S.tokens.balance()) + '</a></div>' +
       (line ? '<p class="rh__meta">' + esc(line) + '</p>' : '') +
       '<div class="rh__tags"><span class="rtag' + (lvl === 'none' ? ' rtag--mute' : '') + '">' + esc(R.LEVEL[lvl]) + '</span>' + (bt ? '<span class="rtag">' + (bt === 'premium' ? 'Премиум' : 'База') + '</span>' : '') + '</div></header>';
   }

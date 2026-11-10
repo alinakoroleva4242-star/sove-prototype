@@ -1,13 +1,15 @@
-/* «Исполнители» — маркет исполнителей (чат команды 30.10.2026). Данные — assets/js/executors-data.js.
-   Три плашки: строительные компании, мастера, дизайнеры; у мастеров — чипы видов работ.
+/* «Строители, дизайнеры и мастера» — маркет специалистов (чат команды 30.10.2026; название — саммари созвона, п. 12).
+   Данные — assets/js/executors-data.js (только чтение). Три плашки: строительные компании, мастера, дизайнеры; у мастеров — чипы видов работ.
    Раздел и вид работ живут в адресе (?sec=masters&cat=tops): перезагрузка и «Назад» не сбрасывают выбор.
-   Заявка — первое касание в чате с партнёром (как на «На заказ»), контакты на странице не показываем. */
+   Заявка — первое касание в чате с партнёром (как на «На заказ»), контакты на странице не показываем.
+   ♡ на карточке — специалист в Избранном квартиры наравне с товарами и подборками (SOVE.repair.favPros, снимок карточки);
+   первое ♡ гостя, как у товара, создаёт черновик квартиры. Без repair.js сердца нет. */
 (function () {
   var S = window.SOVE, F = S.fmt, esc = F.esc;
   var root = document.getElementById('xs-root'); if (!root) return;
   var X = window.SOVE_EXECUTORS;
   if (!X || !X.items) {
-    root.innerHTML = '<div class="xe"><b class="xe__t">Не удалось загрузить исполнителей</b>' +
+    root.innerHTML = '<div class="xe"><b class="xe__t">Не удалось загрузить специалистов</b>' +
       '<p class="xe__d">Обновите страницу. Если не поможет — напишите в поддержку.</p>' +
       '<div class="xe__acts"><a class="btn btn--primary" href="chats.html?kind=support">Написать в поддержку</a></div></div>';
     return;
@@ -27,6 +29,8 @@
     return a === 1 && b !== 11 ? one : (a >= 2 && a <= 4 && (b < 12 || b > 14) ? few : many);
   }
   function inSec(id) { return X.items.filter(function (x) { return x.sec === id; }); }
+  var R = S.repair && S.repair.favPros ? S.repair : null;
+  var HEART = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.5A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg>';
 
   var Q = new URLSearchParams(location.search);
   var sec = X.sections.some(function (s) { return s.id === Q.get('sec'); }) ? Q.get('sec') : 'masters';
@@ -45,7 +49,7 @@
       return '<button type="button" class="xs-sec' + (on ? ' is-on' : '') + '" data-sec="' + s.id + '" aria-pressed="' + on + '">' +
         '<span class="xs-sec__ico">' + svg(s.id) + '</span>' +
         '<b class="xs-sec__t">' + esc(s.t) + '</b>' +
-        '<span class="xs-sec__n' + (n ? '' : ' is-soon') + '">' + (n ? n + ' ' + plural(n, 'исполнитель', 'исполнителя', 'исполнителей') : 'скоро') + '</span>' +
+        '<span class="xs-sec__n' + (n ? '' : ' is-soon') + '">' + (n ? n + ' ' + plural(n, 'специалист', 'специалиста', 'специалистов') : 'скоро') + '</span>' +
         '</button>';
     }).join('') + '</div>';
   }
@@ -66,6 +70,11 @@
     var w = name.replace(/[^A-Za-zА-Яа-яЁё0-9 ]/g, ' ').trim().split(/\s+/).filter(function (s) { return s.length > 2; });
     return ((w[0] || '')[0] + ((w[1] || '')[0] || '')).toUpperCase();
   }
+  function favBtn(x) {
+    if (!R) return '';
+    var on = R.favPros.has(x.id);
+    return '<button type="button" class="xc__fav' + (on ? ' is-on' : '') + '" data-x-fav="' + esc(x.id) + '" aria-pressed="' + on + '" aria-label="' + (on ? 'Убрать из Избранного: ' : 'В Избранное: ') + esc(x.name) + '">' + HEART + '</button>';
+  }
   function card(x) {
     var meta = [x.geo, x.note].filter(Boolean).join(' · ');
     var href = 'chats.html?kind=partner&partner=' + encodeURIComponent(x.id) + '&name=' + encodeURIComponent(x.name);
@@ -76,36 +85,50 @@
         (x.disc ? '<span class="xc__disc" title="Скидка участникам METOD">' + esc(x.disc) + '</span>' : '') +
       '</div>' +
       (meta ? '<p class="xc__meta">' + esc(meta) + '</p>' : '') +
-      '<a class="xc__cta" href="' + href + '">Оставить заявку</a>' +
+      '<div class="xc__acts"><a class="xc__cta" href="' + href + '">Оставить заявку</a>' + favBtn(x) + '</div>' +
       '</article>';
   }
 
+  /* пришли со страницы, куда ведёт запасная кнопка пустого раздела (ТРЕК → ?sec=builders&from=track, АДЕПТ → ?sec=designers&from=adept), —
+     её не показываем: иначе петля «туда-обратно»; путь вперёд — «Смотреть мастеров» */
+  var FROM = (Q.get('from') || '').replace(/[^a-z0-9_-]/gi, '');
   function body() {
     var s = X.sections.filter(function (x) { return x.id === sec; })[0];
     var list = inSec(sec);
     if (!list.length) {
-      var e = s.empty || { t: 'Скоро здесь появятся исполнители', d: '' };
+      var e = s.empty || { t: 'Скоро здесь появятся специалисты', d: '' };
+      var more = e.more && !(FROM && e.more.href.split('?')[0] === FROM + '.html') ? e.more : null;
       return '<div class="xe">' +
         '<b class="xe__t">' + esc(e.t) + '</b>' +
         (e.d ? '<p class="xe__d">' + esc(e.d) + '</p>' : '') +
         '<div class="xe__acts"><button type="button" class="btn btn--primary" data-sec="masters">Смотреть мастеров</button>' +
-        (e.more ? '<a class="btn btn--ghost" href="' + e.more.href + '">' + esc(e.more.t) + '</a>' : '') + '</div></div>';
+        (more ? '<a class="btn btn--ghost" href="' + more.href + '">' + esc(more.t) + '</a>' : '') + '</div></div>';
     }
     var shown = cat === 'all' ? list : list.filter(function (x) { return x.cat === cat; });
     return chips(list) +
-      '<p class="xs-count" aria-live="polite">' + shown.length + ' ' + plural(shown.length, 'исполнитель', 'исполнителя', 'исполнителей') + '</p>' +
+      '<p class="xs-count" aria-live="polite">' + shown.length + ' ' + plural(shown.length, 'специалист', 'специалиста', 'специалистов') + '</p>' +
       '<div class="xc-grid">' + shown.map(card).join('') + '</div>' +
       (sec === 'masters' && X.soon && X.soon.length ? '<p class="xs-soon">Скоро: ' + esc(X.soon.join(', ')) + '.</p>' : '');
   }
 
+  /* лид — из описаний разделов в данных («ремонт под ключ, отдельные работы, проект и надзор»), без своих слов о партнёрах */
+  function lead() {
+    var d = X.sections.map(function (s) { return String(s.d || '').toLowerCase(); }).filter(Boolean).join(', ');
+    return (d ? d.charAt(0).toUpperCase() + d.slice(1) + ' — с партнёрами METOD. ' : 'Партнёры METOD. ') + 'Скидки — для участников клуба.';
+  }
+  /* «В Избранном · N» — путь к сохранённым специалистам (секция «Специалисты» в Избранном); нет сохранённых — ссылки нет */
+  function favLink() {
+    var n = R ? R.favPros.list().length : 0;
+    return n ? '<a class="xs-fav" href="favorites.html#fv-pros">' + HEART + 'В Избранном · ' + n + ' ›</a>' : '';
+  }
   function paint() {
     root.innerHTML =
-      '<div class="stack stack--2 xs-head"><span class="eyebrow">Маркет исполнителей</span>' +
-      '<h1 class="h1">Исполнители</h1>' +
-      '<p class="lead">Мастера, строители и дизайнеры, с которыми работает METOD. Скидки — для участников клуба.</p></div>' +
+      '<div class="stack stack--2 xs-head"><span class="eyebrow">Маркет специалистов</span>' +
+      '<h1 class="h1">Строители, дизайнеры и мастера</h1>' +
+      '<p class="lead">' + esc(lead()) + '</p><span class="xs-favbox" id="xs-favbox">' + favLink() + '</span></div>' +
       plaques() +
       '<div class="xs-body" id="xs-body">' + body() + '</div>' +
-      '<div class="xs-join"><b>Вы мастер, бригада или дизайнер?</b><span>Расскажите о себе — добавим в исполнители.</span>' +
+      '<div class="xs-join"><b>Вы мастер, бригада или дизайнер?</b><span>Расскажите о себе — добавим в раздел.</span>' +
       '<a class="btn btn--ghost btn--sm" href="chats.html?kind=support">Написать нам</a></div>';
     root.querySelectorAll('[data-sec]').forEach(function (b) {
       b.addEventListener('click', function () {
@@ -118,6 +141,25 @@
     root.querySelectorAll('[data-cat]').forEach(function (b) {
       b.addEventListener('click', function () { cat = b.getAttribute('data-cat'); keepInUrl(); paint(); });
     });
+  }
+  /* ♡ — один обработчик на корень (карточки перерисовываются вместе со списком); после переключения — только атрибуты кнопок,
+     без перерисовки: фокус остаётся на сердце */
+  function syncFav() {
+    if (!R) return;
+    root.querySelectorAll('[data-x-fav]').forEach(function (b) {
+      var id = b.getAttribute('data-x-fav'), x = X.items.filter(function (y) { return y.id === id; })[0], on = R.favPros.has(id);
+      b.classList.toggle('is-on', on); b.setAttribute('aria-pressed', String(on));
+      b.setAttribute('aria-label', (on ? 'Убрать из Избранного: ' : 'В Избранное: ') + (x ? x.name : ''));
+    });
+    var box = document.getElementById('xs-favbox'); if (box) box.innerHTML = favLink();
+  }
+  if (R) {
+    root.addEventListener('click', function (e) {
+      var b = e.target.closest('[data-x-fav]'); if (!b) return;
+      var id = b.getAttribute('data-x-fav'), x = X.items.filter(function (y) { return y.id === id; })[0]; if (!x) return;
+      R.favPros.toggle({ id: x.id, sec: x.sec, name: x.name, what: x.what, disc: x.disc || '' });   /* save → 'sove:repair' → syncFav */
+    });
+    window.addEventListener('sove:repair', syncFav);
   }
   paint();
 })();

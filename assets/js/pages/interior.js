@@ -8,6 +8,11 @@
    Повторный вход при сохранённой капсуле — сразу B, «Вся квартира». Автосохранение; кнопки «Сохранить» нет.
    Суммы материалов — одна функция R.materialsSum(room) (repair.js), та же в Моём ремонте.
    Цены — SOVE_AI_CONFIG.INTERIOR_PRICES (одна строка на действие); каждое списание — событие int_charge {action, tokens, flatId}.
+   Выбор капсулы (общий договор частей 02.11, WP3): тап по карточке, «все N ›», «Сменить» и ?capsule=k4 только открывают общее окно
+   SOVE.capsulePicker (apply:false) с предвыбором; уровень База / Премиум — из окна; цена — на кнопке окна; списание — по «Собрать»,
+   после списания и persist() выбор пишет в объект CP.apply. Гостю — окно входа, без токенов — окно пополнения (оба с возвратом к выбору).
+   Загрузка — одно окно SOVE.planUpload (план застройщика · обмерный · дизайн-проект · свой рендер), комнаты — сканом Планировки
+   (plan-demo.html?scan=1&returnTo=…), тост «Комнаты сохранены» — только по lastScan(true).
    Прежние версии экрана — pages/interior-v3.js (I1–I3), pages/materialy-v1.js; не подключены. */
 (function () {
   var S = window.SOVE, F = S.fmt, esc = F.esc, ui = S.ui, R = S.repair, KB = window.SOVE_KB, UI = window.SOVE_MATUI;
@@ -19,6 +24,10 @@
   /* финал (TZ-interior-final, 6): комнаты и визуализации — SOVE_AI_CONFIG.GEN_PRICES */
   (function (G) { G = G || {}; ['roomMaterials', 'roomRender', 'angle', 'rerender'].forEach(function (k) { if (typeof G[k] === 'number') P[k] = G[k]; }); if (P.roomMaterials == null) P.roomMaterials = 5; if (P.roomRender == null) P.roomRender = 5; })(window.SOVE_AI_CONFIG && window.SOVE_AI_CONFIG.GEN_PRICES);
   var TOK = UI.fmtTokens; P.capsulePaid = (window.SOVE_AI_CONFIG && window.SOVE_AI_CONFIG.GEN_PRICES && window.SOVE_AI_CONFIG.GEN_PRICES.capsulePaid) || 10;
+  /* общее окно выбора капсулы и одно окно загрузки (договор частей 02.11): наборы карточек Интерьера — без «Фото квартиры» */
+  var CP = S.capsulePicker || null, PU = S.planUpload || null;
+  var INT_CARDS = ['developer_plan', 'measured_plan', 'design_project', 'own_render'], PLAN_CARDS = ['developer_plan', 'measured_plan', 'design_project'];
+  var LEVEL_T = { base: 'База', premium: 'Премиум', mixed: 'своё сочетание' };
   var IMG = 'assets/img/interior/', SW = IMG + 'sw/';
   var MOCK = { kitchenLiving: IMG + 'k2-kitchen.jpg', bedroom: IMG + 'k1-bedroom.jpg', bathroom: IMG + 'g-bath.jpg', hall: IMG + 'g-hall.jpg' };
   var OBJ_SHORT = { 'Обеденный стол': 'Стол', 'Кровать': 'Кровать', 'Раковина': 'Раковина', 'Гардероб': 'Шкаф' };
@@ -44,25 +53,69 @@
      zones — зоны действия; не переданы — текущая зона экрана (доска комнаты в Материалах, комната в Визуализациях) */
   function flatId() { var f = R.flats.active(); return f ? f.id : null; }
   function ctxZone() { if (!board) return null; var zs = boardZones(); return st.mode === 'materials' ? (zs.indexOf(st.zf) >= 0 ? st.zf : zs[0]) : mainZone(); }
-  function charge(action, cost, label, later, zones) {
-    R.flats.ensure();   /* у каждого списания — flatId */
-    if (!cost) { track('int_charge', { action: action, tokens: 0 }); return 'free'; }
-    if (!S.auth.isIn()) { location.href = 'auth.html?returnTo=' + encodeURIComponent(location.pathname.split('/').pop() + location.search); return null; }
+  /* ret — куда вернуть после входа или пополнения (по умолчанию — этот экран): для капсулы — interior.html?capsule=…&level=… (окно выбора
+     откроется снова, без автосборки), для своей картинки — ?resume=1 (шторка «Твоя квартира» из черновика sove.int.pick).
+     Гостю — окно «Нужен вход», без токенов — окно «Не хватает токенов» (пакеты и METOD); шторки закрываем: окна (z 100) ниже шторок (z 200) */
+  var AUTH_WHY = { capsule: 'соберём интерьер', changeCapsule: 'соберём интерьер', ownRoom: 'разберём картинку и соберём материалы', ownFlat: 'разберём картинку и соберём материалы', level: 'сменим уровень' };
+  var SWAP_ACTIONS = { materialSwap: 1, objectSwap: 1 };
+  function charge(action, cost, label, later, zones, ret) {
+    if (!cost) { if (S.auth.isIn()) R.flats.ensure(); track('int_charge', { action: action, tokens: 0 }); return 'free'; }
+    if (!S.auth.isIn()) { closeSheets(); track('int_need_auth', { action: action }); ui.needAuth('Войдите — ' + (AUTH_WHY[action] || 'продолжим'), ret || here()); return null; }
+    R.flats.ensure();   /* у каждого списания — flatId; гостю квартиру-черновик не создаём */
     var zs = [].concat(zones || ctxZone() || []).filter(Boolean);
     var pk = zs.length && S.tokens.consume ? S.tokens.consume(action, { zones: zs, flatId: flatId(), reason: label }) : null;
     if (pk) { track('int_charge', { action: action, tokens: 0, package: pk, zones: zs }); return pk; }
-    var op = S.tokens.reserve(cost, label, 'interior');
-    if (!op) { R.toast('Не хватает токенов · нужно ' + F.tokens(cost), { label: 'Пакеты и токены', href: 'tokens.html?returnTo=' + encodeURIComponent('interior.html' + location.search) }); return null; }
+    /* замены материала и предмета — баланс ⇄, остальное — ✦ (тарифы генераций, 03.11) */
+    var cur = SWAP_ACTIONS[action] ? 'swap' : 'gen';
+    var op = S.tokens.reserve(cost, label, 'interior', cur);
+    if (!op) { closeSheets(); track('int_need_tokens', { action: action, tokens: cost }); (cur === 'swap' ? ui.needSwaps : ui.needTokens)(cost, ret || here()); return null; }
     if (!later) S.tokens.commit(op);
     track('int_charge', { action: action, tokens: cost });
     return op;
   }
+  /* открытые шторки Интерьера — закрыть (их close() снимает подсветку и блокировку прокрутки) */
+  function closeSheets() { [].slice.call(document.querySelectorAll('.mt-back')).forEach(function (b) { if (b.close) b.close(); else b.remove(); }); }
+  /* адрес этого экрана для возврата: from и flat сохраняем; без extra — текущий вид (A или B с вкладкой) */
+  function here(extra) {
+    var q = new URLSearchParams();
+    if (!extra && st && st.view === 'b') { q.set('v', 'b'); q.set('view', st.mode); }
+    ['from', 'flat'].forEach(function (k) { if (Q.get(k)) q.set(k, Q.get(k)); });
+    Object.keys(extra || {}).forEach(function (k) { if (extra[k] !== undefined && extra[k] !== null && extra[k] !== '') q.set(k, extra[k]); });
+    var s = q.toString(); return 'interior.html' + (s ? '?' + s : '');
+  }
+  /* черновик своей картинки на время входа, пополнения или скана комнат в Планировке: {pick, bs, ts} в sessionStorage;
+     забираем только при возврате (?resume=1 или ?scanned=1) и не старше 30 минут */
+  var PICK_KEY = 'sove.int.pick', PICK_TTL = 30 * 60 * 1000;
+  function stashPick(x) { if (x && x.pick) ss(PICK_KEY, Object.assign({ ts: Date.now() }, x)); }
+  function takePick() { var x = ss(PICK_KEY); ss(PICK_KEY, null); return x && x.pick && x.ts && Date.now() - x.ts < PICK_TTL ? x : null; }
+  function liteBs(pick, bs) { return { pick: pick, bs: { basis: bs.basis || null, file: bs.file || null, files: [], scope: bs.scope, picked: (bs.picked || []).slice(), level: bs.level || null } }; }
+  /* тип ремонта: 'base' | 'premium', остальное (mixed, пусто) — null. Объекта — flat.budgetType (паспорт), без квартиры — расчёт, если в нём выбрана капсула */
+  function lv(x) { return x === 'base' || x === 'premium' ? x : null; }
+  function flatLevel() {
+    var f = R.flats.active(); if (f) return lv(f.budgetType);
+    var m = {}; try { m = (S.my && S.my.get()) || {}; } catch (e) {}
+    return m.capsuleId ? lv(m.level) : null;
+  }
+  function curLevel() { return board ? KB.levelOf(board.slots) : null; }
+  function boardCap() { return board ? (board.capsuleId || board.baseCapsuleId || null) : null; }
+  /* капсула, выбранная для объекта в другом блоке (окно выбора в Бюджете, Планировке, Моём ремонте) — лёгкая запись или заготовка без материалов;
+     без интерьера — капсула квартиры или расчёта. Уровень — записи, иначе квартиры. Доска (slots) — это уже экран B, не сюда */
+  function chosen() {
+    var f = R.flats.active(), it = f ? R.get().interior : null, id = null, level = null, m = {};
+    try { m = (S.my && S.my.get()) || {}; } catch (e) {}
+    if (it) { if (it.slots || !it.capsuleId) return null; id = it.capsuleId; level = lv(it.level); }
+    else id = (f && f.capsuleId) || m.capsuleId || null;
+    var c = id && KB.capsule(id), d = c && S.data.capsule(id); if (!c || !d || d.soon) return null;
+    return { id: c.id, c: c, level: level || flatLevel() };
+  }
   function refund(op, why) { if (op && op !== 'free') { S.tokens.refund(op, why); track('int_refund', { op: op }); } }
   /* покрыто ли действие пакетом для зон (для подписей кнопок) и подпись цены: «включено в пакет» вместо «+5 токенов» */
   function covered(action, zones) { var zs = [].concat(zones || ctxZone() || []).filter(Boolean); return !!(S.auth.isIn() && S.tokens.canCover && zs.length && S.tokens.canCover(action, { zones: zs, flatId: flatId() })); }
-  function priceTag(action, cost, zones) { return covered(action, zones) ? 'включено в пакет' : TOK(cost); }
+  function priceTag() { return ''; }   /* кнопки чистые: без цен и чисел генераций (тарифы генераций, 03.11) */
   /* шапка Интерьера: при активном пакете — «1 зона» / «2 зоны из 3» / «Вся квартира», иначе токены */
-  function chipText() { return (S.auth.isIn() && S.tokens.packageChip && S.tokens.packageChip()) || F.tokens(balance()); }
+  /* шапка Интерьера — единственный экран со счётчиком замен: «✦ 16 · ⇄ 12» (Алина 03.11); остальные экраны — только «✦ 16» */
+  function swapsLeft() { return S.auth.isIn() && S.tokens.swaps ? S.tokens.swaps() : 0; }
+  function chipText() { return '✦ ' + F.num(balance()) + (S.auth.isIn() ? ' · ⇄ ' + F.num(swapsLeft()) : ''); }
 
   /* ── квартира: зоны и площади (план → точно; иначе м² квартиры или 47 м² примера — примерно) ── */
   function planInfo() { return R.planZones(); }
@@ -158,30 +211,70 @@
   function head() {
     var back = FROM_BUDGET ? '<a class="pz-back" href="my.html?v=budget">← Бюджет</a>' : FROM_MY ? '<a class="pz-back" href="my.html?v=center">← Мой ремонт</a>' : '<a class="pz-back" href="sove-ai.html">← Генерации</a>';
     return '<header class="pz-head int-head"><div class="pz-head__top">' + back +
-      '<a class="pz-tok" href="tokens.html?returnTo=' + encodeURIComponent('interior.html' + location.search) + '">' + esc(chipText()) + '</a></div>' +
+      '<a class="pz-tok" href="account.html?v=tokens">' + esc(chipText()) + '</a></div>' +
       '<h1 class="pz-head__t">Интерьер</h1></header>';
   }
 
   /* ════════ A · Пусто (эталон etalon-A0) ════════ */
   var HERO_TILES = [['marble', 0, 6, 64, 104, -2], ['walnut', 56, 22, 52, 92, 2], ['brass', 114, 10, 30, 76, 0], ['mesh', 150, 20, 40, 96, 1],
     ['taupe', 196, 46, 54, 54, 3], ['cer', 256, 30, 56, 50, -1], ['velvet', 318, 44, 40, 40, 2]];
+  /* «КАПСУЛЫ SOVEAPP · …» — честная цена сборки: с METOD бесплатно (кроме авторской), пакет, иначе токены */
+  function capsCaption() { return 'ГОТОВЫЕ ИНТЕРЬЕРЫ'; }
+  /* мини-карточки капсул (общая карточка окна выбора, compact) по две в ряд: первые 4, выбранная для объекта — всегда среди них */
+  function capsGrid(ch) {
+    var act = ch ? ch.id : boardCap(), level = (ch && ch.level) || lv(curLevel()) || flatLevel() || 'base';
+    var ids = KB.CAPSULES.map(function (c) { return c.id; }).filter(function (id) { var d = S.data.capsule(id); return d && !d.soon; }), show = ids.slice(0, 4);
+    if (act && show.indexOf(act) < 0 && ids.indexOf(act) >= 0) show = [act].concat(show.slice(0, 3));
+    if (!CP) return '';
+    return '<div class="cpk-grid int-caps">' + show.map(function (id) {
+      return CP.card(id, { compact: true, active: id === act, level: level, badge: id === act ? 'текущий' : '', attrs: 'data-capsule="' + id + '" aria-haspopup="dialog"' });
+    }).join('') + '</div>';
+  }
+  /* капсула уже выбрана в другом блоке — показываем её и одну главную кнопку «Собрать»: капсулу и уровень второй раз не спрашиваем */
+  function chosenBlock(ch) {
+    var d = S.data.capsule(ch.id), img = (d && (d.wide || d.cover)) || ch.c.cover;
+    return '<section class="int-pick" aria-label="Интерьер квартиры"><span class="int-pick__pic" style="background-image:url(' + esc(img) + ')"></span>' +
+      '<span class="int-pick__t"><small>Выбран для квартиры</small><b>' + esc(ch.c.name) + '</b><small>' + (ch.level ? LEVEL_T[ch.level] + ' · ' : '') + 'материалы и ДНК ещё не собраны</small></span>' +
+      '<button type="button" class="int-pick__x" data-caps-all aria-haspopup="dialog">Сменить</button></section>' +
+      '<button type="button" class="mt-btn" data-build-chosen>' + esc(ch.level ? buildLabel(ch.id) : 'Выбрать уровень и собрать') + '</button>';
+  }
+  /* строка плана под загрузкой: план с комнатами — «из него», без комнат — ссылка на скан Планировки с возвратом сюда */
+  function planLineA() {
+    var p = R.flats.active() ? R.get().plan : null; if (!p) return '';
+    var n = (p.rooms || []).length, m2 = (p.rooms || []).reduce(function (a, x) { return a + (Number(x.m2) || 0); }, 0);
+    if (n) return '<p class="int-plan">✓ План квартиры · ' + n + ' ' + UI.roomsWord(n) + (m2 ? ' · ' + F.area(m2) : '') + ' — комнаты возьмём из него</p>';
+    if (p.img && PU) return '<p class="int-plan int-plan--todo">План загружен, комнаты не найдены · <a href="' + esc(PU.scanHref('interior', here())) + '">Найти комнаты ›</a></p>';
+    return '';
+  }
+  /* «мой интерьер ›» — к доске (открыли A при собранном интерьере); «мои интерьеры · N ›» — текущий не собран (выбрана капсула),
+     а собранные у квартиры есть: шторка «Сменить» со списком и «Переключиться» */
+  function mineLink() {
+    if (board) return ' · <a class="mt-a" href="' + roomUrl() + '">мой интерьер ›</a>';
+    var n = R.flats.active() ? R.interiors.list().filter(function (x) { return x.slots; }).length : 0;
+    return n ? ' · <button type="button" class="mt-a" data-my-ints>мои интерьеры · ' + n + ' ›</button>' : '';
+  }
   function viewA() {
-    var c = KB.capsule('k2'), mine = R.flats.list().filter(function (f) { var it = R.get(f.id).interior; return it && it.slots; }).length;
-    var floor = KB.item(c.slots.floor.premium);
+    var c = KB.capsule('k2');
+    var floor = KB.item(c.slots.floor.premium), ch = board ? null : chosen();
     return head() + '<div class="mt-body mt-body--14">' +
       '<div class="mt-hero"><h2 class="mt-h2">Материалы и визуализации твоей квартиры</h2><p class="mt-sub">выбери капсулу или загрузи свой рендер — получишь мудборд материалов с ценами и комнаты в своей планировке</p></div>' +
+      (ch ? chosenBlock(ch) : '') +
+      '<div class="mt-row"><small class="mt-cap-l">КАПСУЛЫ SOVEAPP · ' + capsCaption() + '</small><button type="button" class="mt-a" data-caps-all aria-haspopup="dialog">все ' + KB.CAPSULES.length + ' ›</button></div>' +
+      capsGrid(ch) +
+      /* одна кнопка загрузки — одно окно: план застройщика · обмерный · дизайн-проект · свой рендер; запасной путь без окна — скрытый input */
+      '<button type="button" class="up up--line" data-upload aria-haspopup="dialog"><span class="up__ic">⇪</span>' +
+        '<span class="up__t"><b>Загрузить свой рендер или план</b><small>рендер, фото интерьера, Pinterest — соберём материалы · план — точные комнаты и метраж</small></span><span class="up__a">›</span></button>' +
+      '<input type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic" hidden data-up>' +
+      planLineA() +
+      /* пример результата — под выбором: на телефоне первым экраном видны капсулы и загрузка, а не только картинка (сверка 02.11) */
       '<div class="ah"><img class="ah__img" src="' + IMG + 'k2-kitchen.jpg" alt="Кухня-гостиная в капсуле «' + esc(c.name) + '»">' +
         '<span class="hc__lbl">ТАК БУДЕТ ВЫГЛЯДЕТЬ РЕЗУЛЬТАТ</span>' +
         '<span class="hc__pill" style="left:62%;top:110px"><i></i><span>Фартук · зеллиж</span><b>⇄</b></span>' +
         '<span class="hc__pill" style="left:24%;top:215px"><i></i><span>Пол · орех</span><b>' + F.num(floor.price) + '/' + floor.unit + '</b></span>' +
-        '<div class="ah__b"><div class="hc__b-h"><small>МУДБОРД · 12 МАТЕРИАЛОВ · ДНК</small><span class="hc__dots">' + KB.DNA.map(function (x) { return '<i style="background:' + x.hex + '"></i>'; }).join('') + '</span></div>' +
+        '<div class="ah__b"><div class="hc__b-h"><small>МУДБОРД · ДО 12 МАТЕРИАЛОВ · ДНК</small><span class="hc__dots">' + KB.DNA.map(function (x) { return '<i style="background:' + x.hex + '"></i>'; }).join('') + '</span></div>' +
           '<div class="ah__row">' + HERO_TILES.map(function (t) { return '<span style="left:' + t[1] + 'px;top:' + t[2] + 'px">' + UI.sampleTile({ photo: SW + t[0] + '.jpg' }, t[3], t[4], { thickness: 3, rot: t[5], radius: 3 }) + '</span>'; }).join('') + '</div>' +
           '<small class="ah__cap">реальные образцы с ценами · База / Премиум · любой можно заменить, и рендер обновится</small></div></div>' +
-      '<div class="mt-row"><small class="mt-cap-l">КАПСУЛЫ SOVEAPP · ' + (S.metod.active() ? 'БЕСПЛАТНО С METOD' : covered('capsule', allZones().slice(0, 1)) ? 'ВКЛЮЧЕНО В ПАКЕТ' : TOK(P.capsulePaid).toUpperCase() + ' · С METOD БЕСПЛАТНО') + '</small><a class="mt-a" href="capsules.html">все ' + KB.CAPSULES.length + ' ›</a></div>' +
-      UI.capsuleStrip(KB.CAPSULES) +
-      '<label class="up up--line"><input type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic" hidden data-up><span class="up__ic">⇪</span>' +
-        '<span class="up__t"><b>Или свой рендер, фото, Pinterest</b><small>разберём ДНК и соберём материалы · от ' + F.tokens(P.ownRoom) + '</small></span><span class="up__a">›</span></label>' +
-      '<small class="mt-cap">≈ 10 минут · у тебя ' + F.tokens(balance()) + (mine ? ' · <a class="mt-a" href="interior.html?v=b">мои капсулы · ' + mine + ' ›</a>' : '') + '</small>' +
+      '<small class="mt-cap">≈ 10 минут' + (S.auth.isIn() ? '' : ' · после входа — генерация в подарок') + mineLink() + '</small>' +
       '</div>';
   }
 
@@ -189,7 +282,8 @@
   function capHead() {
     var b = board, zs = boardZones(), pl = planInfo(), ints = R.interiors.list(), cur = ints.filter(function (x) { return x.current; })[0] || { n: 1 };
     var nOf = ints.length > 1 ? cur.n + ' из ' + ints.length + ' · ' : '';   /* несколько интерьеров у объекта (созвон 28.10): «1 из 2 · Сменить» */
-    var sub = (b.type === 'capsule' ? 'капсула SOVEAPP' : 'своя капсула') + ' · ' + String(pl.area).replace('.', ',') + ' м²';   /* коротко, в одну строку (чистка 26.10) */
+    /* коротко, в одну строку (чистка 26.10); тип ремонта текущего интерьера виден (База / Премиум / своё сочетание после замен) */
+    var sub = (b.type === 'capsule' ? 'капсула SOVEAPP' : 'своя капсула') + ' · ' + (LEVEL_T[KB.levelOf(b.slots)] || '') + ' · ' + (pl.exact ? '' : '≈ ') + String(pl.area).replace('.', ',') + ' м²';
     var nR = zs.filter(function (z) { return rendersOf(z).length; }).length, nS = KB.slotsFor(zs).length, cover = (zs.map(function (z) { return rendersOf(z)[0]; }).filter(Boolean)[0] || {}).img || MOCK[zs[0]] || IMG + 'k2-kitchen.jpg';
     /* картинка плитки «Материалы» — живая доска (образцы выбранных материалов), «Визуализации» до генерации — обещание ✦ */
     var tile = function (m, img, t, small) {
@@ -206,7 +300,7 @@
   function todoZones() { var bz = boardZones(); return board.scope === 'rooms' ? allZones().filter(function (z) { return bz.indexOf(z) < 0; }) : []; }
   function viewB() {
     if (st.error) return head() + '<div class="mt-body"><section class="mt-err">' + (st.error.img ? '<img src="' + esc(st.error.img) + '" alt="">' : '') +
-      '<b>Не видим интерьер на картинке — попробуй другую</b><small>токены не списаны</small><a class="mt-btn" href="interior.html?v=a">Выбрать капсулу или другую картинку</a></section></div>';
+      '<b>Не видим интерьер на картинке — попробуй другую</b><small>генерация не списана</small><a class="mt-btn" href="interior.html?v=a">Выбрать капсулу или другую картинку</a></section></div>';
     if (!board) return head() + '<div class="mt-body"><div class="ch"><span class="ch__pic mt-sk"' + (pending && pending.img ? ' style="background-image:url(' + pending.img + ')"' : '') + '></span><span class="ch__t"><i class="mt-sk mt-sk--line"></i><i class="mt-sk mt-sk--line mt-sk--short"></i></span></div>' +
       '<div class="mb mb--b mb--sk"><b class="mt-load">Разбираем ДНК… собираем мудборд</b></div></div>';
     return head() + '<div class="mt-body">' + capHead() + (st.mode === 'visuals' ? visualsView() : materialsView()) + '</div>';
@@ -298,13 +392,13 @@
       '<span class="vp__ext"><b>Здесь будет ' + esc(pick.length === 1 ? (YOUR[KB.zoneType(z0)] || 'твоя комната') : 'твоя квартира') + '</b><small>из этих материалов · в ' + a + ' ' + plural(a, 'ракурсе', 'ракурсах', 'ракурсах') + '</small></span></span></div>' +
       /* что делать — одной строкой и главная кнопка сразу под примером (Алина 26.10: «и что мне делать?») */
       '<button type="button" class="vg" data-gen' + (pick.length ? '' : ' disabled') + '><i>✦</i><span><b>Сгенерировать</b><small>' + pick.length + ' ' + UI.roomsWord(pick.length) + ' × ' + a + ' ' + plural(a, 'ракурс', 'ракурса', 'ракурсов') + '</small></span><b>' + priceTag('render', cost, pick) + '</b></button>' +
-      '<small class="mt-cap">отметь комнаты и число ракурсов ниже · ≈ 2 минуты · спишем только за готовые · у тебя ' + F.tokens(balance()) + '</small>' +
+      '<small class="mt-cap">отметь комнаты и число ракурсов ниже · ≈ 2 минуты · спишем только за готовые</small>' +
       (zs.length > 1 || todoZones().length ? '<div class="zr">' + zs.map(function (z) {
         var on = pick.indexOf(z) >= 0;
         return '<button type="button" class="zr__z is-in' + (on ? ' is-on' : '') + '" data-pick-room="' + z + '" aria-pressed="' + on + '">' + (on ? '✓ ' : '') + esc(roomLabel(z)) + '</button>';
       }).join('') + plusPills() + '</div>' : '') +
       '<div class="va"><small class="ad__l">РАКУРСОВ НА КОМНАТУ</small><div class="va__seg" role="group" aria-label="Ракурсов на комнату">' + [1, 2, 3].map(function (n) {
-        return '<button type="button" data-angles="' + n + '" aria-pressed="' + (a === n) + '"><b>' + n + '</b><small>' + (covered('render', pick) ? 'включено' : TOK(n * P.roomRender)) + '</small></button>';
+        return '<button type="button" data-angles="' + n + '" aria-pressed="' + (a === n) + '"><b>' + n + '</b><small>' + '' + '</small></button>';
       }).join('') + '</div></div>' +
       '';
   }
@@ -320,14 +414,14 @@
     var items = mats.slice(0, 2).concat(objs, mats.slice(2)), open = !!st.vmore[z], shown = open ? items : items.slice(0, 3);
     return '<div class="vz"><div class="vz__h"><b>' + esc(KB.zone(z).name) + '</b><small>ракурс ' + (cur + 1) + ' из ' + n + '</small></div>' +
       (busy ? devImg(z, r.img) : '<div class="vz__wrap"><button type="button" class="vz__img" data-view="' + z + '" aria-label="Открыть на весь экран"><img src="' + esc(r.img) + '" alt="' + esc(KB.zone(z).name) + '"></button>' +
-        (st.pins[z] ? pins(z) : '') + (stale ? '<button type="button" class="vz__tag" data-rerender="' + z + '">! ' + esc(staleText(r)) + ' · обновить ' + (covered('rerender', z) ? '· включено' : TOK(P.rerender)) + '</button>' : '') +
+        (st.pins[z] ? pins(z) : '') + (stale ? '<button type="button" class="vz__tag" data-rerender="' + z + '">! ' + esc(staleText(r)) + ' · обновить</button>' : '') +
         '<button type="button" class="vz__pinbtn' + (st.pins[z] ? ' is-on' : '') + '" data-pins="' + z + '" aria-pressed="' + !!st.pins[z] + '">' + (st.pins[z] ? '✕ Скрыть' : '⇄ Заменить на фото') + '</button>' +
         /* сохранить в Мой ремонт и скачать — два тихих круга в правом верхнем углу картинки (Алина 26.10: «не красиво» строкой) */
         /* «Мой ремонт» — своя кнопка со значком вкладки Мой ремонт (Алина 26.10: Мой ремонт и Избранное — разные места, ♡ здесь не годится) */
         '<span class="vz__corner">' + (r.saved ? '<a class="vz__my is-on" href="my.html">✓ В Моём ремонте</a>' : '<button type="button" class="vz__my" data-save-viz="' + z + '">' + MY_IC + 'В Мой ремонт</button>') +
         '<a class="vz__ic" href="' + esc(r.img) + '" download="' + esc(KB.zone(z).name + ' — ракурс ' + (cur + 1)) + '.jpg" aria-label="Скачать визуализацию" title="Скачать">' + DL_IC + '</a></span></div>') +
       '<div class="vz__bar">' + rs.map(function (x, i) { return '<button type="button" class="vz__t' + (i === cur ? ' is-on' : '') + '" data-ang="' + z + ':' + i + '" style="background-image:url(' + esc(x.img) + ')" aria-label="Ракурс ' + (i + 1) + '"></button>'; }).join('') +
-        (n < 3 ? '<button type="button" class="vz__t vz__t--more" data-ang-add="' + z + '"><b>✦</b><small>' + (covered('angle', z) ? 'включено' : TOK(P.angle)) + '</small></button>' : '') +
+        (n < 3 ? '<button type="button" class="vz__t vz__t--more" data-ang-add="' + z + '"><b>✦</b><small>' + 'ракурс' + '</small></button>' : '') +
         '</div>' +
       vizPills(zs, done, z) +
       '<section class="on"><div class="on__h"><b>На этой визуализации</b><small>' + items.length + ' ' + plural(items.length, 'позиция', 'позиции', 'позиций') + '</small></div>' +
@@ -454,9 +548,11 @@
   }
   /* «Подключить дизайнера» — одна строка-ссылка в самом низу Визуализаций (Алина 25.10): без подписи и уровней; «Дальше: стоимость работ» в Интерьере нет;
      капсула уходит дизайнеру параметром */
+  /* рядом — раздел исполнителей «Строители, дизайнеры и мастера» (саммари 28.10, п. 12): кто сделает этот интерьер */
   function designerCard() {
     var cid = board.capsuleId || board.baseCapsuleId || '';
-    return '<a class="dz1" href="adept.html?from=interior' + (cid ? '&capsule=' + cid : '') + '" data-adept><b>Подключить дизайнера</b><i aria-hidden="true">›</i></a>';
+    return '<a class="dz1" href="adept.html?from=interior' + (cid ? '&capsule=' + cid : '') + '" data-adept><b>Подключить дизайнера</b><i aria-hidden="true">›</i></a>' +
+      '<a class="dz1 dz1--2" href="executors.html?sec=masters" data-pros><span><b>Строители, дизайнеры и мастера</b><small>кто сделает этот интерьер</small></span><i aria-hidden="true">›</i></a>';
   }
   function plural(n, a, b, c) { var m = n % 100, k = n % 10; return m > 10 && m < 20 ? c : k === 1 ? a : k >= 2 && k <= 4 ? b : c; }
   function matWord(n) { return plural(n, 'материал', 'материала', 'материалов'); }
@@ -471,7 +567,7 @@
   }
 
   /* капсулы SOVE 1–6 — бесплатно с подпиской METOD, без неё — 10 токенов (Алина 26.10); дизайнерская — всегда 10 */
-  function capsuleCost(c) { return S.metod.active() && !c.designer ? 0 : P.capsulePaid; }
+  function capsuleCost() { return P.capsulePaid; }   /* материалы капсулы — 1 ✦ для всех (тарифы генераций, 03.11) */
   /* главная комната капсулы — обычно кухня-гостиная; в плане её нет — первая комната плана */
   function capsuleMain(c) { var zs = allZones(), m = (c.rooms.filter(function (r) { return r.zone === 'kitchenLiving'; })[0] || c.rooms[0] || {}).zone || 'kitchenLiving'; return zs.indexOf(m) >= 0 || !zs.length ? m : zs[0]; }
   /* визуализация на весь экран, свайп между комнатами и ракурсами; подписей на картинке нет */
@@ -496,29 +592,66 @@
     return back;
   }
 
-  /* всплывашка «Твоя квартира» (эталон etalon-A1) — после выбора капсулы или картинки; план из Планировки — уже отмечен */
+  /* всплывашка «Твоя квартира» (эталон etalon-A1) — после своей картинки: основа (план квартиры или загрузить), охват, тип ремонта.
+     План, комнаты и строку плана перечитываем при каждой отрисовке: план могли загрузить в окне поверх шторки или распознать в Планировке.
+     keep — состояние из черновика (вернулись после входа, пополнения или скана) */
   function openBasis(pick, keep) {
-    var pl = planInfo(), zones = allZones(), f = R.flats.active();
-    var bs = keep || { pick: pick, basis: pl.exact ? 'plan' : null, file: null, files: [], scope: 'flat', picked: zones.slice() };
-    var back = sheet('ss bs', 'Твоя квартира', '');
+    var bs = Object.assign({ basis: null, file: null, files: [], scope: 'flat', picked: null, level: null }, keep || {});
+    if (!bs.files) bs.files = []; if (!lv(bs.level)) bs.level = flatLevel() || 'base';
+    if (!bs.basis && planInfo().exact) bs.basis = 'plan';   /* план с комнатами уже есть (в том числе после скана) — он и основа */
+    var back = sheet('ss bs', 'Твоя квартира', ''), zkey = null;
     function cost() { return pick.kind === 'capsule' ? P.capsule : bs.scope === 'rooms' && bs.picked.length === 1 ? P.ownRoom : P.ownFlat; }
+    function zonesNow() { return allZones(); }
     function paint() {
-      var c = cost(), bal = balance();
-      back.firstChild.innerHTML = UI.basisSheet({ pick: pick, basis: bs.basis, file: bs.file, scope: bs.scope, picked: bs.picked, cost: c, enough: !c || bal >= c, lack: c - bal,
+      var pl = planInfo(), zones = zonesNow(), f = R.flats.active(), p = f ? R.get().plan : null, key = zones.join(',');
+      /* комнаты плана поменялись — выбор комнат сверяем с новыми; не осталось ни одной — вся квартира */
+      if (key !== zkey) {
+        if (bs.scope === 'flat' || !bs.picked) bs.picked = zones.slice();
+        else { bs.picked = bs.picked.filter(function (z) { return zones.indexOf(z) >= 0; }); if (!bs.picked.length) { bs.scope = 'flat'; bs.picked = zones.slice(); } }
+        zkey = key;
+      }
+      if (bs.basis === 'plan' && !bs.file && !pl.exact) bs.basis = null;
+      /* загруженный здесь план распознали в Планировке (вернулись со скана) — теперь это «План квартиры» с комнатами */
+      if (bs.file && p && p.file === bs.file && p.rooms && p.rooms.length && pl.exact) { bs.basis = 'plan'; bs.file = null; }
+      var c = cost(), bal = balance(), inn = S.auth.isIn(), zs = bs.scope === 'flat' ? zones : bs.picked, free = c && covered(c === P.ownRoom ? 'ownRoom' : 'ownFlat', zs);
+      back.firstChild.innerHTML = UI.basisSheet({ pick: pick, basis: bs.basis, file: bs.file, scope: bs.scope, picked: bs.picked, level: bs.level,
+        costText: '',
+        note: inn ? '' : 'нужен вход · новым пользователям — генерация в подарок',
         zones: zones.map(function (z) { return { key: z, name: KB.zone(z).name }; }),
-        plan: pl.exact ? { line: [f && f.jk ? 'ЖК ' + f.jk : (pl.doc ? 'ЖК PRIDE' : ''), String(pl.area).replace('.', ',') + ' м²', zones.length + ' ' + UI.roomsWord(zones.length), 'точно'].filter(Boolean).join(' · ') } : null });
+        plan: pl.exact ? { line: [f && f.jk ? (/^(жк|кп)\s/i.test(f.jk) ? f.jk : 'ЖК ' + f.jk) : (pl.doc ? 'ЖК PRIDE' : ''), String(pl.area).replace('.', ',') + ' м²', zones.length + ' ' + UI.roomsWord(zones.length), 'точно'].filter(Boolean).join(' · ') } : null,
+        /* план в объекте есть, а комнат нет — найти их сканом Планировки и вернуться в эту шторку */
+        scanHref: PU && p && p.img && !(p.rooms && p.rooms.length) ? PU.scanHref('interior', here()) : '' });
     }
+    /* одно окно загрузки поверх шторки: план застройщика · обмерный · дизайн-проект (фото квартиры в Интерьере не предлагаем) */
+    function openPlanUpload() {
+      if (!PU) { var fb = back.querySelector('input[data-basis="plan"]'); if (fb) fb.click(); return; }   /* окна нет — прежний выбор файла */
+      PU.open({ entry: 'interior', cards: PLAN_CARDS, returnTo: here(), beforeLeave: function () { stashPick(liteBs(pick, bs)); },
+        onDone: function (res) {
+          if (!res || !document.body.contains(back)) return;
+          var p = R.get().plan, files = res.files || [], rooms = !!(p && p.rooms && p.rooms.length);
+          bs.files = [];
+          if (rooms && planInfo().exact && (res.use || res.same || !files.length)) { bs.basis = 'plan'; bs.file = null; }   /* план объекта с комнатами — «План квартиры» */
+          else { bs.basis = res.basis || 'plan'; bs.file = res.file || (p && p.file) || 'план'; }
+          /* рендеры дизайн-проекта — картинками в комнаты (чертёж — первый файл, его не берём); спецификации не разбираем (ТЗ 14.8) */
+          if (res.basis === 'project') files.slice(1, 5).filter(function (x) { return /^image\//.test(x.type || ''); }).forEach(function (file) { shrink(file, 900, function (src) { if (src) bs.files.push(src); }); });
+          track('int_basis', { basis: bs.basis, n: files.length, use: !!res.use });
+          paint();
+        } });
+    }
+    /* запасной путь без окна загрузки: скрытые input[data-basis] шторки */
     back.addEventListener('change', function (e) {
       var inp = e.target.closest('[data-basis]'); if (!inp || !inp.files || !inp.files.length) return;
       bs.basis = inp.getAttribute('data-basis'); bs.file = inp.files.length > 1 ? inp.files.length + ' файла' : inp.files[0].name; bs.files = [];
       track('int_basis', { basis: bs.basis, n: inp.files.length });
-      /* фото квартиры и рендеры дизайн-проекта — картинками в комнаты; спецификации проекта не разбираем (ТЗ 14.8) */
-      [].slice.call(inp.files, 0, 4).filter(function (x) { return /^image\//.test(x.type); }).forEach(function (file) { shrink(file, 900, function (src) { bs.files.push(src); }); });
+      [].slice.call(inp.files, bs.basis === 'project' ? 1 : 0, 5).filter(function (x) { return bs.basis === 'project' && /^image\//.test(x.type); }).forEach(function (file) { shrink(file, 900, function (src) { if (src) bs.files.push(src); }); });
       paint();
     });
     back.addEventListener('click', function (e) {
+      if (e.target.closest('[data-bs-scan]')) { stashPick(liteBs(pick, bs)); track('int_scan_open', { from: 'basis' }); return; }   /* ссылка уходит на скан сама */
       var b = e.target.closest('button'); if (!b) return;
-      if (b.hasAttribute('data-basis-plan')) { bs.basis = 'plan'; bs.file = null; return paint(); }
+      if (b.hasAttribute('data-pu-open')) return openPlanUpload();
+      if (b.hasAttribute('data-basis-plan')) { bs.basis = 'plan'; bs.file = null; bs.files = []; return paint(); }
+      var zones = zonesNow();
       if (b.hasAttribute('data-scope')) { bs.scope = b.getAttribute('data-scope'); if (bs.scope === 'flat') bs.picked = zones.slice(); else if (bs.picked.length === zones.length) bs.picked = zones.slice(0, 1); return paint(); }
       if (b.hasAttribute('data-room')) {
         var z = b.getAttribute('data-room'), i = bs.picked.indexOf(z);
@@ -527,7 +660,8 @@
         if (bs.picked.length === zones.length) bs.scope = 'flat';
         return paint();
       }
-      if (b.hasAttribute('data-basis-none')) { bs.basis = 'none'; bs.file = null; back.close(); return build(pick, bs); }
+      if (b.hasAttribute('data-level')) { bs.level = lv(b.getAttribute('data-level')) || bs.level; return paint(); }
+      if (b.hasAttribute('data-basis-none')) { bs.basis = 'none'; bs.file = null; bs.files = []; back.close(); return build(pick, bs); }
       if (b.hasAttribute('data-build')) { if (!bs.basis) bs.basis = 'none'; back.close(); return build(pick, bs); }
     });
     paint();
@@ -543,26 +677,44 @@
     fr.readAsDataURL(file);
   }
 
-  /* сборка: капсула — сразу (0 токенов); своя картинка — резерв → разбор → списано, ошибка — возврат */
+  /* сборка: капсула — по «Собрать» в окне выбора (уровень оттуда), списание → доска → persist() → выбор в объект (CP.apply);
+     своя картинка — резерв → разбор → списано, ошибка — возврат */
   function build(pick, bs) {
     var zones = bs.scope === 'flat' ? allZones() : bs.picked.slice(), pl = planInfo();
     var common = { scope: bs.scope, zones: bs.scope === 'flat' ? [] : zones, basis: bs.basis, accuracy: pl.exact || bs.basis === 'measure' ? 'точно' : '≈', objects: {}, objectDelta: 0, decor: [] };
     if (pick.kind === 'capsule') {
-      var c = KB.capsule(pick.id), lv = c.full ? 'premium' : 'base';
-      if (!charge(pick.change ? 'changeCapsule' : 'capsule', capsuleCost(c), 'Капсула ' + c.name, false, zones)) return;   /* капсула с одной комнатой = зона из пакета, если он есть */
-      /* новая доска без id — НОВЫЙ интерьер квартиры (R.interiors): круг заново, материалы под эту капсулу, визуализаций нет; прежний остаётся со своими */
-      board = Object.assign({ type: 'capsule', source: 'capsule', capsuleId: c.id, name: c.name, imageUrl: c.cover, dna: c.dna, style: c.style, slots: scaleSlots(KB.fromCapsule(c.id, lv), pl.area), tokensSpent: 0, boardGeneratedAt: Date.now() }, common);
+      var c = KB.capsule(pick.id); if (!c) return;
+      var level = lv(pick.level) || flatLevel() || 'base';
+      /* капсула с одной комнатой = зона из пакета, если он есть; после входа или пополнения — снова окно выбора с этой капсулой и уровнем */
+      if (!charge(pick.change ? 'changeCapsule' : 'capsule', capsuleCost(c), 'Капсула ' + c.name + ' · ' + LEVEL_T[level], false, zones, here({ capsule: c.id, level: level }))) return;
+      /* новая доска без id — НОВЫЙ интерьер квартиры (R.interiors): круг заново, материалы под эту капсулу, визуализаций нет; прежний остаётся со своими.
+         Лёгкая запись выбора (капсула из Бюджета, Планировки) — место доски займёт repair.js (adoptOf), дубля нет */
+      board = Object.assign({ type: 'capsule', source: 'capsule', capsuleId: c.id, name: c.name, imageUrl: c.cover, dna: c.dna, style: c.style, slots: scaleSlots(KB.fromCapsule(c.id, level), pl.area), tokensSpent: 0, boardGeneratedAt: Date.now() }, common);
       board.renders = [];   /* визуализации — только по кнопке «✦ Сгенерировать» (TZ-interior-final, 0.4) */
       addBasisRenders(bs);
-      persist(); track('int_capsule_pick', { capsule: c.id, scope: bs.scope, basis: bs.basis, change: !!pick.change });
+      persist(); applyLevel(c.id, level);
+      track('int_capsule_pick', { capsule: c.id, level: level, scope: bs.scope, basis: bs.basis, change: !!pick.change });
+      st.lock = Date.now() + 450;   /* второй тап двойного нажатия «Собрать» не уходит в новый экран (замена материала и т. п.) */
       resetView(); goB('materials'); createdToast();
       return;
     }
     var cost = bs.scope === 'rooms' && zones.length === 1 ? P.ownRoom : P.ownFlat;
-    var op = charge(cost === P.ownRoom ? 'ownRoom' : 'ownFlat', cost, 'Своя капсула · ' + (bs.scope === 'flat' ? 'вся квартира' : zones.map(function (z) { return KB.zone(z).name; }).join(', ')), true, zones);
+    stashPick(liteBs(pick, bs));   /* вход или пополнение — вернёмся в шторку с этой картинкой (?resume=1) */
+    var op = charge(cost === P.ownRoom ? 'ownRoom' : 'ownFlat', cost, 'Своя капсула · ' + (bs.scope === 'flat' ? 'вся квартира' : zones.map(function (z) { return KB.zone(z).name; }).join(', ')), true, zones, here({ resume: 1 }));
     if (!op) return;
-    pending = { img: pick.img, room: pick.room, op: op, cost: cost, bs: { scope: bs.scope, zones: zones, basis: bs.basis, files: bs.files }, t0: Date.now() };
+    ss(PICK_KEY, null);
+    pending = { img: pick.img, room: pick.room, op: op, cost: cost, bs: { scope: bs.scope, zones: zones, basis: bs.basis, files: bs.files, level: lv(bs.level) || 'base' }, t0: Date.now() };
     ss('sove.int.pending', pending); board = null; st.error = null; goB('materials'); analyze();
+  }
+  /* выбор в объект — одна запись через общее окно (CP.apply: Планировка, интерьер объекта, тип ремонта квартиры, расчёт, бюджет, событие 'sove:capsule');
+     своя доска без капсулы — только тип ремонта квартиры, расчёта и бюджета (держим равными) */
+  var applying = false;
+  function applyLevel(capId, level) {
+    level = lv(level); if (!level) return;
+    if (capId && CP && CP.apply) { applying = true; try { CP.apply({ capsuleId: capId, level: level }, { entry: 'interior' }); } catch (e) {} applying = false; return; }
+    var f = R.flats.active(); if (!f) return;
+    var r = R.get(f.id); if (r.scoutParams) r.scoutParams.level = level; if (r.budgetPlan) r.budgetPlan.type = level;
+    R.flats.update(f.id, capId ? { capsuleId: capId, budgetType: level } : { budgetType: level });
   }
   function addBasisRenders(bs) {
     /* рендеры дизайн-проекта и фото квартиры — комнатами капсулы (материалы с них берём в бою, здесь — картинка как есть) */
@@ -576,13 +728,14 @@
     var p = pending; if (!p) return;
     (S.genLive ? S.genLive.analyze(p.img) : KB.analyzeInterior(p.img)).then(function (a) {   /* gen-live.js: разбор ИИ на сервере, при ошибке — заглушка */
       if (p.op !== 'free') S.tokens.commit(p.op);
-      var pl = planInfo(), slots = scaleSlots(KB.complete(a.dna, a.found, a.level || 'premium'), pl.area);
+      /* уровень — выбор человека в шторке «Твоя квартира» (разбор картинки в прототипе всегда даёт premium) */
+      var pl = planInfo(), level = lv(p.bs.level) || lv(a.level) || 'premium', slots = scaleSlots(KB.complete(a.dna, a.found, level), pl.area);
       board = { type: 'own', source: 'photo', imageUrl: p.img, dna: a.dna, style: a.style, name: cap(a.style), scope: p.bs.scope, zones: p.bs.scope === 'flat' ? [] : p.bs.zones,
         basis: p.bs.basis, accuracy: pl.exact || p.bs.basis === 'measure' ? 'точно' : '≈', slots: slots, renders: [], objects: {}, objectDelta: 0, decor: [], tokensSpent: p.cost, boardGeneratedAt: Date.now() };
       var z = KB.zoneOf(p.room); if (boardZones().indexOf(z) < 0) z = boardZones()[0];
       board.renders.push({ zone: z, room: KB.zone(z).name, angle: 0, img: p.img, photo: true, skus: snapshot() });
       addBasisRenders(p.bs);
-      persist(); pending = null; ss('sove.int.pending', null); resetView();
+      persist(); applyLevel(null, level); pending = null; ss('sove.int.pending', null); resetView();
       track('int_board_ready', { ms: Date.now() - p.t0 }); render(); createdToast();
     }).catch(function () {
       refund(p.op, 'не видим интерьер на картинке');
@@ -623,12 +776,16 @@
       var a = e.target.closest('[data-angle]'); if (a) { st.angle = +a.getAttribute('data-angle'); back.close(); return; }
       var b = e.target.closest('[data-pick]'); if (!b) return;
       var sku = b.getAttribute('data-pick'); if (board.slots[slot].sku === sku) return back.close();
-      var op = charge('materialSwap', P.materialSwap, 'Замена материала · ' + KB.slot(slot).name, false, [swZone]); if (!op) return;
+      /* вернуть исходную позицию капсулы — бесплатно, ⇄ не списывается (тарифы генераций, 03.11) */
+      var orig = (board.orig || {})[slot];
+      var op = sku === orig ? 'free' : charge('materialSwap', P.materialSwap, 'Замена материала · ' + KB.slot(slot).name, false, [swZone]); if (!op) return;
       var t = swapTo(slot, sku); t.op = op; back.close(); swapToast(t);
     });
   }
   function swapTo(slot, sku) {
     var prev = JSON.parse(JSON.stringify({ slots: board.slots, type: board.type, baseCapsuleId: board.baseCapsuleId || null })), z = 'flat', sum0 = zoneTotal(z), it = KB.item(sku);
+    /* исходная позиция слота — до первой замены; возврат к ней бесплатный */
+    board.orig = board.orig || {}; if (!(slot in board.orig) && board.slots[slot]) board.orig[slot] = board.slots[slot].sku;
     makeOwn();
     board.slots[slot] = KB.slotEntry(it, 'user', null); scaleSlots(board.slots, planInfo().area); KB.recheck(board.slots, board.dna); persist();
     var e = board.slots[slot], d = zoneTotal(z) - sum0;
@@ -681,8 +838,8 @@
   /* новый интерьер — круг заново: состояние экрана (фильтр зон, открытые списки, ракурсы) с прежнего не переносим */
   function resetView() { st.open = {}; st.pick = null; st.sel = null; st.zf = null; st.vz = null; st.vcur = null; st.angleOf = {}; st.vmore = {}; st.pins = {}; st.loadZ = null; st.error = null; }
   function curSummary() { return R.interiors.list().filter(function (x) { return x.current; })[0] || null; }
-  /* тост после сборки при нескольких интерьерах: «Интерьер «К4 · …» создан · прежний сохранён — Переключить» (шторка «Сменить» со списком) */
-  function createdToast() { var c = curSummary(); if (c && R.interiors.list().length > 1) R.toast('Интерьер «' + c.title + '» создан · прежний сохранён', { label: 'Переключить', onClick: openChange }); }
+  /* тост после сборки при нескольких интерьерах: «Интерьер «Тёплая классика» создан · прежний сохранён — Переключить» (шторка «Сменить» со списком); имя — без кода */
+  function createdToast() { var c = curSummary(); if (c && R.interiors.list().length > 1) R.toast('Интерьер «' + c.name + '» создан · прежний сохранён', { label: 'Переключить', onClick: openChange }); }
   /* «Переключиться»: текущим становится другой интерьер квартиры — его материалы и визуализации; прежний не стирается */
   function switchTo(id) {
     if (board && board.id === id) return;
@@ -690,20 +847,89 @@
     board = passport(); pending = null; ss('sove.int.pending', null); resetView();
     track('int_switch', { to: id });
     if (board) goB(st.mode); else { st.view = 'a'; render(); }
-    var c = curSummary(); if (c) R.toast('Текущий интерьер · ' + c.title);
+    var c = curSummary(); if (c) R.toast('Текущий интерьер · ' + c.name);
   }
 
-  /* ── шторка 1 · сменить интерьер: «Переключиться» на другой из списка или «Новый интерьер» (капсула / свой рендер) ── */
+  /* ── шторка 1 · сменить интерьер: один интерьер — сразу окно выбора капсулы; несколько — «Переключиться» на другой из списка или «Новый интерьер» ── */
   function openChange() {
-    var back = sheet('ss sw', 'Сменить интерьер', UI.changeInteriorSheet({ caps: KB.CAPSULES, currentId: board.capsuleId || board.baseCapsuleId, current: board.name, list: R.interiors.list(), ownPrice: P.ownRoom }));
+    var list = R.interiors.list();
+    if (list.length < 2) return openPicker({ from: 'change' });
+    var back = sheet('ss sw', 'Сменить интерьер', UI.changeInteriorSheet({ list: list, nCaps: KB.CAPSULES.length, levels: LEVEL_T }));
     back.addEventListener('click', function (e) {
       var sw = e.target.closest('[data-switch]'); if (sw) { back.close(); return switchTo(sw.getAttribute('data-switch')); }
-      var c = e.target.closest('[data-capsule]'); if (!c) return;
-      back.close(); var keep = { basis: board.basis, file: null, files: [], scope: board.scope, picked: boardZones() };
-      track('int_change', { to: c.getAttribute('data-capsule') });
-      build({ kind: 'capsule', id: c.getAttribute('data-capsule'), change: true }, keep);
+      if (e.target.closest('[data-new-capsule]')) { back.close(); return openPicker({ from: 'change' }); }
+      if (e.target.closest('[data-new-own]')) { back.close(); track('int_change', { to: 'own' }); return ownPick(); }
     });
-    back.addEventListener('change', function (e) { var inp = e.target.closest('[data-up]'); if (inp && inp.files && inp.files[0]) { back.close(); readUpload(inp.files[0]); } });
+  }
+
+  /* ── окно выбора капсулы (общее, SOVE.capsulePicker): предвыбор, уровень, цена на кнопке; запись — только после списания ── */
+  function capZones(c) { return board ? boardZones() : [capsuleMain(c)]; }
+  /* подпись главной кнопки — чистая, без цен (тарифы генераций, 03.11): «Собрать» / «Сменить уровень» / «Готово» (та же капсула и уровень) */
+  function buildLabel(id, level) {
+    var c = KB.capsule(id); if (!c) return 'Собрать';
+    if (board && id === boardCap()) return level && level !== curLevel() ? 'Сменить уровень' : 'Готово';
+    return 'Собрать';
+  }
+  function pickerNote() {
+    if (!S.auth.isIn()) return 'Собрать интерьер можно после входа — новым пользователям генерация в подарок.';
+    if (board) return 'Новый интерьер соберём под ту же квартиру, прежний сохранится — переключиться можно в любой момент.';
+    return 'Соберём 12 материалов отделки и ДНК под квартиру.';
+  }
+  /* o = {current, level, from}: тап по карточке, «все N ›», «Сменить», «Выбрать уровень и собрать», ?capsule= */
+  function openPicker(o) {
+    o = o || {};
+    if (!CP) { location.href = 'capsules.html?pick=1&returnTo=' + encodeURIComponent(here()); return; }
+    var ch = board ? null : chosen();
+    var cur = (o.current && KB.capsule(o.current) ? o.current : null) || boardCap() || (ch && ch.id) || undefined;
+    var level = lv(o.level) || lv(curLevel()) || (ch && ch.level) || flatLevel() || 'base';
+    track('int_picker_open', { from: o.from || 'grid', capsule: cur || null });
+    CP.open({ entry: 'interior', current: cur, level: level, own: true, apply: false, toast: false, note: pickerNote(),
+      okLabel: function (id, l) { return buildLabel(id, l); },
+      onOwn: function () { track('int_change', { to: 'own', from: 'picker' }); ownPick(); },
+      onPick: function (res) { if (res && res.capsuleId) onPicked(res); } });
+  }
+  /* «Собрать» в окне: та же капсула у доски — смена уровня (или ничего), иначе новая доска этой капсулы с выбранным уровнем */
+  function onPicked(res) {
+    var c = KB.capsule(res.capsuleId), level = lv(res.level) || 'base'; if (!c) return;
+    if (board && c.id === boardCap()) { if (level !== curLevel()) relevel(level); return; }
+    track('int_change', { to: c.id, level: level });
+    build({ kind: 'capsule', id: c.id, level: level, change: !!board },
+      board ? { basis: board.basis, file: null, files: [], scope: board.scope, picked: boardZones() } : { scope: 'rooms', picked: [capsuleMain(c)], basis: planInfo().exact ? 'plan' : 'none', files: [] });
+  }
+  /* смена уровня той же капсулы (П5: 1 токен): материалы капсулы на новом уровне, id интерьера тот же; визуализации станут «обновить» сами.
+     Своя доска после замен — сначала вопрос (замены сбросятся). «Отменить» в тосте вернёт материалы, уровень и токен */
+  function relevel(level) {
+    var cid = boardCap(); if (!board || !cid || !lv(level)) return;
+    function go() {
+      var op = charge('level', P.level, 'Уровень · ' + LEVEL_T[level], false, boardZones(), here()); if (!op) return;
+      var prev = JSON.parse(JSON.stringify({ slots: board.slots, type: board.type, baseCapsuleId: board.baseCapsuleId || null })), prevLv = lv(curLevel()), sum0 = zoneTotal('flat');
+      board.slots = scaleSlots(KB.fromCapsule(cid, level), planInfo().area); delete board.orig; board.type = 'capsule'; board.capsuleId = cid; delete board.baseCapsuleId;
+      persist(); applyLevel(cid, level);
+      var d = zoneTotal('flat') - sum0, nSt = boardZones().filter(function (z) { return rendersOf(z).some(isStale); }).length;
+      track('int_level', { level: level, tokens: P.level });
+      swapToast({ op: op, prev: prev, undo: function () { if (prevLv) applyLevel(cid, prevLv); },
+        text: 'Уровень: ' + LEVEL_T[level] + ' · итого ' + (d < 0 ? '−' : '+') + F.rub(Math.abs(d)) + (nSt ? ' · ' + nSt + ' ' + plural(nSt, 'визуализацию', 'визуализации', 'визуализаций') + ' обновить' : '') });
+    }
+    if (board.type === 'own') ui.confirm({ title: 'Сменить уровень на ' + LEVEL_T[level] + '?', text: 'Материалы капсулы соберём заново на уровне «' + LEVEL_T[level] + '» — твои замены материалов сбросятся.', ok: 'Сменить', onOk: go });
+    else go();
+  }
+  /* одно окно загрузки (SOVE.planUpload): свой рендер → разбор картинки; план → в объект (комнаты — сканом Планировки с возвратом сюда) */
+  function openUpload(cards) {
+    if (!PU) return ownPick();
+    track('int_upload_open', {});
+    PU.open({ entry: 'interior', cards: cards || INT_CARDS, returnTo: here(),
+      onRender: function (files) { if (files && files[0]) readUpload(files[0]); },
+      onDone: function () { render(); } });
+  }
+  /* «Свой интерьер» в окне выбора и «Свой рендер» в «Сменить» — сразу выбор картинки (в том же нажатии) */
+  var ownInp = null;
+  function ownPick() {
+    if (!ownInp) {
+      ownInp = document.createElement('input'); ownInp.type = 'file'; ownInp.hidden = true; ownInp.accept = 'image/jpeg,image/png,image/webp,image/heic,image/heif,.heic';
+      ownInp.addEventListener('change', function () { var f = ownInp.files && ownInp.files[0]; if (f) readUpload(f); ownInp.value = ''; });
+      document.body.appendChild(ownInp);
+    }
+    ownInp.click();
   }
 
   /* ── рендеры: новый · ракурс · обновить (по 5 токенов, черновик). Сам рендер не перегенерируется — только по кнопке ── */
@@ -755,8 +981,16 @@
   });
   root.addEventListener('click', function (e) {
     var b = e.target.closest('button, a'); if (!b || !root.contains(b)) return;
-    /* тап по капсуле — сразу Материалы с одной комнатой, главной комнатой капсулы (TZ-interior-final, 1); окна на входе нет */
-    if (b.hasAttribute('data-capsule')) { var c = KB.capsule(b.getAttribute('data-capsule')); return build({ kind: 'capsule', id: c.id, name: c.name, img: c.cover }, { scope: 'rooms', picked: [capsuleMain(c)], basis: planInfo().exact ? 'plan' : 'none', files: [] }); }
+    if (st.lock && Date.now() < st.lock) { e.preventDefault(); return; }
+    /* тап по капсуле — окно выбора с этой капсулой (уровень и цена — там); собираем по «Собрать»: Материалы с главной комнатой капсулы (TZ-interior-final, 1) */
+    if (b.hasAttribute('data-capsule')) return openPicker({ current: b.getAttribute('data-capsule'), from: 'grid' });
+    if (b.hasAttribute('data-caps-all')) return openPicker({ from: b.closest('.int-pick') ? 'chosen' : 'all' });
+    if (b.hasAttribute('data-build-chosen')) { var ch = chosen(); if (!ch) return render(); if (!ch.level) return openPicker({ current: ch.id, from: 'chosen' }); track('int_build_chosen', { capsule: ch.id, level: ch.level }); return onPicked({ capsuleId: ch.id, level: ch.level }); }
+    if (b.hasAttribute('data-upload')) return openUpload(INT_CARDS);
+    if (b.hasAttribute('data-my-ints')) { var mi = R.interiors.list(), mb = mi.filter(function (x) { return x.slots; }); if (mi.length < 2 && mb[0]) return switchTo(mb[0].id); return openChange(); }
+    /* ♡ подборка — товары к интерьеру целиком в Избранное квартиры (R.favSets); повторно — убрать */
+    if (b.hasAttribute('data-fav-set')) { var set = R.favSets && R.favSets.capsule(boardCap()); if (set) { var son = R.favSets.toggle(set); track('int_fav_set', { capsule: set.capsuleId, on: son }); } return render(); }
+    if (b.hasAttribute('data-pros')) { track('int_pros', { capsule: boardCap() }); return; }
     if (b.hasAttribute('data-change')) return openChange();
     if (b.hasAttribute('data-mode')) return setMode(b.getAttribute('data-mode'));
     if (b.hasAttribute('data-vcur')) { st.vcur = b.getAttribute('data-vcur'); st.vz = st.vcur; track('int_room', { room: st.vcur }); return render(); }
@@ -787,12 +1021,26 @@
     if (b.hasAttribute('data-adept')) { track('int_adept', { capsule: board.capsuleId || board.baseCapsuleId }); return; }
   });
 
-  /* вход по ссылке: ?capsule=k2 — сразу всплывашка «Твоя квартира» с этой капсулой; ?flat= — капсула другой квартиры */
-  if (Q.get('flat') && R.flats.get(Q.get('flat'))) { R.flats.setActive(Q.get('flat')); board = passport(); }
+  /* капсулу выбрали в окне из полоски объекта или в другой вкладке — экран A показывает её (своя запись после «Собрать» — не перерисовываем дважды) */
+  window.addEventListener('sove:capsule', function () { if (!applying && st.view === 'a' && !pending) render(); });
+
+  /* вход по ссылке: ?capsule=k2[&level=premium] — окно выбора с этой капсулой (выбирает человек, списание — по «Собрать»);
+     ?scanned=1 — вернулись со скана комнат Планировки (тост — один, наш); ?resume=1 — после входа или пополнения; ?flat= — другая квартира */
+  if (Q.get('flat') && R.flats.get(Q.get('flat'))) { R.flats.setActive(Q.get('flat')); board = passport(); if (st.view === 'b' && !board && !pending) st.view = 'a'; }
   track('int_open', { entry: Q.get('from') || (document.referrer ? document.referrer.split('/').pop().split('?')[0] : 'direct'), view: st.view });
+  var QC = Q.get('capsule') && KB.capsule(Q.get('capsule')), QL = lv(Q.get('level')), SCANNED = Q.get('scanned') === '1', RESUME = Q.get('resume') === '1';
+  /* служебные параметры убираем из адреса сразу: обновление страницы не откроет окно снова, а возврат со скана или входа не повторится */
+  if (Q.has('capsule') || Q.has('level') || SCANNED || RESUME) {
+    var u0 = new URLSearchParams(location.search); ['capsule', 'level', 'scanned', 'resume'].forEach(function (k) { u0.delete(k); });
+    var q0 = u0.toString(); history.replaceState(null, '', 'interior.html' + (q0 ? '?' + q0 : '') + location.hash);
+  }
   render();
   if (st.view === 'b' && pending && !board) analyze();
   /* вернулись из загрузки плана — продолжаем действие, ради которого просили план («＋ комната» / «✦ Сгенерировать») */
   var after = ss('sove.int.after'); if (after && board) { ss('sove.int.after', null); if (planInfo().exact) run(after); }
-  var qc = Q.get('capsule') && KB.capsule(Q.get('capsule')); if (qc && !board) build({ kind: 'capsule', id: qc.id, name: qc.name, img: qc.cover }, { scope: 'rooms', picked: [capsuleMain(qc)], basis: planInfo().exact ? 'plan' : 'none', files: [] });
+  var scan = SCANNED && PU && PU.lastScan ? PU.lastScan(true) : null;
+  if (scan) R.toast('Комнаты сохранены' + (scan.n ? ' · ' + scan.n + ' ' + UI.roomsWord(scan.n) : '') + (scan.m2 ? ' · ' + F.area(scan.m2) : ''));
+  var back0 = (SCANNED || RESUME) && !pending ? takePick() : null;
+  if (back0) openBasis(back0.pick, back0.bs);
+  else if (QC && !pending && (!board || QC.id !== boardCap() || (QL && QL !== curLevel()))) openPicker({ current: QC.id, level: QL, from: 'url' });
 })();

@@ -19,7 +19,7 @@
     }).join('');
     return '<div class="rh"><img src="' + esc(render.img) + '" alt="' + esc(render.room) + '">' +
       '<span class="rh__lbl">' + esc(String(render.room).toUpperCase()) + ' · ' + (o.label || 'ИЗ ТВОИХ МАТЕРИАЛОВ') + '</span>' + pills + (o.extra || '') +
-      (o.changed ? '<button type="button" class="rh__upd" data-rerender="' + esc(render.room) + '">материал изменён · обновить рендер · ' + UI.fmtTokens(o.price) + '</button>' : '') + '</div>';
+      (o.changed ? '<button type="button" class="rh__upd" data-rerender="' + esc(render.room) + '">материал изменён · обновить рендер</button>' : '') + '</div>';
   };
 
   UI.roomsGrid = function (rooms, o) {
@@ -28,10 +28,10 @@
     return '<div class="rg">' + rooms.map(function (r, i) {
       if (r.busy) return '<span class="rg__i rg__i--add rg__i--busy"><b>' + esc(r.room) + '</b><small>собираем рендер…</small></span>';
       if (r.img) return '<button type="button" class="rg__i" data-view="' + i + '" style="background-image:url(' + esc(r.img) + ')"><span><b>' + esc(r.room) + '</b><small>' + (r.example ? 'пример' : r.photo ? 'твоя картинка' : r.project ? 'из проекта' : r.basis === 'typical' ? '≈' : '✓') + '</small></span>' +
-        (r.example && o.redo ? '<em class="rg__redo" data-render="' + esc(r.room) + '">на моём плане · ' + UI.fmtTokens(o.price) + '</em>' : '') + '</button>';
+        (r.example && o.redo ? '<em class="rg__redo" data-render="' + esc(r.room) + '">на моём плане</em>' : '') + '</button>';
       return o.locked
         ? '<button type="button" class="rg__i rg__i--add rg__i--off" data-render="' + esc(r.room) + '"><b>＋ ' + esc(r.room) + '</b><small>нужен план квартиры</small></button>'
-        : '<button type="button" class="rg__i rg__i--add" data-render="' + esc(r.room) + '"><b>＋ ' + esc(r.room) + '</b><small>рендер · ' + UI.fmtTokens(o.price) + '</small></button>';
+        : '<button type="button" class="rg__i rg__i--add" data-render="' + esc(r.room) + '"><b>＋ ' + esc(r.room) + '</b><small>рендер</small></button>';
     }).join('') + '</div>';
   };
 })();

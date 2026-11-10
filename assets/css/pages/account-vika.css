@@ -13,6 +13,9 @@
 .vp-me__t > span { font-size: 13px; color: var(--graphite); }
 .vp-me__kind { align-self: flex-start; display: inline-flex; align-items: center; gap: 4px; margin-top: 4px; padding: 4px 10px; border: 0; border-radius: var(--pill); background: var(--surface-2); color: var(--graphite); font: 500 12px var(--font); cursor: pointer; }
 .vp-me__kind svg { transform: rotate(90deg); }
+/* пилюля та же, а зона нажатия — 44 px по высоте (невидимое поле вокруг) */
+.vp-me__kind { position: relative; }
+.vp-me__kind::after { content: ''; position: absolute; inset: -6px -8px -13px; }
 
 .vp-cards { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); gap: 10px; }
 .vp-metod { position: relative; display: flex; overflow: hidden; border-radius: var(--r); background: #f3e7df; box-shadow: var(--shadow); min-height: 150px; }
@@ -31,6 +34,7 @@
 .vp-tok__top { display: flex; align-items: center; gap: 6px; color: var(--accent); }
 .vp-tok__top small { flex: 1; font-size: 12px; color: var(--ink); }
 .vp-tok b { font-family: var(--font-display); font-size: 34px; font-weight: 500; line-height: 1; margin-top: 4px; }
+.vp-tok__sw { font-size: 12px; color: var(--muted, #6B655F); }   /* ⇄ замены под балансом генераций (03.11) */
 .vp-tok__up { margin-top: auto; font-size: 12.5px; font-weight: 600; color: var(--accent); }
 
 .vp-grp { display: flex; flex-direction: column; gap: 8px; }
@@ -74,3 +78,15 @@
 .vp-proj__on { font-style: normal; font-size: 10.5px; font-weight: 700; color: var(--green); margin-left: 4px; }
 .vp-proj .pa-flat__open { display: block; padding: 12px 14px; border-top: 1px solid var(--line); font-size: 13px; font-weight: 700; color: var(--accent) !important; }
 .vp-proj .pa-add { display: flex; align-items: center; justify-content: center; min-height: 48px; border: 1.5px dashed #d9a58f; border-radius: var(--r); color: var(--accent) !important; font-size: 14px; font-weight: 600; }
+
+/* шторка «Выберите профиль» по «Личный профиль ›»: личный профиль (сейчас открыт) или кабинет поставщика.
+   Окно — общее SOVE.ui.modal (на телефоне снизу), здесь только вид в стиле Профиля */
+.vp-sheet .modal { gap: 16px; }
+.vp-sheet .modal h2 { margin: 0; padding-right: 44px; font-family: var(--font-display); font-size: 26px; font-weight: 500; line-height: 1.1; letter-spacing: 0; }
+.vp-sheet .modal__actions:empty { display: none; }
+.vp-pick { width: 100%; min-height: 64px; grid-template-columns: 40px minmax(0, 1fr) 20px; border: 0; border-top: 1px solid var(--line); background: var(--white); font: inherit; color: var(--ink); text-align: left; cursor: pointer; }
+.vp-pick:first-child { border-top: 0; }
+.vp-pick:focus-visible { outline-offset: -3px; } /* рамка фокуса внутри строки: список обрезает всё, что снаружи */
+.vp-pick__ok { display: inline-flex; color: var(--accent); }
+.vp-pick .vp-row__ch { justify-content: center; }
+@media (min-width: 640px) { .vp-sheet .modal { max-width: 440px; } }

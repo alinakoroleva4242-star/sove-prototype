@@ -1,0 +1,100 @@
+/* Вид вопросов SOVEAPP — один на Бюджет, Планировку и Интерьер (общий договор WP0, 02.11.2026; саммари созвона 28.10, п. 4).
+   Эталон — анкета «Моего ремонта» (my.css .q-chip / .q-big / .q-opt и my-warm.css): белые строки со скруглением 16 и мягкой тенью,
+   выбранная — обводка терракотой и галочка; пилюли при выборе — тёмные; сегмент 44 px. Токены — app-theme.css. my.css не трогаем.
+   Подключать после CSS страницы. Шрифт наследуется (font-family: inherit). Подписи — --graphite: эталонный --stone на белом даёт 4,2:1.
+   Выбранным считается вариант с .is-on, или [aria-pressed="true"] / [aria-checked="true"], или label с отмеченным input внутри.
+
+   Разметка
+   Вопрос   <div class="qs"><div class="qs__h"><h3 class="qs__t">Что сейчас в квартире?</h3><p class="qs__s">Подсказка под вопросом</p></div> … </div>
+            .qs__t--lg — вопрос на весь экран (26 px)
+   Шаги     <div class="qs-top"><button type="button" class="qs-top__back">‹ Назад</button><span>2 из 3</span></div>
+            <div class="qs-bar"><i style="width:66%"></i></div>
+   Строка   <button type="button" class="qs-opt" aria-pressed="true">
+              <span class="qs-opt__ic">svg</span>  или  <img class="qs-opt__pic" src="…" alt="">
+              <span class="qs-opt__t"><b>Бетон</b><small>стены и пол без отделки</small></span>
+              <span class="qs-opt__aside">60 000 ₽/м²</span>          — справа: ставка, метка «бюджет точнее»
+              <span class="qs-opt__ok" aria-hidden="true"></span>     — галочка выбора (видна только у выбранной)
+              <span class="qs-opt__go" aria-hidden="true">›</span>    — вместо галочки, если строка ведёт дальше
+            </button>
+            <label class="qs-opt"><input type="radio" name="state" class="qs-sr"> … </label>   — то же на input
+   Список   <div class="qs-list">…строки…</div>        Плитки две в ряд  <div class="qs-grid">…строки…</div>
+   Пилюли   <div class="qs-chips"><button type="button" class="qs-chip" aria-pressed="false">Санузел</button>
+            <button type="button" class="qs-chip qs-chip--big" aria-pressed="true">2</button></div>
+   Сегмент  <div class="qs-seg" role="group" aria-label="С чем работаем"><button type="button" aria-pressed="true">Вся квартира<small>все комнаты</small></button>
+            <button type="button" aria-pressed="false">Комнаты<small>выбрать ниже</small></button></div>
+
+   Замены в блоках
+   Бюджет      .option / .scout-state / .scout-format / .scout-src__opt → .qs-opt;  .scout-filt__b → .qs-chip
+   Планировка  .pz-chip → .qs-chip;  .pz-state__i / .pz-src__i / .pz-toggle → .qs-opt (+ __aside, label + input);  .pz-q → .qs
+   Интерьер    .bs-o → .qs-opt + .qs-opt__ic;  .bs-seg / .lv → .qs-seg;  .bs-chip (лента с overflow-x) → .qs-chips (перенос, без прокрутки) */
+
+/* ---------- вопрос и шаги ---------- */
+.qs { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.qs__h { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.qs__t { margin: 0; font-family: var(--font-display); font-weight: 600; font-size: 21px; line-height: 1.15; letter-spacing: 0; color: var(--ink); }
+.qs__t--lg { font-size: 26px; }
+.qs__s { margin: 0; font-size: 12.5px; line-height: 1.4; color: var(--graphite); }
+.qs-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 12px; color: var(--graphite); }
+.qs-top__back { min-height: 36px; padding: 0; border: 0; background: none; color: var(--accent); font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+.qs-bar { height: 4px; border-radius: var(--pill); background: var(--line); overflow: hidden; }
+.qs-bar > i { display: block; width: 0; height: 100%; border-radius: inherit; background: var(--accent); transition: width .3s; }
+
+/* ---------- списки ---------- */
+.qs-list { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.qs-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; min-width: 0; }
+
+/* ---------- строка-вариант (.q-opt + my-warm) ---------- */
+.qs-opt { position: relative; display: flex; align-items: center; gap: 12px; width: 100%; min-width: 0; min-height: 56px; box-sizing: border-box; margin: 0; padding: 14px;
+  border: 0; border-radius: var(--r); background: var(--white); box-shadow: var(--shadow); color: var(--ink);
+  font-family: inherit; font-size: 14px; font-weight: 400; line-height: 1.3; text-align: left; text-decoration: none; cursor: pointer; transition: box-shadow .15s; }
+@media (hover: hover) { .qs-opt:not(:disabled):hover { box-shadow: 0 0 0 1px var(--line-2), var(--shadow); } }
+.qs-opt.is-on, .qs-opt[aria-pressed="true"], .qs-opt[aria-checked="true"], label.qs-opt:has(input:checked) { box-shadow: 0 0 0 1.5px var(--accent), var(--shadow); }
+.qs-opt__pic { flex: none; width: 56px; height: 56px; border-radius: var(--r-xs); object-fit: cover; background: var(--surface-2) center / cover no-repeat; }
+.qs-opt__ic { flex: none; width: 40px; height: 40px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); display: flex; align-items: center; justify-content: center; font-size: 18px; line-height: 1; }
+.qs-opt__ic svg { width: 20px; height: 20px; }
+.qs-opt__t { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.qs-opt__t b { font-size: 15px; font-weight: 600; line-height: 1.25; }
+.qs-opt__t small { font-size: 12px; line-height: 1.35; color: var(--graphite); }
+.qs-opt__aside { flex: none; margin-left: auto; font-size: 12px; font-weight: 600; line-height: 1.3; color: var(--graphite); white-space: nowrap; text-align: right; }
+.qs-opt__ok { flex: none; position: relative; width: 22px; height: 22px; border-radius: 50%; background: var(--accent); visibility: hidden; }
+.qs-opt__ok::before { content: ''; position: absolute; left: 7.5px; top: 4px; width: 5px; height: 10px; border: solid var(--white); border-width: 0 2px 2px 0; transform: rotate(45deg); }
+.qs-opt.is-on .qs-opt__ok, .qs-opt[aria-pressed="true"] .qs-opt__ok, .qs-opt[aria-checked="true"] .qs-opt__ok, label.qs-opt:has(input:checked) .qs-opt__ok { visibility: visible; }
+.qs-opt__go { flex: none; color: var(--accent); font-size: 18px; font-weight: 800; line-height: 1; }
+.qs-opt:disabled, .qs-opt.is-off, .qs-opt[aria-disabled="true"] { opacity: .5; cursor: not-allowed; }
+.qs-opt:focus-visible, label.qs-opt:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+/* input внутри label-варианта: виден только фокусом строки */
+.qs-sr { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+
+/* плитки в сетке: вертикально, галочка в углу */
+.qs-grid .qs-opt { flex-direction: column; align-items: flex-start; justify-content: center; gap: 6px; min-height: 72px; padding: 12px; }
+.qs-grid .qs-opt__t { width: 100%; }
+.qs-grid .qs-opt:has(.qs-opt__ok) .qs-opt__t { padding-right: 26px; box-sizing: border-box; }
+.qs-grid .qs-opt__ok { position: absolute; top: 8px; right: 8px; }
+.qs-grid .qs-opt__aside { margin-left: 0; white-space: normal; text-align: left; }
+
+/* ---------- пилюли (.q-chip / .q-big) ---------- */
+.qs-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-width: 0; }   /* пилюли 40 px рядом с --big 56 px не тянутся */
+.qs-chip { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 40px; max-width: 100%; box-sizing: border-box; padding: 0 14px;
+  border: 1px solid var(--line-2); border-radius: var(--pill); background: var(--white); color: var(--ink);
+  font-family: inherit; font-size: 13px; font-weight: 500; line-height: 1.2; text-align: center; cursor: pointer; transition: background .15s, border-color .15s, color .15s; }
+@media (hover: hover) { .qs-chip:not(:disabled):hover { border-color: var(--ink); } }
+.qs-chip.is-on, .qs-chip[aria-pressed="true"], .qs-chip[aria-checked="true"], label.qs-chip:has(input:checked) { background: var(--ink); border-color: var(--ink); color: var(--white); }
+.qs-chip--big { min-width: 72px; min-height: 56px; border-radius: var(--r-sm); font-size: 17px; font-weight: 600; }
+.qs-chip:disabled { opacity: .5; cursor: not-allowed; }
+.qs-chip:focus-visible, label.qs-chip:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* ---------- сегмент 44 px ---------- */
+.qs-seg { display: flex; gap: 2px; min-width: 0; padding: 3px; border-radius: var(--r-sm); background: var(--surface-2); }
+.qs-seg > button, .qs-seg > label { flex: 1 1 0; min-width: 0; min-height: 44px; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
+  margin: 0; padding: 4px 8px; border: 0; border-radius: 9px; background: none; color: var(--graphite); font-family: inherit; font-size: 13px; font-weight: 600; line-height: 1.2; text-align: center; cursor: pointer; }
+.qs-seg small { font-size: 10.5px; font-weight: 500; line-height: 1.2; color: var(--graphite); }
+.qs-seg > .is-on, .qs-seg > [aria-pressed="true"], .qs-seg > [aria-checked="true"], .qs-seg > label:has(input:checked) { background: var(--white); color: var(--ink); box-shadow: 0 1px 4px rgba(41,36,33,.12); }
+.qs-seg > :disabled { opacity: .5; cursor: not-allowed; }
+.qs-seg > button:focus-visible, .qs-seg > label:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+@media (prefers-reduced-motion: reduce) { .qs-opt, .qs-chip, .qs-bar > i { transition: none; } }
+
+/* ---------- строка «скоро»: видна, но не нажимается ---------- */
+.qs-opt--soon, .qs-opt--soon:hover { cursor: default; box-shadow: var(--shadow); }
+.qs-opt--soon .qs-opt__ic { background: var(--surface-2); color: var(--graphite); }
+.qs-soon { flex: none; margin-left: auto; padding: 3px 8px; border-radius: var(--pill); background: var(--accent-soft); color: var(--accent); font-size: 11px; font-weight: 600; line-height: 1.2; white-space: nowrap; }

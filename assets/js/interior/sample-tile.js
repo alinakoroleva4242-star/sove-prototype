@@ -6,7 +6,7 @@
 (function () {
   var UI = window.SOVE_MATUI = window.SOVE_MATUI || {};
   /* цена генерации словами — одна функция на блок (TZ-interior-final, 6): fmtTokens(10) → «+10 токенов»; значков токенов  нет */
-  UI.fmtTokens = function (n) { return '+' + window.SOVE.fmt.tokens(n); };
+  UI.fmtTokens = function () { return ''; };   /* кнопки без цен и чисел (тарифы генераций, 03.11) */
 
   function rgb(h) { h = String(h).replace('#', ''); return [0, 2, 4].map(function (i) { return parseInt(h.substr(i, 2), 16); }); }
   /* светлее (+) / темнее (−) на долю */

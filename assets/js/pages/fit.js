@@ -53,7 +53,7 @@
           ROOMS.map(function (r, i) { return '<button type="button" class="fit__sample" data-room="' + i + '"><img src="' + r.src + '" alt="" loading="lazy"><span>' + esc(r.title) + '</span></button>'; }).join('') +
         '</div></div>' +
       '</div>' +
-      '<p class="fit__cost">Примерка бесплатна — токены нужны только для разбора рендера интерьера.</p>';
+      '<p class="fit__cost">Примерка бесплатна — генерации нужны только для разбора рендера интерьера.</p>';
   }
 
   function viewRun() {

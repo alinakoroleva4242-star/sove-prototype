@@ -26,8 +26,8 @@
   function status(g) {
     var paid = !!g.cost;
     if (g.status === 'running') return { text: 'идёт поиск', cls: 'badge--accent' };
-    if (g.status === 'empty') return { text: 'ничего не найдено · ' + (paid ? 'токены возвращены' : 'запуск возвращён'), cls: 'badge--line' };
-    if (g.status === 'error') return { text: 'ошибка · ' + (paid ? 'токены возвращены' : 'запуск возвращён'), cls: 'gen-badge--danger' };
+    if (g.status === 'empty') return { text: 'ничего не найдено · ' + (paid ? 'генерация вернулась на баланс' : 'запуск возвращён'), cls: 'badge--line' };
+    if (g.status === 'error') return { text: 'ошибка · ' + (paid ? 'генерация вернулась на баланс' : 'запуск возвращён'), cls: 'gen-badge--danger' };
     return { text: 'готово', cls: 'badge--green' };
   }
   function costLine(g) {
@@ -114,7 +114,7 @@
     } else {
       head = 'Пробные запуски закончились';
       text = 'Войдите по коду из SMS — подарим ' + F.tokens(D.gift.tokens) + ' на генерации. Поиск по фото стоит ' + F.tokens(D.costs.photo) + ', по рендеру — ' + F.tokens(D.costs.render) + '.';
-      action = '<a class="btn btn--primary" href="auth.html?returnTo=' + encodeURIComponent('ai.html') + '">Войти и получить токены</a>';
+      action = '<a class="btn btn--primary" href="auth.html?returnTo=' + encodeURIComponent('ai.html') + '">Войти и получить генерацию</a>';
     }
     return '<div class="gens-empty">' +
       '<div class="gens-empty__text stack stack--6"><span class="eyebrow">Здесь пока пусто</span><h2 class="h2">' + head + '</h2><p class="text">' + text + '</p>' +
@@ -172,7 +172,7 @@
       console.error(e);
       elToolbar.hidden = true; elSummary.hidden = true;
       elList.innerHTML = '<div class="error-screen"><h2 class="h3">Не удалось показать генерации</h2>' +
-        '<p class="text">Данные ленты не прочитались. Токены при этом не списывались. Обновите страницу — если не поможет, сбросьте данные прототипа внизу страницы.</p>' +
+        '<p class="text">Данные ленты не прочитались. Генерации при этом не списывались. Обновите страницу — если не поможет, сбросьте данные прототипа внизу страницы.</p>' +
         '<div class="row"><button type="button" class="btn btn--ghost" onclick="location.reload()">Обновить страницу</button></div></div>';
     }
   }
@@ -186,7 +186,7 @@
     if (nothing) {
       if (g.opId) S.tokens.refund(g.opId, 'ничего не найдено'); else if (g.demo || (!g.cost && !S.auth.isIn())) S.demo.giveBack();
       S.gens.update(id, { status: 'empty', finishedAt: Date.now() });
-      S.ui.toast('Поиск завершён: ничего не нашли. ' + (g.cost ? 'Токены вернулись на баланс.' : 'Пробный запуск вернули.'));
+      S.ui.toast('Поиск завершён: ничего не нашли. ' + (g.cost ? 'Генерация вернулась на баланс.' : 'Пробный запуск вернули.'));
     } else {
       if (g.opId) S.tokens.commit(g.opId);
       S.gens.update(id, { status: 'done', finishedAt: Date.now(), result: g.result || (g.kind === 'render' ? { sample: true } : { items: D.ai.photoSample.items }) });

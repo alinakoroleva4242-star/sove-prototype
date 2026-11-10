@@ -75,11 +75,10 @@
 .cap-path .small { flex: 1 1 auto; }
 @media (max-width: 639px) { .cap-paths { --cols: 1; } }
 
-/* другие капсулы: на телефоне — лента с прокруткой вбок, чтобы цена помещалась в строку */
+/* другие капсулы: на телефоне — сетка две в ряд, как в каталоге (в демо ничего не прокручивается вбок) */
 @media (max-width: 639px) {
-  .cap-others { display: flex; gap: var(--s4); overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; margin-inline: calc(var(--gutter) * -1); padding-inline: var(--gutter); scroll-padding-inline: var(--gutter); }
-  .cap-others::-webkit-scrollbar { display: none; }
-  .cap-others > * { flex: 0 0 66%; scroll-snap-align: start; }
+  .cap-others { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s4); }
+  .cap-others > * { min-width: 0; }
 }
 
 /* загрузка и «не найдена» */

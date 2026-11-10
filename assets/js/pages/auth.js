@@ -44,7 +44,7 @@
       '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round">' +
       '<rect x="3.2" y="9.4" width="17.6" height="10.4" rx="1.6"/><path d="M3.2 13.4h17.6M12 9.4V19.8"/>' +
       '<path d="M12 9.4C10.4 6.6 8.8 5.4 7.4 5.4a2 2 0 0 0 0 4h4.6zM12 9.4c1.6-2.8 3.2-4 4.6-4a2 2 0 0 1 0 4H12z"/></svg></span>' +
-    '<span class="auth__gift-t"><b>' + D.gift.tokens + '\u00a0токенов в подарок</b>' +
+    '<span class="auth__gift-t"><b>' + D.gift.tokens + '\u00a0генерация в подарок</b>' +
       '<i>новым пользователям на SOVEAPP\u00a0AI, ' + D.gift.days + '\u00a0дней</i></span>';
 
   $('done-link').href = returnTo;

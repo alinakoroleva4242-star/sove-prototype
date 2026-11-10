@@ -1,6 +1,6 @@
 /* Лента «Метод ремонта» (feed.html) — закрытый канал METOD в приложении (созвон 28.10.2026, Алина и Таня; замечания Тани 29.10).
    Посты — assets/js/feed-posts.js (window.SOVE_FEED_POSTS). Три типа карточек: акция партнёра, подборка дизайнера,
-   концепция. Без подписки открыт контент недели (access:'open', правило WEEK в feed-posts.js), остальное размыто (CSS) и ведёт на metod.html.
+   концепция. Без подписки открыты только промо-посты (акции партнёров, Алина 03.11), остальное размыто (CSS) и ведёт на metod.html.
    Из ленты товар уходит в Избранное и Корзину квартиры (SOVE.repair: ♡ / 🛒), подборка — целиком в Избранное → Подборки
    (R.favSets) или вся в корзину; концепция — в Избранное как подборка материалов, «Собрать интерьер» — экран Интерьер.
    Товар с маркетплейса (it.marketplace) — одна кнопка «Перейти в магазин», в каталог не регистрируется.
@@ -14,11 +14,38 @@
   var D = S.data, F = S.fmt, esc = F.esc, ui = S.ui, R = S.repair, V = window.SOVE_VIEWER;
   var root = document.getElementById('feed-root'); if (!root) return;
 
-  var TYPES = [ { key: 'all', label: 'Все' }, { key: 'promo', label: 'Акции' }, { key: 'pick', label: 'Подборки' }, { key: 'concept', label: 'Концепции' } ];
-  var KIND = { promo: 'Акция партнёра', pick: 'Подборка дизайнера', concept: 'Концепция' };
-  var METOD_HREF = 'metod.html?returnTo=feed.html';
+  /* рубрики (ТЗ 04.11, п. 4): «Все» во всю ширину, ниже плитки 2 в ряд с фото; «Доски материалов» — концепции с собранной доской */
+  var TYPES = [ { key: 'all', label: 'Все' },
+    { key: 'concept', label: 'Концепции', img: 'assets/img/feed/concept-80.jpg' },
+    { key: 'promo', label: 'Акции партнёров', img: 'assets/img/cat/93209.jpg', obj: true },
+    { key: 'capsule', label: 'Интерьерные капсулы', img: 'assets/img/capsules/k1-main-1.jpg' },
+    { key: 'pick', label: 'Подборки', img: 'assets/img/feed/items/9080011.jpg', obj: true },
+    { key: 'board', label: 'Доски материалов', img: 'assets/img/feed/concept-78.jpg' } ];
+  function inType(p, key) { return key === 'all' ? true : key === 'board' ? p.type === 'concept' && p.hasBoard !== false : p.type === key; }
+  /* категории товаров (ТЗ 04.11, п. 5): пост попадает в категорию по товарам внутри — категория, подкатегория, название */
+  var CATS = ['Отделка', 'Освещение', 'Сантехника', 'Техника', 'Мебель', 'Двери', 'Декор', 'Розетки и выключатели'];
+  var CAT_RULES = [
+    ['Розетки и выключатели', /розетк|выключател/],
+    ['Освещение', /свет|люстр|бра\b|торшер|ламп/],
+    ['Сантехника', /смесител|ванн|раковин/],
+    ['Отделка', /плитк|керамогранит|обои|паркет|ламинат|краск|молдинг|панел/],
+    ['Двери', /двер|перегородк/],
+    ['Техника', /холодильн|духов|вытяжк/],
+    ['Декор', /ковр|ковёр|ковер|зеркал|штор|текстил|декор/]
+  ];
+  function itemCat(it) { var t = (String(it.category || '') + ' ' + String(it.subcat || '') + ' ' + String(it.name || '')).toLowerCase(); for (var i = 0; i < CAT_RULES.length; i++) if (CAT_RULES[i][1].test(t)) return CAT_RULES[i][0]; return 'Мебель'; }
+  function postCats(p) { var out = []; (p.items || []).forEach(function (it) { var c = itemCat(it); if (out.indexOf(c) < 0) out.push(c); }); return out; }
+  function inCat(p, cat) { return cat === 'all' || postCats(p).indexOf(cat) >= 0; }
+  var curCat = CATS.indexOf(ui.qs('c') || '') >= 0 ? ui.qs('c') : 'all';
+  var KIND = { promo: 'Акция партнёра', pick: 'Подборка дизайнера', concept: 'Концепция', capsule: 'Капсула' };
+  /* подписка METOD живёт здесь же, в ленте (Алина 03.11): «Оформить» / «Продлить» открывают шторку с тарифами → сразу оплата */
   /* порядок ленты — rank (feed-posts.js: дата поста, у подборок с маркетплейсов — после остальных подборок) */
-  var POSTS = (window.SOVE_FEED_POSTS || []).slice().sort(function (a, b) { return (b.rank || b.ts) - (a.rank || a.ts); });
+  /* рубрика «Капсулы» (Алина 03.11): капсулы SOVEAPP из данных — по посту на капсулу, даты поста нет; в «Все» — после постов канала */
+  var CAPS = (D.capsules || []).map(function (c) {
+    return { id: 'capsule-' + c.id, type: 'capsule', rank: 0, ts: null, author: 'Дизайнер', capsuleId: c.id, title: c.name, style: c.style, text: c.concept,
+      materials: c.materials || [], gallery: (c.gallery || []).length ? c.gallery : [{ room: 'Интерьер', src: c.cover }] };
+  });
+  var POSTS = (window.SOVE_FEED_POSTS || []).concat(CAPS).sort(function (a, b) { return (b.rank || b.ts) - (a.rank || a.ts); });
   function byId(id) { return POSTS.filter(function (p) { return p.id === id; })[0]; }
   function validType(t) { return TYPES.some(function (x) { return x.key === t; }) ? t : 'all'; }
   var cur = validType(ui.qs('t') || 'all');
@@ -48,7 +75,11 @@
   function product(it) { return D.product(it.pid) || { id: it.pid, name: it.name, brand: it.brand, metod: it.price, retail: it.old || it.price, img: it.img, subcat: it.category }; }
   /* товары поста для корзины и Избранного — только партнёрские (маркетплейсов в каталоге нет) */
   function ids(post) { return (post.items || []).filter(function (it) { return !it.marketplace; }).map(function (it) { return it.pid; }); }
-  function locked(post) { return post.access === 'metod' && !S.metod.active(); }
+  /* без подписки открыто 5 постов (ТЗ 04.11, п. 6): WEEK в feed-posts.js — 1 концепция, 2 подборки, 2 акции; остальное размыто */
+  /* переключатель показа «С подпиской / Без подписки» (Алина 03.11): в одном прототипе видно оба варианта ленты; ?view=sub|nosub */
+  var demoView = /^(sub|nosub)$/.test(ui.qs('view') || '') ? ui.qs('view') : null;
+  function subOn() { return demoView === 'nosub' ? false : demoView === 'sub' ? true : S.metod.active(); }
+  function locked(post) { return post.access !== 'open' && !subOn(); }
   function setId(post) { return 'feed:' + post.id; }
   function hasSet(post) { return !!(R && R.favSets && R.favSets.has(setId(post))); }
   function initials(s) { return String(s || '').split(/\s+/).slice(0, 2).map(function (w) { return w.charAt(0); }).join('').toUpperCase() || 'S'; }
@@ -66,6 +97,7 @@
   }
   /* все картинки концепции: доска (или референс, если доски нет) + рендеры из kb/concept-refs.js (+ refs у 76–78) */
   function conceptImages(post) {
+    if (post.type === 'capsule') return post.gallery.map(function (g) { return { src: g.src, label: String(g.room || '').toLowerCase() }; });
     var extra = (window.SOVE_CONCEPT_REFS || {})[String(post.concept)] || [];
     var list = [ { src: post.board, label: post.hasBoard === false ? 'референс' : 'доска' } ];
     (post.refs || []).concat(extra).forEach(function (src) { if (src && !list.some(function (x) { return x.src === src; })) list.push({ src: src, label: 'рендер' }); });
@@ -80,27 +112,27 @@
   function head(post, badge) {
     var who = post.type === 'promo' ? '<span class="fp__ava fp__ava--brand">' + esc(initials(post.brand)) + '</span>' : '<span class="fp__ava">' + STAR + '</span>';
     return '<header class="fp__head">' + who +
-      '<span class="fp__who"><b>' + esc(post.author) + '</b><small>' + esc(KIND[post.type] || '') + ' · ' + esc(F.dateLong(post.ts)) + '</small></span>' +
+      '<span class="fp__who"><b>' + esc(post.author) + '</b><small>' + esc(KIND[post.type] || '') + (post.ts ? ' · ' + esc(F.dateLong(post.ts)) : '') + '</small></span>' +
       (badge ? '<span class="fp__badge' + (post.type === 'promo' ? ' fp__badge--promo' : '') + '">' + badge + '</span>' : '') + '</header>';
   }
   /* товар — своя плашка: фото предмета на белом, название, магазин, цена; партнёр: ♡ · 🛒 · «Найти в каталоге»; маркетплейс: «Перейти в магазин» */
+  /* товар — плитка 2 в ряд (ТЗ 04.11, п. 7): фото на квадрате, ♡ и 🛒 кругами поверх фото, ниже цена, название в 2 строки, магазин.
+     Старая цена зачёркнута всегда — и с подпиской, и без. Маркетплейс — одна кнопка «Перейти в магазин» под плиткой */
   function item(post, it) {
     var p = product(it), href = it.local ? 'product.html?id=' + p.id : '', name = it.local ? p.name : it.name;
-    var pic = (href ? '<a href="' + href + '"' : '<span') + ' class="fp-it__pic"><img src="' + esc(it.img || p.img) + '" alt="" loading="lazy"></' + (href ? 'a' : 'span') + '>';
-    var price = it.marketplace
-      ? '<span class="rp-price"><b>' + F.rub(it.price) + '</b>' + (it.old > it.price ? '<s>' + F.rub(it.old) + '</s>' : '') + '</span>'
-      : (R ? R.price(p) : '<span class="rp-price"><b>' + F.rub(p.metod) + '</b></span>');
-    var act = it.marketplace
-      ? '<a class="btn btn--ghost btn--sm fp-it__go" href="' + esc(it.url) + '" target="_blank" rel="noopener">Перейти в магазин ↗</a>'
-      : (R ? R.btns(p, 'market') : '') + '<a class="fp-it__find" href="market.html?q=' + encodeURIComponent(searchName(name)) + '">Найти в каталоге</a>';
-    return '<div class="fp-it' + (it.marketplace ? ' fp-it--mp' : '') + '">' + pic +
-      '<div class="fp-it__body">' + (href ? '<a class="fp-it__name" href="' + href + '">' + esc(name) + '</a>' : '<b class="fp-it__name">' + esc(name) + '</b>') +
-      '<small class="fp-it__shop">' + esc(it.brand) + (it.marketplace ? ' · маркетплейс' : it.category ? ' · ' + esc(it.category) : '') + '</small>' +
-      price + '<div class="fp-it__act">' + act + '</div></div></div>';
+    var now = it.marketplace ? it.price : p.metod, old = it.marketplace ? it.old : p.retail;
+    var pic = (href ? '<a href="' + href + '"' : '<span') + ' class="fp-it__img"><img src="' + esc(it.img || p.img) + '" alt="" loading="lazy"></' + (href ? 'a' : 'span') + '>';
+    var act = it.marketplace ? '' : '<div class="fp-it__act">' + (R ? R.btns(p, 'market') : '') + '</div>';
+    return '<div class="fp-it' + (it.marketplace ? ' fp-it--mp' : '') + '"><div class="fp-it__pic">' + pic + act + '</div>' +
+      '<div class="fp-it__body"><span class="rp-price"><b>' + F.rub(now) + '</b>' + (old > now ? '<s>' + F.rub(old) + '</s>' : '') + '</span>' +
+      (href ? '<a class="fp-it__name" href="' + href + '">' + esc(name) + '</a>' : '<b class="fp-it__name">' + esc(name) + '</b>') +
+      '<small class="fp-it__shop">' + esc(it.brand) + (it.marketplace ? ' · маркетплейс' : '') + '</small>' +
+      (it.marketplace ? '<a class="btn btn--ghost btn--sm fp-it__go" href="' + esc(it.url) + '" target="_blank" rel="noopener">Перейти в магазин ↗</a>' : '') + '</div></div>';
   }
   function lockPlate() {
-    return '<div class="fp__lock"><div class="fp__lock-box"><b>Полная лента и закрытые цены — по подписке METOD</b><a class="btn btn--primary btn--sm" href="' + METOD_HREF + '">Оформить</a></div></div>';
+    return '<div class="fp__lock"><div class="fp__lock-box"><b>Полная лента и закрытые цены — по подписке METOD</b><a class="btn btn--primary btn--sm" href="#" data-sub>Оформить</a></div></div>';
   }
+  var firstLockedId = null;   /* плашку «Оформить» — только на первом закрытом посте, остальные просто размыты (ТЗ 04.11, п. 6) */
   /* подборка → концепция: ссылка с обложкой; переход в той же странице (data-go), href — для новой вкладки */
   function conceptLink(post) {
     var c = byId('concept-' + post.concept); if (!c) return '';
@@ -112,8 +144,8 @@
     var picks = picksOf(post); if (!picks.length) return '';
     return '<span class="fp__cap">Подборки к концепции ' + post.concept + '</span><div class="fp-picks">' + picks.map(function (p) {
       var n = p.items.length;
-      return '<a class="fp-pick" href="feed.html?post=' + esc(p.id) + '" data-go="' + esc(p.id) + '"><img src="' + esc((p.items[0] || {}).img || '') + '" alt="" loading="lazy">' +
-        '<span><b>' + esc(p.category) + '</b><small>' + n + ' ' + plural(n, 'товар', 'товара', 'товаров') + ' · ' + esc(F.dateLong(p.ts)) + '</small></span></a>';
+      return '<a class="fp-pick" href="feed.html?post=' + esc(p.id) + '" data-go="' + esc(p.id) + '"><span class="fp-pick__img"><img src="' + esc((p.items[0] || {}).img || '') + '" alt="" loading="lazy"></span>' +
+        '<span><b>' + esc(p.category) + '</b><small>' + n + ' ' + plural(n, 'товар', 'товара', 'товаров') + '</small></span></a>';
     }).join('') + '</div>';
   }
   /* карусель картинок концепции: scroll-snap со свайпом, точки, стрелки на десктопе, тап — просмотр; картинки грузятся лениво */
@@ -153,47 +185,181 @@
   }
   function conceptCard(post) {
     var on = hasSet(post);
-    return head(post, 'Концепция ' + post.concept) +
+    return carousel(post) + head(post, 'Концепция ' + post.concept) +
       '<h2 class="fp__t">' + esc(post.title) + '</h2>' +
       (post.text ? '<p class="fp__text">' + esc(post.text) + '</p>' : '') +
-      carousel(post) +
-      (post.dna && post.dna.length ? '<span class="fp__cap">ДНК интерьера</span><div class="fp-dna fp-dna--' + Math.min(post.dna.length, 7) + '">' + post.dna.map(function (c) { return '<span class="fp-dna__c"><i style="background:' + esc(c.hex) + '"></i><small>' + esc(c.name) + '</small></span>'; }).join('') + '</div>' : '') +
+      (post.dna && post.dna.length ? '<span class="fp__cap">ДНК интерьера</span><div class="fp-dna" style="--n:' + post.dna.length + '"><div class="fp-dna__bar">' + post.dna.map(function (c) { return '<i style="background:' + esc(c.hex) + '"></i>'; }).join('') + '</div>' +
+        '<div class="fp-dna__names">' + post.dna.map(function (c) { return '<small>' + esc(c.name) + '</small>'; }).join('') + '</div></div>' : '') +
       (post.materials && post.materials.length ? '<span class="fp__cap">' + (post.materials.every(function (m) { return m.n; }) ? 'Материалы по номерам на доске' : 'Материалы на доске') + '</span><ol class="fp-mats">' + post.materials.map(function (m, i) { return '<li><span class="fp-mats__n">' + (m.n || i + 1) + '</span><span class="fp-mats__t"><b>' + esc(m.name) + '</b>' + (m.where ? '<small>' + esc(m.where) + '</small>' : '') + '</span></li>'; }).join('') + '</ol>' : '') +
       picksBlock(post) +
       '<footer class="fp__foot">' +
       '<button type="button" class="btn btn--primary btn--sm' + (on ? ' is-on' : '') + '" data-set-save="' + esc(post.id) + '" aria-pressed="' + on + '">' + HEART + ' ' + (on ? 'Материалы в Моём ремонте' : 'Сохранить в Мой ремонт') + '</button>' +
       '<a class="btn btn--ghost btn--sm" href="interior.html">Собрать интерьер по концепции</a></footer>';
   }
+  function capsuleCard(post) {
+    return carousel(post) + head(post, esc(post.style)) +
+      '<h2 class="fp__t">' + esc(post.title) + '</h2>' +
+      (post.text ? '<p class="fp__text">' + esc(post.text) + '</p>' : '') +
+      (post.materials.length ? '<span class="fp__cap">Материалы</span><ol class="fp-mats">' + post.materials.map(function (m) { return '<li>' + esc(m) + '</li>'; }).join('') + '</ol>' : '') +
+      '<footer class="fp__foot"><a class="btn btn--ghost btn--sm" href="capsule.html?id=' + esc(post.capsuleId) + '">Подробнее о капсуле</a>' +
+      '<a class="btn btn--primary btn--sm" href="interior.html?v=a">Собрать интерьер</a></footer>';
+  }
   function card(post) {
-    var lk = locked(post), body = post.type === 'promo' ? promoCard(post) : post.type === 'pick' ? pickCard(post) : conceptCard(post);
-    return '<article class="fp fp--' + esc(post.type) + (lk ? ' is-locked' : '') + (post.id === focusId ? ' is-focus' : '') + '" data-post="' + esc(post.id) + '"' + (lk ? ' aria-label="Пост по подписке METOD"' : '') + '>' +
-      '<div class="fp__in"' + (lk ? ' inert aria-hidden="true"' : '') + '>' + body + '</div>' + (lk ? lockPlate() : '') + '</article>';
+    var lk = locked(post), body = post.type === 'promo' ? promoCard(post) : post.type === 'pick' ? pickCard(post) : post.type === 'capsule' ? capsuleCard(post) : conceptCard(post);
+    var plate = lk && post.id === firstLockedId;
+    return '<article class="fp fp--' + esc(post.type) + (lk ? ' is-locked' + (plate ? '' : ' is-quiet') : '') + (post.id === focusId ? ' is-focus' : '') + '" data-post="' + esc(post.id) + '"' + (lk ? ' aria-label="Пост по подписке METOD"' : '') + '>' +
+      '<div class="fp__in"' + (lk ? ' inert aria-hidden="true"' : '') + '>' + body + '</div>' + (plate ? lockPlate() : '') + '</article>';
+  }
+
+  /* ---------- шапка как на Главной (ТЗ 04.11, п. 1): фото интерьера, «Пример расчёта бюджета», ползунок, выгода ----------
+     Формулы — ровно как в home3.js: budget, gain, flatName, заливка ползунка через --fill. Интерьер — «Тёплая классика с терракотом» */
+  var CAP = D.capsule('k4') || D.capsules.filter(function (c) { return !c.soon && !c.designer && c.pricePerM2; })[0];
+  var BASE_STATE = D.scout.states.filter(function (x) { return x.id === 'concrete'; })[0] || D.scout.states[0];
+  var AREA_MIN = 36, AREA_MAX = 84, AREA_DEF = 60, area = AREA_DEF;
+  var sumRetail = 0, sumMetod = 0;
+  D.products.forEach(function (p) { if (p.capsules && p.capsules.length) { sumRetail += p.retail; sumMetod += p.metod; } });
+  var noMetodK = sumMetod ? sumRetail / sumMetod : 1.2;
+  function mln(n) { return (Math.round(n / 100000) / 10).toFixed(1).replace('.', ','); }
+  function budget(a) { return mln((BASE_STATE.rate + CAP.pricePerM2) * a) + ' млн ₽'; }
+  function gain(a) { return 'до ' + F.num(Math.round((CAP.pricePerM2 * noMetodK - CAP.pricePerM2) * a / 10000) * 10000).replace(/ /g, ' ') + ' ₽'; }
+  function flatName(a) { return a < 41 ? 'Студия' : a < 56 ? '1-комнатная' : a < 71 ? '2-комнатная' : '3-комнатная'; }
+  var HERO_SRC = ((D.ai && D.ai.renderMarks) || {})[CAP.id] ? D.ai.renderMarks[CAP.id].src : CAP.cover;
+  /* цена «от» на кнопке — самый дешёвый тариф METOD из данных (Алина 04.11: цены как в данных прототипа) */
+  var FROM = Math.min.apply(null, (D.metodPlans || [{ price: 0 }]).map(function (m) { return m.price; }));
+  var MARK = '<span class="hc-mark3" aria-hidden="true"><i class="hc-mark3__logo"></i></span>';
+  var GIFT = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11h16v9H4zM3 7h18v4H3zM12 7v13M12 7c-1.5-3-5-3-5-1s3 1 5 1c2 0 5 1 5-1s-3.5-2-5 1"/></svg>';
+  var UPLOAD = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5M4 16v4h16v-4"/></svg>';
+  /* 6 пунктов подписки (ТЗ 04.11, п. 2): obj — фото предмета на белом (contain + multiply), иначе интерьер / доска (cover) */
+  var PERKS = [
+    ['1 млн+', 'товаров со скидкой в Маркете', 'assets/img/cat/99537.jpg', true],
+    ['5–20 %', 'скидка по закрытым ценам', 'assets/img/cat/93209.jpg', true],
+    ['120+', 'подборок материалов ежемесячно', 'assets/img/feed/items/9080011.jpg', true],
+    ['80+', 'готовых сочетаний в досках материалов', 'assets/img/feed/concept-78.jpg', false],
+    ['200+', 'позиций в одной интерьерной капсуле', 'assets/img/capsules/k1-main-1.jpg', false],
+    ['100 %', 'материалов отобраны дизайнерами', 'assets/img/feed/concept-76.jpg', false]
+  ];
+  function topHTML(active, open) {
+    /* с подпиской продающий блок (фото, расчёт, выгода, пункты, «Оформить») не показываем — только строка «Подписка активна» (Алина 04.11) */
+    if (active) return '<p class="fd-ok">' + STAR + ' Подписка METOD активна' + (S.metod.active() ? ' · осталось ' + S.metod.daysLeft() + ' дн.' : '') + ' · вся лента и закрытые цены открыты</p>';
+    return '<div id="home3" class="fd-top"><section class="hc hc--c1" aria-label="Пример расчёта бюджета ремонта">' +
+      '<div class="hc-hero"><img class="hc-hero__img" src="' + esc(HERO_SRC) + '" alt="Интерьер «' + esc(CAP.name) + '»" decoding="async">' +
+        '<span class="fd-logo" aria-label="METOD ремонта"><i></i></span></div>' +
+      '<div class="hc-card hc-card--1"><span class="hc-card__k">Пример расчёта бюджета</span>' +
+        '<div class="hc-card__head"><h1 class="hc-card__t">Ваш ремонт <b class="hc-sum" id="fd-sum"></b></h1><span class="hc-card__m2" id="fd-m2"></span></div>' +
+        '<input type="range" class="hc-range" id="fd-range" min="' + AREA_MIN + '" max="' + AREA_MAX + '" step="1" value="' + area + '" aria-label="Площадь квартиры, м²">' +
+        '<p class="hc-card__sub" id="fd-area"></p>' +
+        '<div class="hc-save hc-save--1">' + MARK + '<span class="hc-save__txt"><small>' + (active ? 'Выгода с вашей подпиской METOD' : 'Ваша выгода с подпиской METOD') + '</small><b id="fd-save"></b>' +
+          '<em>Закрытые цены поставщиков и&nbsp;готовые решения дизайнеров</em></span></div></div></section>' +
+      '<div class="fd-perks">' + PERKS.map(function (k) {
+        return '<div class="fd-perk' + (k[3] ? ' is-obj' : '') + '"><img src="' + esc(k[2]) + '" alt="" loading="lazy"><span class="fd-perk__p"><b>' + esc(k[0]) + '</b><small>' + esc(k[1]) + '</small></span></div>';
+      }).join('') + '</div>' +
+      (active
+        ? '<p class="fd-ok">' + STAR + ' Подписка METOD активна' + (S.metod.active() ? ' · осталось ' + S.metod.daysLeft() + ' дн.' : '') + ' · вся лента и закрытые цены открыты</p>'
+        : '<a class="hc-go" href="#" data-sub>Оформить подписку · от ' + F.rub(FROM).replace(/ /g, ' ') + '</a>' +
+          '<p class="fd-open">Сейчас открыто ' + open + ' ' + plural(open, 'пост', 'поста', 'постов') + ' из ' + POSTS.length + '</p>') +
+      '</div>';
+  }
+  function syncArea() {
+    var r = document.getElementById('fd-range'); if (!r) return;
+    var a = Math.min(AREA_MAX, Math.max(AREA_MIN, Math.round(Number(r.value) || AREA_DEF))); area = a;
+    function set(id, t) { var el = document.getElementById(id); if (el) el.textContent = t; }
+    set('fd-sum', budget(a)); set('fd-m2', a + ' м²'); set('fd-area', flatName(a) + ' · Базовый, ' + BASE_STATE.note); set('fd-save', gain(a));
+    r.style.setProperty('--fill', ((a - AREA_MIN) / (AREA_MAX - AREA_MIN) * 100).toFixed(1) + '%');
+    r.setAttribute('aria-valuetext', a + ' м², ремонт ' + budget(a).replace(/ /g, ' '));
+  }
+  /* плитка-подарок «Доска материалов по вашему рендеру» (ТЗ 04.11, п. 3) */
+  function giftHTML(active) {
+    return '<section class="fd-gift"><div class="fd-gift__ph"><img src="assets/img/feed/concept-78.jpg" alt="Доска материалов" loading="lazy">' +
+      '<span class="fd-gift__tag">' + GIFT + (active ? 'ВХОДИТ В ВАШУ ПОДПИСКУ' : 'В ПОДАРОК С ПОДПИСКОЙ') + '</span>' +
+      '<span class="fd-gift__logo" aria-label="METOD ремонта"><i></i></span>' +
+      '<figure class="fd-gift__pol"><img src="assets/img/feed/concept-78-ref-1.jpg" alt="" loading="lazy"><figcaption>ваш рендер</figcaption></figure></div>' +
+      '<div class="fd-gift__b"><h2 class="fd-gift__t">Доска материалов по вашему рендеру</h2>' +
+      '<p class="fd-gift__x">Пришлите рендер или фото интерьера — дизайнер SOVE соберёт материалы с ценами из Маркета</p>' +
+      '<div class="fd-gift__m"><span><b>≈ 10</b><small>материалов на доске</small></span><span><b>ДНК</b><small>цвета интерьера</small></span><span><b>Цены</b><small>METOD и ссылки</small></span></div>' +
+      '<button type="button" class="fd-gift__go" data-render>' + UPLOAD + ' Прислать рендер</button></div></section>';
+  }
+  function renderGift() {
+    if (subOn()) { location.href = 'ai.html?mode=render'; return; }
+    ui.modal({ eyebrow: 'Подписка METOD', title: 'Доска материалов по рендеру — в подарок с подпиской',
+      text: 'Оформите подписку METOD — и дизайнер SOVE соберёт доску материалов по вашему рендеру. После оплаты вернём вас сюда.',
+      actions: [ { label: 'Оформить подписку · от ' + F.rub(FROM), kind: 'primary', onClick: function () { setTimeout(openSub, 0); } }, { label: 'Не сейчас', kind: 'ghost' } ] });
+  }
+  /* рубрики и категории — два фильтра, работают вместе (ТЗ 04.11, п. 4–5) */
+  function filtersHTML() {
+    var byType = function (k) { return POSTS.filter(function (p) { return inType(p, k); }).length; };
+    var nAll = POSTS.length;
+    var rub = '<section class="fd-rub"><span class="fd-cap">Рубрики</span>' +
+      '<button type="button" class="fd-all' + (cur === 'all' ? ' is-on' : '') + '" data-t="all" aria-pressed="' + (cur === 'all') + '">Все · ' + nAll + ' ' + plural(nAll, 'пост', 'поста', 'постов') + '</button>' +
+      '<div class="fd-rub__grid">' + TYPES.slice(1).map(function (t) {
+        var n = byType(t.key);
+        return '<button type="button" class="fd-rt' + (t.obj ? ' is-obj' : '') + (cur === t.key ? ' is-on' : '') + '" data-t="' + t.key + '" aria-pressed="' + (cur === t.key) + '"><img src="' + esc(t.img) + '" alt="" loading="lazy">' +
+          '<span><b>' + esc(t.label) + '</b><small>' + (n ? n + ' ' + plural(n, 'пост', 'поста', 'постов') : 'скоро') + '</small></span></button>';
+      }).join('') + '</div></section>';
+    var inRub = POSTS.filter(function (p) { return inType(p, cur); });
+    var cats = '<section class="fd-cats"><span class="fd-cap">Категории</span><div class="fd-cats__row">' +
+      '<button type="button" class="fd-c' + (curCat === 'all' ? ' is-on' : '') + '" data-c="all" aria-pressed="' + (curCat === 'all') + '">Все</button>' +
+      CATS.map(function (c) {
+        var n = inRub.filter(function (p) { return inCat(p, c); }).length;
+        return '<button type="button" class="fd-c' + (curCat === c ? ' is-on' : '') + '" data-c="' + esc(c) + '" aria-pressed="' + (curCat === c) + '"' + (n ? '' : ' disabled') + '>' + esc(c) + ' <i>' + n + '</i></button>';
+      }).join('') + '</div></section>';
+    return rub + cats;
+  }
+  /* призыв внизу (Алина 04.11): дизайн-проект по готовой капсуле, промокод 5 000 ₽ по подписке METOD → блок «Дизайн-проект» */
+  function adeptHTML() {
+    return '<a class="fd-adept" href="adept.html"><span class="fd-adept__t"><small>Дизайн-проект по готовой капсуле</small>' +
+      '<b>Промокод 5&nbsp;000&nbsp;₽ по подписке METOD</b></span><span class="fd-adept__go">Перейти ' + CHEV + '</span></a>';
   }
 
   /* ---------- экран ---------- */
   function paint() {
-    var active = S.metod.active(), open = POSTS.filter(function (p) { return !locked(p); }).length;
+    var active = subOn(), open = POSTS.filter(function (p) { return !locked(p); }).length;
     var focus = focusId ? byId(focusId) : null;
-    var list = POSTS.filter(function (p) { return (cur === 'all' || p.type === cur) && p !== focus; });
+    var list = POSTS.filter(function (p) { return inType(p, cur) && inCat(p, curCat) && p !== focus; });
+    /* без подписки открытые посты идут первыми, все закрытые — ниже (порядок внутри групп сохраняем) */
+    if (!active) list = list.filter(function (p) { return !locked(p); }).concat(list.filter(locked));
     if (focus) list.unshift(focus);   /* deep-link: пост первым и раскрытым, даже если закрыт по подписке (тогда с плашкой) */
+    var firstLocked = list.slice(0, shown).filter(locked)[0]; firstLockedId = firstLocked ? firstLocked.id : null;
     root.innerHTML =
-      '<div class="fd-head"><span class="eyebrow">Подписка METOD</span><h1 class="h1">Метод ремонта</h1>' +
-      '<p class="lead">Лента закрытого канала: акции, подборки, концепции</p></div>' +
-      (active
-        ? '<p class="fd-ok">' + STAR + ' Подписка METOD активна · осталось ' + S.metod.daysLeft() + ' дн. · вся лента и закрытые цены открыты</p>'
-        : '<a class="fd-sub" href="' + METOD_HREF + '"><span class="fd-sub__t"><b>Открыто ' + open + ' ' + plural(open, 'пост', 'поста', 'постов') + ' из ' + POSTS.length + '</b><small>Контент недели — всем, полная лента и закрытые цены — по подписке METOD</small></span><span class="btn btn--primary btn--sm">Оформить</span></a>') +
+      '<div class="fd-view" role="tablist" aria-label="Как выглядит лента">' +
+        '<button type="button" role="tab" data-view="sub" aria-selected="' + active + '"' + (active ? ' class="is-on"' : '') + '>С подпиской</button>' +
+        '<button type="button" role="tab" data-view="nosub" aria-selected="' + !active + '"' + (!active ? ' class="is-on"' : '') + '>Без подписки</button></div>' +
+      topHTML(active, open) + giftHTML(active) +
       (focus
         ? '<div class="fd-back"><button type="button" class="btn btn--ghost btn--sm" data-feed-back>← Все посты</button><small>' + esc(KIND[focus.type] || '') + (focus.concept ? ' · концепция ' + focus.concept : '') + '</small></div>'
-        : '<div class="fd-chips" role="group" aria-label="Тип поста">' + TYPES.map(function (t) {
-          var n = t.key === 'all' ? POSTS.length : POSTS.filter(function (p) { return p.type === t.key; }).length;
-          return '<button type="button" class="chip' + (cur === t.key ? ' is-on' : '') + '" data-t="' + t.key + '" aria-pressed="' + (cur === t.key) + '">' + esc(t.label) + ' <i>' + n + '</i></button>';
-        }).join('') + '</div>') +
-      (list.length ? '<div class="fd-list">' + list.slice(0, shown).map(card).join('') + '</div>' : '<p class="fd-empty">Постов этого типа пока нет.</p>') +
+        : filtersHTML()) +
+      (list.length ? '<div class="fd-list">' + list.slice(0, shown).map(card).join('') + '</div>' : '<p class="fd-empty">Постов с таким фильтром пока нет.</p>') +
       (list.length > shown ? '<button type="button" class="btn btn--ghost fd-more" data-more>Показать ещё · ' + (list.length - shown) + ' ' + plural(list.length - shown, 'пост', 'поста', 'постов') + '</button>' : '') +
+      adeptHTML() +
       '<p class="fd-note">Посты закрытого Telegram-канала METOD появляются здесь автоматически. Товар из подборки распознаётся и ищется в каталоге SOVEAPP.</p>';
+    syncArea();
     if (R && R.sync) R.sync(root);
     bind();
   }
+
+  /* ---------- подписка METOD: шторка с тарифами и оплата ---------- */
+  var INSIDE = ['Закрытые акции партнёров', 'Доски материалов от дизайнера — раз в неделю', 'Подборки товаров — каждый день', 'Отзывы о поставщиках', 'Клуб участников — 3000+ человек'];
+  function monthsW(n) { return n + ' ' + plural(n, 'месяц', 'месяца', 'месяцев'); }
+  function openSub() {
+    var plans = D.metodPlans || [], base = plans[0], B = D.metodBonus || {}, on = S.metod.active();
+    S.ui.modal({ eyebrow: 'Подписка METOD', title: on ? 'Продлить подписку' : 'Оформить подписку',
+      html: '<ul class="fd-in">' + INSIDE.map(function (t) { return '<li>' + esc(t) + '</li>'; }).join('') + '</ul>' +
+        '<div class="fd-plans">' + plans.map(function (m) {
+          var gift = B.minMonths && m.months >= B.minMonths;
+          return '<button type="button" class="fd-plan' + (gift ? ' is-best' : '') + '" data-mt-buy="' + m.id + '"><span class="fd-plan__t"><b>' + monthsW(m.months) + '</b>' +
+            '<small>' + (m.months > 1 ? '≈ ' + F.rub(m.price / m.months) + ' в месяц' : 'чтобы попробовать') + (gift ? ' · «Твоя квартира» в подарок: ' + F.tokens(B.gens) + ' и ' + F.swaps(B.swaps) : '') + '</small></span>' +
+            '<b class="fd-plan__p">' + F.rub(m.price) + '</b></button>';
+        }).join('') + '</div>' + (on ? '<p class="small muted">Сейчас активна до ' + F.dateLong(S.metod.until()) + ' — продлим с этой даты.</p>' : '') });
+  }
+  function buySub(id) {
+    var m = (D.metodPlans || []).filter(function (x) { return x.id === id; })[0]; if (!m) return;
+    if (!S.auth.isIn()) { S.ui.needAuth('Войдите, чтобы оплатить', 'feed.html?buy=' + id); return; }
+    var pm = S.pay.create({ kind: 'metod', id: m.id, title: 'METOD · ' + monthsW(m.months), price: m.price, months: m.months }, 'feed.html');
+    location.href = 'pay.html?id=' + encodeURIComponent(pm.id);
+  }
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest('[data-sub]'); if (a) { e.preventDefault(); openSub(); return; }
+    var b = e.target.closest('[data-mt-buy]'); if (b) { e.preventDefault(); buySub(b.getAttribute('data-mt-buy')); }
+  });
 
   /* ---------- действия ---------- */
   function persist() { var f = R.flats.active(); if (f) R.flats.update(f.id, {}); }
@@ -217,7 +383,7 @@
       b.innerHTML = HEART + ' ' + (isConcept ? (on ? 'Материалы в Моём ремонте' : 'Сохранить в Мой ремонт') : (on ? 'Подборка в Избранном' : 'Сохранить подборку целиком'));
     });
   }
-  function url(id) { return 'feed.html' + (id ? '?post=' + encodeURIComponent(id) : cur === 'all' ? '' : '?t=' + cur); }
+  function url(id) { if (id) return 'feed.html?post=' + encodeURIComponent(id); var q = []; if (cur !== 'all') q.push('t=' + cur); if (curCat !== 'all') q.push('c=' + encodeURIComponent(curCat)); if (demoView) q.push('view=' + demoView); return 'feed.html' + (q.length ? '?' + q.join('&') : ''); }
   /* переход к посту в той же странице: пост первым, адрес ?post=<id> (pushState — «Назад» возвращает к списку) */
   function go(id) {
     if (!byId(id)) return;
@@ -255,6 +421,23 @@
     });
   }
   function bind() {
+    root.querySelectorAll('.fd-view [data-view]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        demoView = b.getAttribute('data-view'); shown = PAGE;
+        try { history.replaceState(null, '', url(focusId)); } catch (e) {}
+        paint(); window.scrollTo(0, 0);
+      });
+    });
+    var rg = document.getElementById('fd-range'); if (rg) rg.addEventListener('input', syncArea);
+    var rb = root.querySelector('[data-render]'); if (rb) rb.addEventListener('click', renderGift);
+    root.querySelectorAll('[data-c]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        if (b.disabled) return;
+        curCat = b.getAttribute('data-c'); shown = PAGE;
+        try { history.replaceState(null, '', url(null)); } catch (e) {}
+        paint();
+      });
+    });
     root.querySelectorAll('[data-t]').forEach(function (b) {
       b.addEventListener('click', function () {
         cur = validType(b.getAttribute('data-t')); shown = PAGE;
@@ -289,7 +472,14 @@
     document.querySelectorAll('.tabbar a[data-tab="home"], .side__nav a[data-tab="home"]').forEach(function (a) { a.classList.add('is-active'); a.setAttribute('aria-current', 'page'); });
   }
 
-  function boot() { paint(); markTab(); }
+  function boot() {
+    /* лента всегда открывается с начала — с шапки, а не с места, где была прокрутка в прошлый раз (Алина 04.11) */
+    try { history.scrollRestoration = 'manual'; } catch (e) {}
+    paint(); markTab(); window.scrollTo(0, 0);
+    /* ?buy=<план> — возврат после входа или старая ссылка на оформление METOD: сразу к оплате; buy из адреса убираем */
+    var buyId = ui.qs('buy');
+    if (buyId) { try { history.replaceState(null, '', location.pathname + location.search.replace(/[?&]buy=[^&]*/, '').replace(/^&/, '?')); } catch (e) {} buySub(buyId); }
+  }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
   window.addEventListener('sove:repair', function () { if (R && R.sync) R.sync(root); syncSets(); });
   if (S.onChange) S.onChange(function () { setTimeout(function () { paint(); markTab(); }, 0); });  /* вход, подписка — шапка перерисовалась, лента тоже */

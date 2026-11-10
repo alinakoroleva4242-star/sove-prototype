@@ -13,21 +13,27 @@
   var STATE = { concrete_free: 'бетон, стен нет', concrete_walls: 'бетон, стены стоят', whitebox: 'предчистовая', finished: 'с отделкой' };
   var src = FL.source || 'developer', state = FL.state || 'concrete_walls', INT = FL.interior || null, V = T.variant;
   var rooms = FL.rooms && FL.rooms.length ? FL.rooms : (window.SOVE_ARRANGE.rooms || []).filter(function (r) { return !r.part_of; }).map(function (r) { return { name: r.type === 'гостиная' ? 'Кухня-гостиная' : r.name, m2: r.m2 }; });
-  var flatName = FL.flat || 'ЖК PRIDE · 47,3 м²';
+  var flatName = FL.flat || 'ЖК PRIDE · 47,0 м²';
   var geo = T.geo || window.SOVE_ARRANGE;
   var budget;
   /* бюджет пересчитывается при выборе интерьера из ленты (раздел 14): мебель — по товарам интерьера, строки — «по интерьеру» */
   /* бюджет — тем же калькулятором, что расчёт и итог блока (demo-flow): ставка состояния и цена капсулы за м² (SOVE.scout.estimate).
      Без него считалось по нормам budget-norms.js, а там пусто — строки «[сумма] ₽» и нет итога (Валерия 02.11: «бери из калькулятора») */
-  var STATE = { concrete_free: 'concrete', concrete_walls: 'concrete', whitebox: 'pre', finished: 'secondary' };
+  /* состояние квартиры → состояние расчёта; своё имя: STATE выше — подписи для строки «Основа» (второе var STATE их затирало — «concrete») */
+  var SCOUT_STATE = { concrete_free: 'concrete', concrete_walls: 'concrete', whitebox: 'pre', finished: 'secondary' };
+  function levelNow() { return FLOW.levelNow ? FLOW.levelNow() : 'base'; }
   function scoutParams() {
     var R = window.SOVE && window.SOVE.repair, own = R && R.flats && R.flats.active() && R.get().scoutParams;
-    return own ? Object.assign({}, own) : { stateId: STATE[state] || 'concrete', capsuleId: INT && INT.type === 'capsule' ? INT.id : null, level: 'base',
+    var p = own ? Object.assign({}, own, { level: levelNow() }) : { stateId: SCOUT_STATE[state] || 'concrete', capsuleId: INT && INT.type === 'capsule' ? INT.id : null, level: levelNow(),
       area: Math.round(rooms.reduce(function (a, r) { return a + (r.m2 || 0); }, 0) * 10) / 10 };
+    /* по планировке (Алина 02.11): объёмы плана из расстановки — работы по позициям Scout, площадь и комнаты плана */
+    if (T.volumes && T.volumes.area) { p.volumes = T.volumes; p.area = Math.round(T.volumes.area * 10) / 10; }
+    return p;
   }
   function compute() {
     var furniture = INT ? FLOW.furnitureSum(T.goods, INT) : T.furniture;
-    budget = B.compute({ scout: scoutParams(), geo: geo, rooms: rooms, state: state, type: 'base', interior: INT, kitchenLen: T.kitchenLen, furniture: furniture,
+    /* тип ремонта — один на объект (тот же, что в карточке бюджета и окне выбора капсулы): одна цифра «итого» */
+    budget = B.compute({ scout: scoutParams(), geo: geo, rooms: rooms, state: state, type: levelNow(), interior: INT, kitchenLen: T.kitchenLen, furniture: furniture,
       partitions: V ? V.partitions : null, accuracy: FL.accuracy || 'примерно' });
   }
   compute();

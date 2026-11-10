@@ -1,4 +1,5 @@
-/* Каталог капсул: фильтр по стилю, крупные карточки, режим выбора (?pick=1&returnTo=scout.html) */
+/* Каталог капсул: фильтр по стилю, крупные карточки, режим выбора (?pick=1&returnTo=scout.html) — запасной путь для страниц без окна выбора
+   (SOVE.capsulePicker): выбор возвращает на returnTo с ?capsule=<id>. Коды К1–К7 в интерфейсе не показываем — ни в тексте, ни в alt и aria-label */
 (function () {
   var S = window.SOVE;
   var grid = document.getElementById('caps-grid');
@@ -9,6 +10,8 @@
   }
   var D = S.data, F = S.fmt, esc = F.esc;
   var all = D.capsules.slice();
+  /* имя капсулы — короткое, как в окне выбора, Интерьере, полоске объекта и тосте после выбора (SOVE_KB), иначе из data.js; стиль — строкой над именем */
+  function nm(c) { var k = window.SOVE_KB && window.SOVE_KB.capsule && window.SOVE_KB.capsule(c.id); return (k && k.name) || c.name; }
 
   function plural(n, one, few, many) { var a = Math.abs(n) % 100, b = a % 10; return (a > 10 && a < 20) ? many : b === 1 ? one : (b >= 2 && b <= 4) ? few : many; }
 
@@ -19,7 +22,7 @@
   var pick = S.ui.qs('pick') === '1';
   var returnTo = pick ? (safeReturn(S.ui.qs('returnTo')) || 'scout.html') : null;
   var current = pick ? (S.ui.qs('capsule') || '').toLowerCase() : '';
-  var RETURN_NAMES = { 'scout.html': 'в расчёт бюджета', 'adept.html': 'в дизайн-проект', 'track.html': 'в управление ремонтом', 'project.html': 'в проект', 'account.html': 'в кабинет' };
+  var RETURN_NAMES = { 'scout.html': 'в расчёт бюджета', 'adept.html': 'в дизайн-проект', 'track.html': 'в управление ремонтом', 'project.html': 'в проект', 'account.html': 'в кабинет', 'my.html': 'в Мой ремонт' };
   var backLabel = pick ? (RETURN_NAMES[returnTo.split('?')[0]] || 'назад') : '';
 
   if (pick) {
@@ -29,7 +32,8 @@
     document.getElementById('caps-lead').textContent = 'Нажмите на карточку — вернём вас ' + backLabel + ' с выбранной капсулой. Расчёт и введённые данные сохранятся';
     var note = document.getElementById('caps-pick');
     note.hidden = false;
-    note.innerHTML = '<span class="small">Вы выбираете капсулу для расчёта. Капсула «скоро» пока недоступна: у неё нет комплектации.</span>' +
+    var forMy = returnTo.split('?')[0] === 'my.html', anySoon = all.some(function (c) { return c.soon; });
+    note.innerHTML = '<span class="small">' + (forMy ? 'Вы выбираете интерьер квартиры — он появится в Моём ремонте.' : 'Вы выбираете капсулу для расчёта.') + (anySoon ? ' Капсула «скоро» пока недоступна: у неё нет комплектации.' : '') + '</span>' +
       '<a class="btn btn--link" href="' + esc(returnTo) + '">Вернуться ' + esc(backLabel) + ' без выбора</a>';
     var next = document.getElementById('caps-next'); if (next) next.hidden = true;
   }
@@ -65,13 +69,12 @@
       : '<p class="cap-card__price"><span class="tiny muted">комплектация от</span><span class="mid-num">' + F.rub(c.pricePerM2) + '/м²</span></p>';
   }
   function picHtml(c) {
-    return '<img src="' + esc(c.cover) + '" alt="Интерьер капсулы ' + esc(c.code) + ': ' + esc(c.style.toLowerCase()) + '" loading="lazy" width="960" height="1200">' +
-      (c.soon ? '<span class="badge badge--line cap-card__soon">скоро</span>' : '') +
-      '<span class="cap-card__code" aria-hidden="true">' + esc(c.code) + '</span>';
+    return '<img src="' + esc(c.cover) + '" alt="Интерьер «' + esc(nm(c)) + '»: ' + esc(c.style.toLowerCase()) + '" loading="lazy" width="960" height="1200">' +
+      (c.soon ? '<span class="badge badge--line cap-card__soon">скоро</span>' : '');
   }
   function bodyHtml(c) {
     return '<div class="cap-card__body"><span class="eyebrow">' + esc(c.style) + '</span>' +
-      '<h2 class="cap-card__name"><span class="vh">' + esc(c.code) + '. </span>' + esc(c.name) + '</h2>' + priceRow(c) + '</div>';
+      '<h2 class="cap-card__name">' + esc(nm(c)) + '</h2>' + priceRow(c) + '</div>';
   }
   function card(c) {
     if (pick) {
@@ -80,15 +83,15 @@
           '<div class="cap-card__pickline"><span class="small muted">Выбрать пока нельзя — капсула готовится</span></div></div>';
       }
       var isCur = c.id === current;
-      return '<a class="cap-card cap-card--pick' + (isCur ? ' is-current' : '') + '" href="' + esc(withCapsule(returnTo, c.id)) + '" aria-label="Выбрать капсулу ' + esc(c.code) + ' · ' + esc(c.name) + '">' +
+      return '<a class="cap-card cap-card--pick' + (isCur ? ' is-current' : '') + '" href="' + esc(withCapsule(returnTo, c.id)) + '" aria-label="Выбрать капсулу «' + esc(nm(c)) + '»">' +
         '<div class="cap-card__pic">' + picHtml(c) + '</div>' + bodyHtml(c) +
-        '<div class="cap-card__pickline">' + (isCur ? '<span class="small muted">Выбрана сейчас</span>' : '<span></span>') + '<span class="arrow-link">Выбрать ' + esc(c.code) + '</span></div></a>';
+        '<div class="cap-card__pickline">' + (isCur ? '<span class="small muted">Выбрана сейчас</span>' : '<span></span>') + '<span class="arrow-link">Выбрать</span></div></a>';
     }
     var view = 'capsule.html?id=' + c.id;
     return '<article class="cap-card">' +
       '<a class="cap-card__pic" href="' + view + '" tabindex="-1" aria-hidden="true">' + picHtml(c) + '</a>' + bodyHtml(c) +
-      '<div class="cap-card__links"><a class="btn btn--link" href="' + view + '" aria-label="Смотреть капсулу ' + esc(c.code) + '">Смотреть</a>' +
-      (c.soon ? '<span class="small muted">расчёт появится позже</span>' : '<a class="arrow-link" href="scout.html?capsule=' + c.id + '" aria-label="Рассчитать ремонт с капсулой ' + esc(c.code) + '">Рассчитать</a>') + '</div></article>';
+      '<div class="cap-card__links"><a class="btn btn--link" href="' + view + '" aria-label="Смотреть капсулу «' + esc(nm(c)) + '»">Смотреть</a>' +
+      (c.soon ? '<span class="small muted">расчёт появится позже</span>' : '<a class="arrow-link" href="scout.html?capsule=' + c.id + '" aria-label="Рассчитать ремонт с капсулой «' + esc(nm(c)) + '»">Рассчитать</a>') + '</div></article>';
   }
 
   function renderGrid() {

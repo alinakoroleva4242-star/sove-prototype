@@ -151,7 +151,7 @@
       '<section class="pz-card tr-price"><div><b>' + n + ' ' + plural(n, 'кадр', 'кадра', 'кадров') + ' комнат</b><small>' + F.tokens(COST) + ' за кадр · 20–25 секунд каждый</small></div>' +
         '<b>' + (paid ? 'уже оплачено' : F.tokens(COST * n)) + '</b></section>' +
       '<button type="button" class="pz-btn' + (n ? '' : ' is-wait') + '" data-act="pay"' + (n ? '' : ' aria-disabled="true"') + '>' + (paid ? 'Показать интерьер' : 'Примерить · ' + F.tokens(COST * n)) + '</button>' +
-      '<small class="pz-note pz-c">не получится — токены вернём</small>';
+      '<small class="pz-note pz-c">не получится — генерация вернётся на баланс</small>';
   }
   function plural(n, a, b, c) { var x = n % 100, y = n % 10; return x > 10 && x < 20 ? c : y === 1 ? a : y >= 2 && y <= 4 ? b : c; }
 
@@ -166,11 +166,11 @@
       '<b class="pz-sheet__t" id="tr-sheet-t">Примерка капсулы</b><small class="pz-sheet__s">' + esc(capName(cap())) + ' · ' + n + ' ' + plural(n, 'кадр', 'кадра', 'кадров') + ' комнат</small>' +
       '<div class="pz-sheet__row"><span>Стоимость</span><b>' + F.tokens(cost) + '</b></div>' +
       '<div class="pz-sheet__row pz-sheet__row--plain"><span>У тебя</span><b>' + esc(F.tokens(bal)) + (inn ? '' : ' 🎁') + '</b></div>' +
-      (!inn ? '<small class="pz-note">50 подарочных токенов — после входа по номеру телефона</small>' : '') +
+      (!inn ? '<small class="pz-note">генерация в подарок — после входа по номеру телефона</small>' : '') +
       (enough ? '<button type="button" class="pz-btn" data-sheet="gen">' + (inn ? 'Сгенерировать · ' : 'Войти и сгенерировать · ') + F.tokens(cost) + '</button>'
         : '<a class="pz-btn" href="tokens.html?returnTo=' + rt + '">Пополнить</a>') +
       '<button type="button" class="pz-link" data-sheet="close"><u>Отмена</u></button>' +
-      '<small class="pz-note pz-c">не получится — токены вернём</small></div>';
+      '<small class="pz-note pz-c">не получится — генерация вернётся на баланс</small></div>';
     function close() { back.remove(); document.body.style.overflow = ''; }
     back.addEventListener('click', function (e) {
       if (e.target === back) return close();
@@ -178,7 +178,7 @@
       close();
       if (b.dataset.sheet !== 'gen') return;
       if (!inn) { location.href = 'auth.html?returnTo=' + rt; return; }
-      var op = S.tokens.reserve(cost, 'Визуализации · примерка ' + cap().code, 'tryon'); if (!op) { S.ui.toast('Не хватает токенов'); return; }
+      var op = S.tokens.reserve(cost, 'Визуализации · примерка ' + cap().code, 'tryon'); if (!op) { S.ui.toast('Не хватает генераций'); return; }
       S.tokens.commit(op);
       generate(true);
     });
@@ -322,7 +322,7 @@
   /* перегенерация и правка командой — по кадру, списываем как в бою (10 токенов) */
   function spend(why) {
     if (!S.auth.isIn()) { S.auth.require(); return false; }
-    var op = S.tokens.reserve(COST, why, 'tryon'); if (!op) { S.ui.toast('Не хватает токенов — пополни баланс'); return false; }
+    var op = S.tokens.reserve(COST, why, 'tryon'); if (!op) { S.ui.toast('Не хватает генераций — пополни баланс'); return false; }
     S.tokens.commit(op); return true;
   }
 

@@ -14,6 +14,8 @@
 .mv-head__t h1 { font-size: clamp(30px, 9.4vw, 38px); line-height: 1; }
 .mv-head__t p { margin: 6px 0 0; font-size: 12.5px; color: var(--graphite); }
 .mv-head__t p a { color: var(--accent) !important; font-weight: 600; }
+/* квартиры ещё нет — главный вид показывает пример с макета: метка, чтобы не читалось как данные человека */
+.mv-demo { display: inline-block; padding: 2px 8px; margin-right: 2px; border-radius: var(--pill); background: var(--accent-soft); color: var(--accent-ink); font-size: 11px; font-weight: 700; letter-spacing: .02em; vertical-align: 1px; }
 .mv-head__r { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; flex-shrink: 0; }
 .mv-create { display: inline-flex; align-items: center; gap: 6px; min-height: 38px; padding: 0 14px; border-radius: var(--pill); background: var(--dark); color: #fff !important; font-size: 13.5px; font-weight: 600; }
 .mv-tok { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: var(--pill); background: rgba(255,255,255,.88); color: var(--accent) !important; font-size: 12px; font-weight: 600; }
@@ -72,24 +74,12 @@
 .mv-room__gen span { display: inline-flex; align-items: center; gap: 2px; white-space: nowrap; }
 @media (max-width: 420px) { .mv-room__gen { font-size: 10px; } .mv-rooms { gap: 5px; } }
 
-/* интерьер: фильтры и плитки — сеткой, без прокрутки вбок */
+/* интерьеры: фильтры (пример) — переносом, без прокрутки вбок; карточки — ниже, «Интерьеры» по договору 02.11 */
 .mv-chips { display: flex; flex-wrap: wrap; gap: 4px; }
 .mv-chip { min-height: 34px; padding: 0 11px; border: 0; border-radius: var(--pill); background: transparent; color: var(--ink); font: 500 12.5px var(--font); cursor: pointer; }
 .mv-chip:hover { background: var(--surface-2); }
 .mv-chip.is-on { background: var(--dark); color: #fff; }
-.mv-inter { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }   /* один ряд, как на макете, без прокрутки вбок */
-.mv-up { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; padding: 8px 4px; border: 1.5px dashed #d9a58f; border-radius: var(--r-sm); background: #fbf3ee; color: var(--accent) !important; text-align: center; }
-.mv-up b { font-size: 10.5px; font-weight: 700; line-height: 1.15; }
-.mv-up small { font-size: 9.5px; color: var(--graphite); }
-.mv-int { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
-.mv-int__pic { position: relative; display: block; aspect-ratio: 1; border-radius: var(--r-sm); overflow: hidden; background: var(--surface-2); }
-.mv-int__pic img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.mv-int__fav { position: absolute; right: 4px; top: 4px; width: 20px; height: 20px; border-radius: 50%; background: var(--accent-2); color: #fff; display: inline-flex; align-items: center; justify-content: center; }
-.mv-int__fav svg { fill: currentColor; }
-.mv-int__mine { position: absolute; left: 4px; top: 4px; padding: 1px 6px; border-radius: 6px; background: #dff0e6; color: var(--green); font: 700 10px var(--font); font-style: normal; }
-.mv-int b { font-size: 10.5px; font-weight: 700; line-height: 1.15; hyphens: auto; -webkit-hyphens: auto; overflow-wrap: anywhere; }
-.mv-int small { font-size: 9.5px; line-height: 1.2; color: var(--graphite); hyphens: auto; -webkit-hyphens: auto; overflow-wrap: anywhere; }
-.mv-inter__empty { grid-column: 2 / -1; align-self: center; margin: 0; font-size: 12px; color: var(--graphite); }
+.mv-inter__empty { align-self: center; margin: 0; font-size: 12px; color: var(--graphite); }
 
 /* следующие шаги: четыре карточки в ряд */
 .mv-next { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
@@ -142,7 +132,61 @@
 }
 @media (max-width: 370px) { .mv-base b { font-size: 10.5px; hyphens: auto; -webkit-hyphens: auto; } }
 
-/* «Интерьеры» квартиры (созвон 28.10): несколько интерьеров, текущий — с меткой, остальные — кнопки «Сделать текущим» */
-button.mv-int { margin: 0; padding: 0; border: 0; background: none; font: inherit; color: inherit; text-align: left; cursor: pointer; }
-.mv-int.is-cur .mv-int__pic { box-shadow: 0 0 0 2px var(--accent); }
-.mv-int__cur { position: absolute; left: 4px; top: 4px; padding: 1px 6px; border-radius: 6px; background: var(--accent); color: #fff; font: 700 9.5px var(--font); font-style: normal; letter-spacing: .3px; }
+
+/* «Интерьеры» по договору 02.11: карточки — SOVE.capsulePicker.card в сетке .cpk-grid (две в ряд, от 640 px — три), стили карточки не трогаем;
+   здесь — только раскладка, плитка «＋ Новый интерьер», подписи низа карточки и запасная разметка .mv-icard (страница без окна выбора) */
+.mv-ints { align-items: stretch; }
+.mv-ints .mv-inter__empty { grid-column: 1 / -1; }
+.mv-icard__go { font-size: 12.5px; font-weight: 600; line-height: 1.3; color: var(--accent); }
+.mv-icard__go--mk { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1px; }
+.mv-icard__go svg { vertical-align: -2px; fill: currentColor; stroke: none; }
+.mv-new { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-width: 0; min-height: 168px; padding: 16px 12px; box-sizing: border-box;
+  border: 1.5px dashed var(--accent); border-radius: var(--r); background: var(--white); color: var(--accent) !important; text-align: center; }
+.mv-new b { font-size: 14px; font-weight: 700; line-height: 1.25; color: var(--ink); }
+.mv-new small { font-size: 11.5px; line-height: 1.35; color: var(--graphite); }
+.mv-new:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+/* запасная карточка без capsule-picker.js */
+.mv-icard { display: flex; flex-direction: column; min-width: 0; margin: 0; padding: 0; border: 0; border-radius: var(--r); overflow: hidden; background: var(--white); box-shadow: var(--shadow); font: inherit; color: inherit; text-align: left; cursor: pointer; }
+.mv-icard.is-on { box-shadow: 0 0 0 2px var(--accent), var(--shadow); }
+.mv-icard__pic { position: relative; display: block; aspect-ratio: 1.3; background: var(--surface-2); }
+.mv-icard__pic img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.mv-icard__badge { position: absolute; left: 8px; top: 8px; padding: 4px 8px; border-radius: var(--pill); background: rgba(255,255,255,.94); color: var(--ink); font: 600 11px/1.2 var(--font); font-style: normal; }
+.mv-icard__b { display: flex; flex-direction: column; gap: 4px; padding: 10px 12px 12px; }
+.mv-icard__b b { font-family: var(--font-display); font-weight: 500; font-size: 20px; line-height: 1.08; }
+.mv-icard__b small { font-size: 12px; color: var(--graphite); }
+.mv-icard:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* «Следующие шаги» → раздел специалистов одной строкой под плитками */
+.mv-pros { display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 2px; font-size: 13px; font-weight: 600; color: var(--accent) !important; }
+.mv-pros span { flex: 1 1 auto; min-width: 0; }
+.mv-pros:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: var(--r-xs); }
+/* my.html#mv-inter: секция встаёт под закреплённую полоску «Квартира · Интерьер», а не под неё */
+#mv-inter { scroll-margin-top: calc(var(--ob-h, 0px) + 12px); }
+/* «План квартиры»: заголовок и «Загрузить / Заменить план» на 390 в одну строку не помещаются — кнопка вылезала за карточку;
+   когда места нет, кнопка встаёт под подпись, на широком экране — справа, как раньше */
+.mv-plan .mv-card__h { flex-wrap: wrap; row-gap: 10px; }
+.mv-plan .mv-card__h > div { flex: 1 1 auto; min-width: 0; }
+
+/* строки под «Интерьерами» — из варианта «Проявка» версии 1 (Алина 03.11) */
+.mv-rows { display: flex; flex-direction: column; gap: 8px; }
+.mv-row { display: flex; align-items: center; gap: 12px; padding: 14px; border-radius: 16px; background: #fff; color: #1E1C1A; text-decoration: none; box-shadow: 0 6px 16px rgba(120,80,50,.06); }
+.mv-row__ic { width: 40px; height: 40px; border-radius: 20px; background: #FBF4EF; color: #A24E32; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.mv-row__t { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.mv-row__t b { font-size: 13px; }
+.mv-row__t small { font-size: 10px; color: #8A7F74; }
+.mv-row__go { font-size: 12px; color: #A24E32; white-space: nowrap; }
+.mv-rows__note { font-size: 10px; color: #8A7F74; text-align: center; padding: 4px 10px 0; }
+
+/* карусель «Избранное» — из версии 1 (Алина 03.11); листается внутри блока */
+.mc-fav { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.mc-fav__h { display: flex; justify-content: space-between; align-items: baseline; }
+.mc-fav__h b { font-size: 14px; }
+.mc-fav__h a { font-size: 12px; font-weight: 700; color: #A24E32; text-decoration: none; }
+.mc-fav__row { display: flex; gap: 8px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; padding-bottom: 2px; }
+.mc-fav__row::-webkit-scrollbar { display: none; }
+.mc-fv { flex: 0 0 120px; display: flex; flex-direction: column; gap: 3px; scroll-snap-align: start; text-decoration: none; color: #1E1C1A; min-width: 0; }
+.mc-fv__p { position: relative; height: 120px; border-radius: 12px; background: #EFEAE3 center / cover; display: flex; align-items: center; justify-content: center; font-size: 28px; color: #8A7F74; }
+.mc-fv__p i { position: absolute; top: 6px; right: 6px; width: 24px; height: 24px; border-radius: 12px; background: rgba(255,255,255,.92); font-style: normal; font-size: 13px; color: #A24E32; display: flex; align-items: center; justify-content: center; }
+.mc-fv--add .mc-fv__p { background: #fff; border: 1.5px dashed #B9AC9C; }
+.mc-fv b { font-size: 11px; line-height: 1.25; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.mc-fv small { font-size: 10px; color: #8A7F74; }

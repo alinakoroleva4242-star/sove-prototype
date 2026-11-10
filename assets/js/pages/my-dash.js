@@ -32,7 +32,7 @@
       if (el.closest('[data-my="pros"]')) return;                       /* дизайнер / стройка — свои ссылки */
       if (/^Подключить дизайнера/.test(t)) h = 'adept.html';
       else if (/^Подключить строительную/.test(t)) h = 'track.html';
-      else if (/^Загрузить план$/.test(t)) { el.addEventListener('click', function (e) { e.preventDefault(); openUpload(); }); return; }
+      else if (/^Загрузить план$/.test(t)) { if (el.tagName === 'A') el.setAttribute('href', 'my.html?v=object'); el.addEventListener('click', function (e) { e.preventDefault(); openUpload(); }); return; }
       if (h) { el.setAttribute('href', h); return; }
       if (/^＋ Создать/.test(t)) { el.addEventListener('click', function (e) { e.preventDefault(); if (window.SOVE_AI_CREATE) SOVE_AI_CREATE.open(); }); return; }
       if (/^Моя квартира/.test(t) && el.tagName !== 'A') return;
@@ -141,6 +141,8 @@
   }
 
   function openUpload(preset) {
+    /* общее окно «Основа квартиры» (plan-upload.js, вход 'my' — все четыре карточки, возврат со скана сюда); своя шторка — только без модуля */
+    if (S.planUpload && S.planUpload.open) return S.planUpload.open({ entry: 'my', level: preset || null, returnTo: 'my.html?variants=1' });
     var cur = R ? R.level() : 'none';
     var el = document.createElement('div'); el.className = 'myup';
     el.innerHTML = '<div class="myup__back" data-x></div><div class="myup__sheet" role="dialog" aria-modal="true" aria-labelledby="myup-t"><span class="myup__grip"></span>' +
@@ -201,5 +203,10 @@
     if (v === 'D') liveHead(root.querySelector('.myv-page')); else uploadBar(root.querySelector('.myv-page'));   /* в D кнопка «Загрузить план» — в карточке плана */
     baseBlock(root.querySelector('.myv-page'), v === 'D');
   }
-  window.SOVE_MY_HOME = function (root) { render(root); window.addEventListener('sove:repair', function () { if (document.body.contains(root)) render(root); }); };
+  window.SOVE_MY_HOME = function (root) {
+    render(root); window.addEventListener('sove:repair', function () { if (document.body.contains(root)) render(root); });
+    /* в эталонах вариантов B–E есть ссылки-заглушки href="#": общий обработчик якорей (site.js) искал элемент по «#» и падал с ошибкой —
+       клик по заглушке дальше страницы не уходит (свои обработчики кнопок уже отработали на самом элементе) */
+    root.addEventListener('click', function (e) { var a = e.target.closest && e.target.closest('a[href="#"]'); if (a && root.contains(a)) { e.preventDefault(); e.stopPropagation(); } });
+  };
 })();

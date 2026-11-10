@@ -250,7 +250,7 @@
       '<div class="stack stack--2 product-access">' +
       '<button type="button" class="option" data-single' + (singleOn ? '' : ' disabled') + '><span class="option__row"><span class="option__title">Только этот поставщик</span>' + (singleOn ? '<span class="num">' + F.rub(single.price) + '</span>' : '<span class="badge badge--line">цена уточняется</span>') + '</span>' +
       '<span class="option__note">Разовый доступ к контакту и промокоду по этому товару' + (singleOn ? '' : '. Пока недоступен') + '</span></button>' +
-      '<a class="option is-active" href="metod.html?returnTo=' + rt + '"><span class="option__row"><span class="option__title">METOD — все поставщики, клуб и токены</span></span>' +
+      '<a class="option is-active" href="metod.html?returnTo=' + rt + '"><span class="option__row"><span class="option__title">METOD — все поставщики и клуб</span></span>' +
       '<span class="option__note">от ' + F.rub(plans[0].price) + ' · тарифы на ' + monthsText + ' ' + plural(months[months.length - 1], ['месяц', 'месяца', 'месяцев']) + '. После оплаты вернём вас к этому товару</span></a>' +
       '</div>';
     var m = S.ui.modal({ eyebrow: 'Цена METOD', title: 'Доступ к контакту', html: html,

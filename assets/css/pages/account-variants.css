@@ -229,6 +229,15 @@ body[data-page="account"] #acc { gap: 0; padding: 0 0 20px; }
 .pt-op__a.is-back { color: #6B655F; text-decoration: line-through; }
 .pt-empty { background: #FFFFFF; border: 1px solid #E6E1DA; border-radius: 16px; padding: 16px 14px; font-size: 13px; color: #6B655F; line-height: 1.45; }
 .pv .pt-top { align-self: flex-start; }
+/* Профиль → Баланс (тарифы генераций, 03.11): «Докупить» у счётчиков, разделы тарифов, прайса и истории */
+.pt-buy { align-self: flex-start; margin-top: 6px; font-size: 12px; font-weight: 700; color: inherit; text-decoration: underline; text-underline-offset: 3px; }
+.pt-sec { display: flex; flex-direction: column; gap: 8px; }
+.pt-h { margin: 6px 0 0; font-size: 11px; letter-spacing: 2px; font-weight: 700; text-transform: uppercase; color: #6B655F; }
+.pt a.pt-plan, .pt a.pt-plan * { color: #1E1C1A; text-decoration: none; }
+.pt a.pt-plan .pt-op__m { color: #6B655F; }
+.pt-op__t--n { font-weight: 500; line-height: 1.35; }
+.pt-op__a--s { font-size: 13px; white-space: nowrap; }
+.pt-note { margin: 0; font-size: 12px; line-height: 1.45; color: #6B655F; }
 
 /* исходный Профиль (account-old.html) — только переключатель внизу */
 body[data-page="account"] main > .pv-pick { margin: 8px auto 20px; }

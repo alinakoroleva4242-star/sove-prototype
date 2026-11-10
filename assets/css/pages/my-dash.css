@@ -10,7 +10,11 @@ body[data-page="my"] main:has(.myv) { background: #F4F2EE; }
 .myv-pick__grid button.is-on { background: #1E1C1A; border-color: #1E1C1A; color: #FFFFFF; }
 
 /* полоса «Корзина · Избранное · Бюджет» над нижним меню — вид из эталона: белая, во всю ширину, три колонки с разделителями */
-body[data-page="my"] .rp-strip { left: 0; right: 0; height: 58px; gap: 0; padding: 0; border: 0; border-top: 1px solid #E6E1DA; border-radius: 0; box-shadow: none; background: #FFFFFF; -webkit-backdrop-filter: none; backdrop-filter: none; align-items: center; bottom: calc(var(--tabbar-h, 64px) + env(safe-area-inset-bottom)); font-family: Montserrat, Arial, sans-serif; }
+body[data-page="my"] .rp-strip { left: 0; right: 0; height: 58px; gap: 0; padding: 0; border: 0; border-top: 1px solid #E6E1DA; border-radius: 0; box-shadow: none; background: #FFFFFF; -webkit-backdrop-filter: none; backdrop-filter: none; align-items: center; bottom: calc(var(--tabbar-h, 64px) + env(safe-area-inset-bottom)); font-family: var(--font); }
+/* компьютер: как на других страницах — справа внизу, 420 px (во всю ширину слева её закрывало боковое меню, видно было только «…ое | Бюджет») */
+@media (min-width: 960px) {
+  body[data-page="my"] .rp-strip { left: auto; right: 24px; bottom: 16px; width: 420px; border: 1px solid #E6E1DA; border-radius: 12px; overflow: hidden; box-shadow: 0 6px 18px -10px rgba(46,31,24,.35); }
+}
 /* общая полоса на других экранах — карточки со стрелкой (макет Планировки); здесь свой вид из эталона: без рамок, фона и стрелок */
 body[data-page="my"] .rp-strip a { justify-content: center; text-align: center; padding: 0; border: 0; border-radius: 0; box-shadow: none; height: 100%; color: #1E1C1A; text-decoration: none; }
 body[data-page="my"] .rp-strip a::after { display: none; }

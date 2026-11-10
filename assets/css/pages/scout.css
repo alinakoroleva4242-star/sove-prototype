@@ -1,4 +1,6 @@
-/* Скаут — мастер расчёта ремонта */
+/* Бюджет (Скаут) — мастер расчёта ремонта. v3 (договор частей 02.11.2026): интерьер — общее окно выбора (capsule-picker.css),
+   вопросы — общий вид (q-style.css), известное из объекта не спрашиваем. Классы .cpk-* и .qs-* здесь не перекрашиваем —
+   только раскладка у себя (.scout-*). Токены — app-theme.css: Manrope + Cormorant Garamond, скругления 12/16. */
 .scout-vh { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 
 /* ---------- шапка и шаги ---------- */
@@ -13,78 +15,99 @@
 @media (max-width: 767px) { .scout-steps__val { display: none; } .scout-steps > button b { font-size: 11px; letter-spacing: .06em; white-space: nowrap; } }
 @media (min-width: 960px) { .scout-head { padding-block: var(--s12) 0; gap: var(--s8); } }
 
+/* линия шагов с точками (макет Вики 23.10): столько колонок, сколько шагов на экране (--n ставит scout.js), линия — от первой точки до последней.
+   Остались только «Тип и формат» и «Результат» — линию прячем (атрибут hidden, .steps иначе перебивает его своим display: grid) */
+.scout-steps.steps { position: relative; grid-template-columns: repeat(var(--n, 5), minmax(0, 1fr)); gap: 0; padding-bottom: 0; margin-top: 0; }
+.scout-steps.steps::before { content: ''; position: absolute; left: calc(50% / var(--n, 5)); right: calc(50% / var(--n, 5)); top: 7px; height: 2px; background: var(--line-2); }
+.scout-steps[hidden] { display: none !important; }
+.scout-steps.steps > * { position: relative; align-items: center; text-align: center; border-top: 0; padding: 0; gap: 6px; min-height: 44px; color: var(--stone); }
+.scout-steps.steps > *::before { content: ''; width: 16px; height: 16px; border-radius: 50%; background: var(--paper); border: 2px solid var(--line-2); box-sizing: border-box; position: relative; z-index: 1; transition: background .15s, border-color .15s; }
+.scout-steps.steps > .is-done::before { background: var(--accent-2); border-color: var(--accent-2); }
+.scout-steps.steps > .is-current::before { background: var(--accent-2); border-color: var(--accent-2); box-shadow: 0 0 0 4px var(--accent-soft); }
+.scout-steps.steps > * b { font-size: 12px; font-weight: 500; letter-spacing: 0; text-transform: none; color: var(--stone); }
+.scout-steps.steps > .is-done b { color: var(--ink); }
+.scout-steps.steps > .is-current b { color: var(--accent); font-weight: 700; }
+.scout-steps.steps > * span, .scout-steps.steps > * em { display: none !important; }
+.scout-steps.steps > *:not([disabled]):not(.is-current):hover { color: var(--ink); }
+
 /* ---------- сцена ---------- */
 .scout-stage { padding-block: var(--s8) var(--s4); }
 .scout-step { display: flex; flex-direction: column; gap: var(--s6); }
 .scout-step__head .h2:focus { outline: none; }
+/* заголовок шага — как вопрос анкеты Моего ремонта (было 32–40 px) */
+.scout-step__head .h2 { font-size: 24px; line-height: 1.15; font-weight: 600; }
+.scout-step__head .text { font-size: 14px; line-height: 1.45; color: var(--graphite); }
 .scout-restored { margin-bottom: var(--s6); padding-bottom: var(--s3); border-bottom: 1px solid var(--line); }
 .scout-restored .btn--link { margin-left: 6px; font-size: 14px; }
-.scout-block { margin-top: var(--s4); }
 .scout-foot { max-width: 65ch; }
-@media (min-width: 960px) { .scout-stage { padding-block: var(--s12) var(--s4); } .scout-step { gap: var(--s8); } }
-
-/* ---------- шаг 1: капсулы ---------- */
-.scout-caps { display: grid; gap: var(--s5) var(--s4); grid-template-columns: repeat(2, minmax(0, 1fr)); }
-@media (min-width: 640px) { .scout-caps { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-@media (min-width: 1100px) { .scout-caps { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: var(--s5); } }
-.scout-cap { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; padding: 0; border: 0; background: none; text-align: left; min-width: 0; }
-.scout-cap__pic { position: relative; display: block; width: 100%; overflow: hidden; background: var(--line); }
-.scout-cap__pic img { width: 100%; aspect-ratio: 4 / 5; object-fit: cover; transition: transform .4s; }
-.scout-cap:not([disabled]):hover .scout-cap__pic img { transform: scale(1.03); }
-.scout-cap__pic::after { content: ''; position: absolute; inset: 0; border: 0 solid var(--accent); pointer-events: none; }
-.scout-cap.is-active .scout-cap__pic::after { border-width: 3px; }
-.scout-cap__code { position: absolute; left: 0; bottom: 0; background: var(--paper); padding: 8px 12px 2px 0; font-size: clamp(22px, 2.2vw, 28px); font-weight: 300; line-height: 1; }
-.scout-cap__check { position: absolute; top: 0; right: 0; width: 36px; height: 36px; background: var(--accent); color: var(--white); display: none; align-items: center; justify-content: center; }
-.scout-cap.is-active .scout-cap__check { display: flex; }
-.scout-cap__name { font-size: 14px; font-weight: 500; line-height: 1.35; margin-top: 4px; }
-.scout-cap__price { font-size: 13px; color: var(--graphite); }
-.scout-cap[disabled] { cursor: not-allowed; color: var(--graphite); }
-.scout-cap[disabled] .scout-cap__pic img { opacity: .45; filter: grayscale(1); }
-.scout-cap-line { border-top: 1px solid var(--line); padding-top: var(--s2); margin-top: calc(var(--s2) * -1); }
-.scout-levels { display: grid; gap: var(--s4); grid-template-columns: minmax(0, 1fr); max-width: 820px; }
-@media (min-width: 640px) { .scout-levels { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-.scout-levels .option { min-height: 112px; }
-.scout-levels .option .row { flex-wrap: wrap; gap: 8px; }
-.scout-access { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 8px; max-width: 820px; min-height: 28px; border-top: 1px solid var(--line); padding-top: var(--s3); }
-
-/* ---------- шаг 2: состояние ---------- */
-.scout-states { display: grid; gap: var(--s4); grid-template-columns: minmax(0, 1fr); }
-.scout-state { flex-direction: row; align-items: flex-start; justify-content: space-between; gap: var(--s4); }
-.scout-state__main { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
-.scout-state__rate { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; flex-shrink: 0; }
-@media (min-width: 640px) { .scout-states { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-@media (min-width: 1100px) {
-  .scout-states { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-  .scout-state { flex-direction: column; min-height: 232px; padding: var(--s6); }
-  .scout-state.is-active { padding: calc(var(--s6) - 1px); }
-  .scout-state__rate { align-items: flex-start; flex-direction: row; align-items: center; flex-wrap: wrap; gap: 10px; }
+@media (min-width: 960px) {
+  .scout-stage { padding-block: var(--s12) var(--s4); }
+  .scout-step { gap: var(--s8); }
+  /* вопросы шагов 1–4 — колонкой не шире 720 px; результат и счёт — во всю ширину */
+  .scout-step--start, .scout-step--state, .scout-step--area, .scout-step--finish, .scout-head .scout-steps { max-width: 720px; }
 }
 
-/* ---------- шаг 3: планировка ---------- */
+/* ---------- шаг 1: интерьер ---------- */
+.scout-int { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; align-items: stretch; }
+.scout-int__card { display: flex; min-width: 0; cursor: pointer; }
+.scout-int__card > * { flex: 1 1 auto; min-width: 0; }
+/* «＋ Выбрать интерьер» / «＋ Другой интерьер» — пунктирная плитка, как «＋ Свой интерьер» в окне */
+.scout-int__add { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; min-width: 0; min-height: 132px; margin: 0; padding: 16px 12px; box-sizing: border-box;
+  border: 1.5px dashed var(--line-2); border-radius: var(--r); background: var(--white); color: var(--ink); font: inherit; font-family: var(--font); text-align: center; cursor: pointer; transition: border-color .15s; }
+@media (hover: hover) { .scout-int__add:hover { border-color: var(--accent); } }
+.scout-int__add:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.scout-int__plus { flex: none; width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: var(--accent-soft); color: var(--accent); }
+.scout-int__tt { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.scout-int__tt b { font-size: 15px; font-weight: 600; line-height: 1.25; }
+.scout-int__tt small { font-size: 12px; line-height: 1.35; color: var(--graphite); }
+.scout-int__add--wide { grid-column: 1 / -1; flex-direction: row; justify-content: flex-start; gap: 14px; min-height: 96px; padding: 16px; text-align: left; border-color: var(--accent); }
+.scout-int__add--wide .scout-int__plus { width: 52px; height: 52px; }
+.scout-int__add--wide .scout-int__tt b { font-size: 17px; }
+/* свой интерьер по картинкам — карточка того же вида, что у капсулы (скругление 16, мягкая тень, фото 1,3:1) */
+.scout-int__vis { position: relative; display: flex; flex-direction: column; min-width: 0; border-radius: var(--r); overflow: hidden; background: var(--white); box-shadow: var(--shadow); }
+.scout-int__vis.is-on { box-shadow: 0 0 0 2px var(--accent), var(--shadow); }
+.scout-int__pic { position: relative; display: flex; align-items: center; justify-content: center; aspect-ratio: 1.3; background: var(--surface-2); }
+.scout-int__pic img { position: absolute; inset: 0; display: block; width: 100%; height: 100%; object-fit: cover; }
+.scout-int__ok { position: absolute; top: 8px; right: 8px; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: var(--accent); color: var(--white); box-shadow: 0 0 0 2px var(--white); }
+.scout-int__ok svg { width: 16px; height: 16px; }
+.scout-int__spin { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--line-2); border-top-color: var(--accent); animation: scout-spin .8s linear infinite; }
+@keyframes scout-spin { to { transform: rotate(360deg); } }
+.scout-int__b { display: flex; flex-direction: column; gap: 4px; min-width: 0; padding: 10px 12px 12px; }
+.scout-int__name { font-family: var(--font-display); font-weight: 500; font-size: 20px; line-height: 1.08; }
+.scout-int__b small { font-size: 12px; line-height: 1.35; color: var(--graphite); }
+.scout-int__bar { display: block; height: 4px; margin-top: 4px; border-radius: var(--pill); background: var(--line); overflow: hidden; }
+.scout-int__bar i { display: block; height: 100%; background: var(--accent); transition: width .9s linear; }
+.scout-int__acts { display: flex; flex-wrap: wrap; gap: 0 18px; margin-top: -8px; }
+.scout-int__acts .btn--link { min-height: 44px; padding: 0; font-size: 14px; }
+/* тип ремонта на шаге 1 — одной строкой со «Сменить» (выбирается в окне интерьера; полстраницы карточек уровня убраны) */
+.scout-lv { display: flex; align-items: center; gap: 8px; min-height: 52px; padding: 4px 6px 4px 14px; box-sizing: border-box; border-radius: var(--r-sm); background: var(--white); box-shadow: var(--shadow); }
+.scout-lv__k { font-size: 13px; color: var(--graphite); }
+.scout-lv__v { font-size: 14px; font-weight: 600; }
+.scout-lv__go { margin-left: auto; min-height: 44px; padding: 0 10px; border: 0; background: none; color: var(--accent); font: 600 13px/1.2 var(--font); cursor: pointer; }
+.scout-lv__go:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: var(--r-xs); }
+/* одна кнопка загрузки плана (окно «Основа квартиры») */
+.scout-plan-box .eyebrow { margin-bottom: 2px; }
+.scout-plan-row .qs-opt__t small { overflow-wrap: anywhere; }
+.scout-plan-row.is-done .qs-opt__ic { background: var(--accent); color: var(--white); }
+
+/* ---------- шаг 2: состояние (строки q-style) ---------- */
+.qs-list.scout-states { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
+@media (min-width: 640px) { .qs-list.scout-states { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.scout-state .qs-opt__aside { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.scout-state .qs-opt__aside b { font-size: 14px; font-weight: 700; color: var(--ink); }
+.scout-state .qs-opt__aside .badge { font-size: 10.5px; font-weight: 600; }
+.scout-state__ch { font-size: 12px; font-weight: 700; color: var(--accent); }
+
+/* ---------- шаг 3: площадь ---------- */
 .scout-aside { margin-top: var(--s2); }
-.scout-ticks li { position: relative; padding-left: 20px; }
-.scout-ticks li::before { content: ''; position: absolute; left: 0; top: .62em; width: 10px; height: 1px; background: var(--ink); }
-.uploader svg { color: var(--graphite); }
-.scout-plan-alt { gap: var(--s5); }
 .scout-file { overflow-wrap: anywhere; font-weight: 500; }
-.scout-recog { min-height: 280px; }
 .scout-plan-src { border-bottom: 1px solid var(--line); padding-bottom: var(--s2); overflow-wrap: anywhere; }
-.scout-plan { padding: clamp(8px, 1.6vw, 20px); }
-.scout-plan svg { display: block; width: 100%; height: auto; }
-.scout-plan .w { fill: none; stroke: var(--ink); stroke-width: 7; stroke-linecap: square; stroke-linejoin: miter; }
-.scout-plan .wi { stroke-width: 4; stroke-linecap: butt; }
-.scout-plan .win rect { fill: var(--white); stroke: var(--accent); stroke-width: 2; }
-.scout-plan .win path { stroke: var(--accent); stroke-width: 2; }
-.scout-plan .door { fill: none; stroke: var(--graphite); stroke-width: 1.3; }
-.scout-plan text { font-family: var(--font); fill: var(--ink); }
-.scout-plan .rn { font-size: 16px; font-weight: 600; }
-.scout-plan .ra { font-size: 16px; font-weight: 400; fill: var(--graphite); font-variant-numeric: tabular-nums; }
-.scout-plan .dimline path { fill: none; stroke: var(--ink); stroke-width: 1.2; }
-.scout-plan .dimbg { fill: var(--white); }
-.scout-plan .dm { font-size: 14px; font-weight: 600; letter-spacing: .1em; }
-@media (max-width: 639px) { .scout-plan .rn, .scout-plan .ra { font-size: 25px; } .scout-plan .dm { font-size: 22px; } .scout-plan .dimline path, .scout-plan .door { stroke-width: 2; } }
-.scout-legend { display: inline-flex; align-items: center; gap: 8px; }
-.scout-legend i { width: 22px; height: 6px; border: 2px solid var(--accent); border-inline: 0; }
+/* план из Моего ремонта — картинкой; план без комнат — подсказка «Распознать комнаты» (скан Планировки) */
+.scout-plan--img { padding: 0; overflow: hidden; border-radius: var(--r); }
+.scout-plan--img img { display: block; width: 100%; height: auto; }
+.scout-plan-note { display: flex; justify-content: space-between; align-items: center; gap: 4px 12px; flex-wrap: wrap; border-radius: var(--r-sm); }
+.scout-plan-note a { white-space: nowrap; }
+.scout-inline { display: inline; min-height: 0; padding: 0; font-size: inherit; vertical-align: baseline; }
 
 .scout-rooms__head, .scout-room { display: grid; grid-template-columns: minmax(0, 1fr) 92px 44px; gap: 8px; align-items: center; }
 .scout-rooms__head { padding-bottom: 8px; border-bottom: 1px solid var(--ink); }
@@ -98,10 +121,27 @@
 .scout-rooms .field__error { margin-top: 8px; }
 .scout-rooms__foot { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--s4); flex-wrap: wrap; padding-top: var(--s4); }
 .scout-rooms__total { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; margin-left: auto; }
+/* разбивка площадей внутри «Вся квартира» (Вика 21.10) */
+.scout-rooms__note { margin-top: 6px; line-height: 1.4; }
+.scout-rooms__warn { color: var(--danger); font-weight: 600; }
 
-/* ---------- шаг 4: формат ---------- */
-.scout-formats { display: grid; gap: var(--s4); grid-template-columns: minmax(0, 1fr); }
-@media (min-width: 960px) { .scout-formats { grid-template-columns: repeat(3, minmax(0, 1fr)); } .scout-format { min-height: 168px; padding: var(--s6); gap: 10px; } .scout-format.is-active { padding: calc(var(--s6) - 1px); } .scout-format .option__title { font-size: 20px; font-weight: 500; } .scout-format .option__note { font-size: 14px; } }
+/* ---------- шаг 4: тип ремонта и формат ---------- */
+/* сводка известного: «ключ — значение — действие» */
+.scout-base { list-style: none; margin: 0; padding: 0 6px 0 14px; border-radius: var(--r); background: var(--white); box-shadow: var(--shadow); }
+.scout-base__r { display: grid; grid-template-columns: 84px minmax(0, 1fr) auto; align-items: center; gap: 8px; min-height: 52px; padding: 4px 0; border-top: 1px solid var(--line); }
+.scout-base__r:first-child { border-top: 0; }
+.scout-base__k { font-size: 12.5px; line-height: 1.3; color: var(--graphite); }
+.scout-base__v { display: flex; align-items: center; gap: 8px; min-width: 0; font-size: 14px; line-height: 1.3; }
+.scout-base__v b { font-weight: 600; overflow-wrap: anywhere; }
+.scout-base__t { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.scout-base__t small { font-size: 12px; color: var(--graphite); }
+.scout-base__pic { flex: none; width: 36px; height: 36px; border-radius: var(--r-xs); object-fit: cover; background: var(--surface-2); }
+.scout-base__go { min-height: 44px; padding: 0 8px; border: 0; background: none; color: var(--accent); font: 600 13px/1.2 var(--font); cursor: pointer; }
+.scout-base__go:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; border-radius: var(--r-xs); }
+.scout-type { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; }
+.scout-type .qs-seg { flex: 1 1 240px; }
+.scout-cls-link { align-self: flex-start; background: none; border: 0; padding: 0; font: inherit; cursor: pointer; }
+.scout-type .scout-cls-link { align-self: center; }
 
 /* ---------- низ шага: Назад / Далее ---------- */
 .scout-bar { position: sticky; bottom: 0; z-index: 40; background: var(--paper); border-top: 1px solid var(--line); margin-top: var(--s6); }
@@ -110,6 +150,8 @@
 .scout-bar__hint:empty { display: none; }
 .scout-bar__hint:empty + .btn, .scout-bar__in > .btn--primary:first-child { margin-left: auto; }
 .scout-bar .btn { min-width: 168px; }
+/* неактивная «Далее» под пальцем: на телефоне :hover залипает после тапа и красил её в акцент с серым текстом — остаётся серой */
+.scout-bar .btn[disabled]:hover, .scout-bar .btn[disabled]:focus { background: var(--line); border-color: var(--line); color: var(--graphite); }
 .scout-bar--result { display: none; }
 @media (max-width: 1099px) {
   body[data-page="scout"] { padding-bottom: calc(var(--tabbar-h) + 98px); }
@@ -199,10 +241,11 @@
   .scout-head .eyebrow, #scout-lead { display: none; }
   #scout-title { font-size: 26px; line-height: 1.12; }
   .scout-head { padding-block: var(--s4) var(--s2); }
+  .scout-head.is-bare { padding-block: 0; }
+  .scout-head.is-bare + .scout-stage { padding-top: var(--s6); }
 }
 
-/* классификатор SOVE: ссылка под типами ремонта и всплывающее окно (Вика 21.10) */
-.scout-cls-link { align-self: flex-start; background: none; border: 0; padding: 0; font: inherit; cursor: pointer; }
+/* классификатор SOVEAPP: всплывающее окно «Что входит» (Вика 21.10) */
 .cls-seg { display: flex; gap: 6px; background: var(--surface-2); border-radius: var(--pill); padding: 3px; }
 .cls-seg__b { flex: 1; min-height: 36px; border: 0; border-radius: var(--pill); background: transparent; font: inherit; font-weight: 600; color: var(--graphite); cursor: pointer; }
 .cls-seg__b.is-on { background: var(--white); color: var(--accent-ink); box-shadow: var(--shadow); }
@@ -214,94 +257,9 @@
 .cls-row__v { font-size: 14px; line-height: 1.35; }
 .cls-row__o { font-size: 12px; }
 
-/* разбивка площадей внутри «Вся квартира» (Вика 21.10) */
-.scout-rooms__note { margin-top: 6px; line-height: 1.4; }
-.scout-rooms__warn { color: var(--danger); font-weight: 600; }
-
-/* шаг 1: «+ технический проект», «+ свои визуалы», или капсула (Вика 22.10) */
-.scout-src { display: grid; gap: 10px; }
-@media (min-width: 640px) { .scout-src { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-.scout-src__item { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
-.scout-src__opt { display: flex; align-items: center; gap: 12px; width: 100%; min-width: 0; padding: 14px 16px; background: var(--white); border: 1px dashed var(--line-2); border-radius: var(--r-sm, 12px); color: var(--ink); text-align: left; text-decoration: none; font: inherit; cursor: pointer; }
-.scout-src__opt:hover { border-color: var(--accent); }
-.scout-src__opt:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.scout-src__opt.is-done { border-style: solid; border-color: var(--line); }
-.scout-src__opt.is-on { border: 2px solid var(--accent); padding: 13px 15px; }
-.scout-src__opt.is-busy { cursor: progress; border-style: solid; }
-.scout-src__ic { flex: none; width: 40px; height: 40px; border-radius: 999px; display: grid; place-items: center; background: var(--accent-soft); color: var(--accent); }
-.scout-src__opt.is-done .scout-src__ic { background: var(--accent); color: var(--white); }
-.scout-src__txt { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
-.scout-src__t { font-weight: 600; font-size: 15px; line-height: 1.3; }
-.scout-src__n { font-size: 13px; line-height: 1.4; color: var(--graphite); overflow-wrap: anywhere; }
-.scout-src__bar { border-radius: 999px; }
-.scout-src__bar i { display: block; height: 100%; background: var(--accent); transition: width .9s linear; }
-.scout-src__acts { display: flex; flex-wrap: wrap; gap: 4px 16px; padding-left: 4px; }
-.scout-src__acts .btn--link { font-size: 14px; min-height: 32px; padding: 0; }
-.scout-src__or { margin-top: 6px; }
-.scout-caps.is-muted .scout-cap { opacity: .6; }
-.scout-caps.is-muted .scout-cap:hover, .scout-caps.is-muted .scout-cap:focus-visible { opacity: 1; }
-
-/* «Тип ремонта»: значок «ⓘ Что входит» на карточках Базовый / Премиум (Вика 22.10) */
-.scout-level { position: relative; display: flex; min-width: 0; }
-.scout-level > .option { flex: 1; }
-.scout-level > .option .option__title { padding-right: 120px; }
-.scout-level__info { position: absolute; top: 14px; right: 14px; display: inline-flex; align-items: center; gap: 6px; min-height: 30px; padding: 4px 12px 4px 9px; border: 1px solid var(--line); border-radius: 999px; background: var(--accent-soft); color: var(--accent); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
-.scout-level__info:hover { border-color: var(--accent); }
-.scout-level__info:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-
-/* ---------- макет Вики 23.10: линия шагов с точками, «Выберите капсулу», две кнопки рядом, фильтры, широкие карточки ---------- */
-.scout-steps.steps { position: relative; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0; padding-bottom: 0; margin-top: 0; }
-.scout-steps.steps::before { content: ''; position: absolute; left: 10%; right: 10%; top: 7px; height: 2px; background: var(--line-2); }
-.scout-steps.steps > * { position: relative; align-items: center; text-align: center; border-top: 0; padding: 0; gap: 6px; min-height: 44px; color: var(--stone); }
-.scout-steps.steps > *::before { content: ''; width: 16px; height: 16px; border-radius: 50%; background: var(--paper); border: 2px solid var(--line-2); box-sizing: border-box; position: relative; z-index: 1; transition: background .15s, border-color .15s; }
-.scout-steps.steps > .is-done::before { background: var(--accent-2); border-color: var(--accent-2); }
-.scout-steps.steps > .is-current::before { background: var(--accent-2); border-color: var(--accent-2); box-shadow: 0 0 0 4px var(--accent-soft); }
-.scout-steps.steps > * b { font-size: 12px; font-weight: 500; letter-spacing: 0; text-transform: none; color: var(--stone); }
-.scout-steps.steps > .is-done b { color: var(--ink); }
-.scout-steps.steps > .is-current b { color: var(--accent); font-weight: 700; }
-.scout-steps.steps > * span, .scout-steps.steps > * em { display: none !important; }
-.scout-steps.steps > *:not([disabled]):not(.is-current):hover { color: var(--ink); }
-.scout-step__head .h2 { font-size: clamp(32px, 8.4vw, 40px); line-height: 1.02; }
-
-.scout-src { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.scout-src__opt { border-style: solid; border-color: var(--line); padding: 10px; gap: 8px; min-height: 68px; box-shadow: var(--shadow); }
-.scout-src__opt.is-on { padding: 9px; }
-.scout-src__ic { width: 36px; height: 36px; }
-.scout-src__ic svg { width: 20px; height: 20px; }
-.scout-src__t { font-size: 13.5px; font-weight: 600; line-height: 1.2; }
-.scout-src__n { font-size: 12px; line-height: 1.3; color: var(--graphite); }
-.scout-src__ch { color: var(--stone); display: inline-flex; flex: none; }
-.scout-src__acts { grid-column: 1 / -1; }
-
-.scout-filt { display: flex; flex-wrap: wrap; gap: 8px; }
-.scout-filt__b { min-height: 38px; padding: 0 16px; border: 1px solid var(--line); border-radius: var(--pill); background: var(--white); color: var(--ink); font: 500 14px var(--font); cursor: pointer; transition: background .15s, border-color .15s; }
-.scout-filt__b:hover { border-color: var(--line-2); }
-.scout-filt__b.is-on { background: var(--accent-2); border-color: var(--accent-2); color: #fff; }
-
-.scout-caps { gap: 12px; }
-@media (min-width: 1100px) { .scout-caps { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; } }
-.scout-cap { background: var(--white); border-radius: var(--r); overflow: hidden; box-shadow: var(--shadow); gap: 0; cursor: pointer; transition: box-shadow .15s; }
-.scout-cap:not([disabled]):hover { box-shadow: 0 8px 22px rgba(46,31,24,.12); }
-.scout-cap__pic { border-radius: 0; }
-.scout-cap__pic img { aspect-ratio: 1.3; display: block; }
-.scout-cap__pic::after { border-radius: var(--r) var(--r) 0 0; }
-.scout-cap.is-active { box-shadow: 0 0 0 2px var(--accent-2), var(--shadow); }
-.scout-cap.is-active .scout-cap__pic::after { border-width: 0; }
-.scout-cap__check { top: 8px; right: 8px; width: 30px; height: 30px; border-radius: 50%; background: var(--accent-2); box-shadow: 0 0 0 2px #fff; }
-.scout-cap__check svg { width: 16px; height: 16px; }
-.scout-cap__body { display: flex; flex-direction: column; gap: 4px; padding: 10px 12px 12px; width: 100%; box-sizing: border-box; }
-.scout-cap__name { font-family: var(--font-display); font-size: 20px; font-weight: 500; line-height: 1.05; margin: 0; font-variant-numeric: lining-nums; }
-.scout-cap__style { font-size: 12px; color: var(--graphite); }
-.scout-cap__foot { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-top: 4px; flex-wrap: wrap; }
-.scout-cap__dots { display: inline-flex; gap: 3px; }
-.scout-cap__dots i { width: 12px; height: 12px; border-radius: 50%; box-shadow: inset 0 0 0 1px rgba(0,0,0,.08); }
-.scout-cap__price { font-size: 12px; color: var(--accent); white-space: nowrap; }
-.scout-cap__price b { font-size: 15px; font-weight: 700; }
-.scout-cap[disabled] { opacity: .7; }
-@media (max-width: 360px) { .scout-src { grid-template-columns: 1fr; } }
-
 /* «Работы по вашему плану» — позиции Scout × объёмы плана (plan-volumes.js, 27.10.2026) */
 .scout-plan { margin-top: 12px; border-top: 1px solid var(--line); padding-top: 10px; }
+.scout-plan.scout-plan--img { margin-top: 0; border-top: 0; }
 .scout-plan summary { cursor: pointer; font-weight: 600; font-size: 14px; padding: 6px 0; min-height: 44px; display: flex; align-items: center; }
 .scout-plan .tiny { margin: 4px 0 8px; }
 .scout-plan__list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
@@ -310,11 +268,7 @@
 .scout-plan__list small { font-size: 11px; color: var(--graphite); }
 .scout-plan__list b { white-space: nowrap; font-weight: 600; }
 
-/* «Что сейчас в квартире» свёрнуто: одна строка с выбранным состоянием и «изменить ›» (Алина 27.10) */
-.scout-state--one, .scout-state.scout-state--one { flex-direction: row; min-height: 0; padding: var(--s4) var(--s5, 20px); width: 100%; }
-.scout-state__ch { font-size: 12px; font-weight: 700; color: var(--accent, #A24E32); }
-
-/* «По комнатам» (созвон 28.10): строка на комнату шага 3 — Работы · Материалы и комплектация · Итого; тап раскрывает категории комплектации.
+/* «По комнатам» (созвон 28.10): строка на комнату — Работы · Материалы и комплектация · Итого; тап раскрывает категории комплектации.
    Телефон: имя комнаты, под ним три значения с подписями; от 760 px — одна строка-таблица с шапкой колонок */
 .scout-rooms-b { margin-top: var(--s10); }
 .rb-note { margin-top: -6px; }
@@ -353,3 +307,99 @@
   .rb-head .rb-room__vals > span { text-align: right; }
   .rb-cats { margin-left: 0; }
 }
+@media (prefers-reduced-motion: reduce) { .scout-int__spin { animation: none; } .scout-int__bar i { transition: none; } }
+
+/* ── полоса шагов как в Планировке (.pz-bar): отрезки, пройденное зелёным, текущий терракотой, «шаг N из K» (Алина 10.11) ── */
+.scout-steps.steps { display: flex; align-items: center; gap: 4px; padding-bottom: 0; }
+.scout-steps.steps::before { display: none; }
+.scout-steps.steps > button[data-step] { flex: 1 1 0; min-width: 0; min-height: 28px; flex-direction: row; align-items: center; padding: 0; gap: 0; }
+.scout-steps.steps > button[data-step]::before { width: 100%; height: 4px; border: 0; border-radius: 2px; background: var(--line); box-shadow: none; }
+.scout-steps.steps > button[data-step].is-past::before { background: #2E6B4E; }
+.scout-steps.steps > button[data-step].is-current::before { background: #A24E32; }
+.scout-steps.steps > button[data-step] b { display: none; }
+.scout-steps.steps > small.scout-steps__n { flex: none; min-height: 0; margin-left: 6px; font-size: 10px; line-height: 1.2; color: var(--graphite); white-space: nowrap; }
+.scout-steps.steps > small.scout-steps__n::before { display: none; }
+/* «‹» — шаг назад, слева от полосы */
+.scout-steps.steps > button[data-step].scout-steps__back { flex: none; width: 28px; min-height: 28px; margin: 0 2px 0 -8px; justify-content: center; font-size: 22px; font-weight: 500; line-height: 1; color: #A24E32; cursor: pointer; }
+.scout-steps.steps > button[data-step].scout-steps__back::before { display: none; }
+
+/* ── шаг «Вопросы» одной страницей в виде Планировки (Алина 10.11): размеры и цвета — как у .pz-title / .pz-group / .pz-card / .pz-state__one ── */
+.scout-step.sq { gap: 12px; }
+.sq-title { display: grid; gap: 4px; }
+.sq-title h2 { margin: 0; font: 600 26px/1.05 var(--font-display); color: var(--ink); }
+.sq-title h2:focus { outline: 0; }
+.sq-title span { font-size: 12px; color: var(--graphite); }
+.sq-group { font-size: 10px; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase; color: #A24E32; margin: 6px 2px -4px; }
+.sq-card { background: var(--white); border-radius: 14px; padding: 12px; display: grid; gap: 10px; min-width: 0; }
+.sq-card__h { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 4px 8px; }
+.sq-card__h b { font-size: 15px; font-weight: 600; line-height: 1.25; }
+.sq-note { font-size: 10px; line-height: 1.4; color: var(--graphite); }
+.sq-from { font-style: normal; font-size: 11px; font-weight: 600; line-height: 1.2; padding: 3px 8px; border-radius: var(--pill); background: var(--green-soft); color: var(--green); white-space: nowrap; }
+.sq-link { border: 0; background: none; padding: 0; font: 700 12px var(--font); color: #A24E32; cursor: pointer; white-space: nowrap; }
+.sq-list { display: grid; gap: 8px; }
+.sq-one { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 48px; box-sizing: border-box; padding: 7px 9px; border: 2px solid #A24E32; border-radius: 10px; background: #fff; font: inherit; color: var(--ink); text-align: left; cursor: pointer; }
+.sq-one__t { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.sq-one__t b { font-size: 14px; font-weight: 600; line-height: 1.25; overflow-wrap: anywhere; }
+.sq-one__t small { font-size: 11px; line-height: 1.35; color: var(--graphite); }
+.sq-one > em { flex: none; font-style: normal; font-size: 12px; font-weight: 700; color: #A24E32; white-space: nowrap; }
+.sq-one.is-empty, .sq-one--opt { border: 1px solid #E6E1DA; padding: 8px 10px; }
+.sq-one.is-empty .sq-one__t b { font-weight: 500; color: var(--graphite); }
+.sq-one--opt.is-on { border: 2px solid #A24E32; padding: 7px 9px; }
+.sq-one:focus-visible, .sq-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.sq-need { animation: sq-need 2.6s ease-out; }
+@keyframes sq-need { 0%, 60% { box-shadow: 0 0 0 2px #A24E32, 0 0 0 6px rgba(162,78,50,.18); } 100% { box-shadow: 0 0 0 0 transparent; } }
+@media (prefers-reduced-motion: reduce) { .sq-need { animation: none; box-shadow: 0 0 0 2px #A24E32; } }
+/* «Что посчитать» внутри «Тип ремонта» */
+.sq-sub { display: grid; gap: 6px; }
+.sq-sub__t { font-size: 12px; color: var(--graphite); }
+.sq-one__pic { flex: none; width: 44px; height: 44px; border-radius: 8px; object-fit: cover; background: var(--surface-2); }
+/* ── шаг 1: всплывающая лента капсул снизу (Алина 10.11) ── */
+.scout-caps { position: fixed; left: 8px; right: 8px; bottom: calc(var(--tabbar-h, 64px) + 96px); z-index: 46; display: grid; gap: 8px; padding: 10px 0 12px; border-radius: 18px; background: var(--white); box-shadow: 0 10px 30px -10px rgba(41,36,33,.35), 0 0 0 1px var(--line); }
+.scout-caps__h { display: flex; align-items: center; gap: 8px; padding: 0 12px; min-width: 0; }
+.scout-caps__h b { flex: 1; min-width: 0; font: 600 14px/1.25 var(--font); color: var(--ink); }
+.scout-caps__all { flex: none; border: 0; background: none; padding: 6px 2px; font: 700 12px var(--font); color: var(--accent); cursor: pointer; white-space: nowrap; }
+.scout-caps__x { flex: none; width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--line); background: var(--white); font: 400 17px/1 var(--font); color: var(--graphite); cursor: pointer; }
+.scout-caps__row { display: grid; grid-auto-flow: column; grid-auto-columns: 136px; gap: 8px; padding: 2px 12px 4px; overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x mandatory; scroll-padding-inline: 12px; scrollbar-width: none; }
+.scout-caps__row::-webkit-scrollbar { display: none; }
+.scout-caps__row > .cpk-card { scroll-snap-align: start; }
+.scout-caps.is-folded { left: auto; right: 12px; padding: 0; background: none; box-shadow: none; }
+.scout-caps__fab { border: 0; border-radius: 16px; padding: 8px 12px; background: #1E1C1A; color: #fff; font: 800 12px var(--font); box-shadow: 0 6px 16px -6px rgba(0,0,0,.4); cursor: pointer; }
+.scout-caps-pad { flex: none; }
+.scout-caps.is-folded ~ .scout-caps-pad, .scout-caps-pad:has(+ .scout-caps.is-folded) { height: 48px !important; }
+:is(.scout-caps__all, .scout-caps__x, .scout-caps__fab):focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+@media (min-width: 960px) { .scout-caps { left: auto; right: 24px; width: 520px; } }
+/* площадь без плана — поле в карточке */
+.sq-area { display: flex; align-items: center; gap: 8px; }
+.sq-area .input { width: 120px; min-height: 44px; font-size: 16px; }
+.sq-area span { font-size: 14px; color: var(--graphite); }
+.sq-link--in { font-size: inherit; text-decoration: underline; }
+/* ручной ввод площади: мягкое предложение загрузить план */
+.sq-plan-ask { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; background: var(--accent-soft); }
+.sq-plan-ask > span { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.sq-plan-ask b { font-size: 13px; font-weight: 600; color: var(--ink); }
+.sq-plan-ask small { font-size: 11px; line-height: 1.35; color: var(--graphite); }
+.sq-plan-ask__go { flex: none; min-height: 36px; padding: 0 12px; border: 1.5px solid var(--accent); border-radius: var(--pill); background: var(--white); font: 600 12px var(--font); color: var(--accent); cursor: pointer; }
+.sq-plan-ask__go:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.sq-card .scout-rooms { min-width: 0; }
+.sq-manual { justify-self: start; padding: 6px 0; }
+/* зоны из плана в анкете — мельче, как список комнат в Планировке (.pz-rooms) (Алина 10.11) */
+.sq-card .scout-rooms__head, .sq-card .scout-room { grid-template-columns: minmax(0, 1fr) 64px 28px; gap: 6px; }
+.sq-card .scout-rooms__head { padding-bottom: 4px; border-bottom-color: var(--line); font-size: 10px; }
+.sq-card .scout-room { padding-block: 4px; border-bottom: 0; }
+.sq-card .scout-room .input { min-height: 32px; height: 32px; padding: 0 9px; border-radius: 8px; font-size: 13px; }
+.sq-card .scout-room .input--num { padding: 0 7px; text-align: right; }
+.sq-card .scout-room__del { width: 28px; height: 32px; }
+.sq-card .scout-room__del svg { width: 14px; height: 14px; }
+.sq-card .scout-rooms__foot { padding-top: 6px; }
+.sq-card .scout-rooms__total { flex-direction: row; align-items: baseline; gap: 8px; }
+.sq-card .scout-rooms__total .eyebrow { font-size: 10px; }
+.sq-card .scout-rooms__total .mid-num { font-size: 16px; font-weight: 600; }
+/* выбранный интерьер на шаге 1 — меньше (Алина 10.11): карточка и «＋ Другой интерьер» ниже */
+.scout-int__card .cpk-card__pic img { aspect-ratio: 2; }
+.scout-int:has(.scout-int__card) .scout-int__add { min-height: 0; padding: 10px; gap: 4px; }
+.scout-int:has(.scout-int__card) .scout-int__plus { width: 36px; height: 36px; }
+/* «По комнатам» — одна колонка «Материалы и комплектация» (работы убраны, Алина 10.11) */
+.rb-room__vals { grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 760px) { .rb-grid { grid-template-columns: minmax(0, 1fr) 220px 20px; } }
+/* финальная страница: на телефоне «Сохранить в Мой ремонт» уже закреплена внизу — вторую в ряду действий не показываем */
+@media (max-width: 1099px) { .fr-acts > .scout-save { display: none; } }

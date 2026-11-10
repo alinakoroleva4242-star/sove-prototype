@@ -33,7 +33,7 @@
   function notFound() {
     document.title = 'Проект не найден — SOVEAPP';
     root.innerHTML = '<section class="wrap wrap--narrow section stack stack--6"><div class="page-head"><span class="eyebrow">Проект</span><h1 class="h1">Проект не найден</h1></div>' +
-      '<p class="lead">Возможно, проект удалён или ссылка открыта в другом браузере: в прототипе проекты хранятся только там, где их создали. Токены и генерации на месте.</p>' +
+      '<p class="lead">Возможно, проект удалён или ссылка открыта в другом браузере: в прототипе проекты хранятся только там, где их создали. Генерации на месте.</p>' +
       '<div class="row"><a class="btn btn--ghost" href="account.html#projects">К моим проектам</a><a class="btn btn--link" href="scout.html">Рассчитать ремонт заново</a></div></section>';
   }
 
@@ -111,7 +111,7 @@
   /* ---------- генерации ---------- */
   function genCard(g) {
     var st = STATUS[g.status] || STATUS.done;
-    var note = !g.cost ? '' : g.status === 'done' ? 'списано ' + F.tokens(g.cost) : g.status === 'running' ? 'в резерве ' + F.tokens(g.cost) : 'токены возвращены';
+    var note = !g.cost ? '' : g.status === 'done' ? 'списано ' + F.tokens(g.cost) : g.status === 'running' ? 'в резерве ' + F.tokens(g.cost) : 'генерация вернулась на баланс';
     return '<a class="gen-card" href="generation.html?id=' + encodeURIComponent(g.id) + '">' +
       '<div class="gen-card__pic">' + (g.src ? '<img src="' + esc(g.src) + '" alt="' + esc(g.title || '') + '" loading="lazy">' : '') + '</div>' +
       '<div class="gen-card__body"><div class="gen-card__top"><span class="eyebrow">' + (KIND[g.kind] || 'Генерация') + '</span><span class="badge ' + st[1] + '">' + st[0] + '</span></div>' +
@@ -170,7 +170,7 @@
     });
   }
   function removeProject(pr) {
-    S.ui.confirm({ title: 'Удалить проект «' + pr.name + '»?', text: 'Смета и список товаров проекта удалятся. Генерации останутся в общей ленте, токены не меняются. Вернуть проект будет нельзя.', ok: 'Удалить проект',
+    S.ui.confirm({ title: 'Удалить проект «' + pr.name + '»?', text: 'Смета и список товаров проекта удалятся. Генерации останутся в общей ленте, баланс не меняется. Вернуть проект будет нельзя.', ok: 'Удалить проект',
       onOk: function () {
         leaving = true;
         S.gens.list().forEach(function (g) { if (g.projectId === pr.id) S.gens.update(g.id, { projectId: null }); });
@@ -191,7 +191,7 @@
         '<section class="wrap cab-section"><div class="pr-danger rule-top"><span class="small muted">Проект хранит смету, товары и генерации одной квартиры.</span><button class="btn btn--link" type="button" data-delete>Удалить проект</button></div></section>';
     } catch (e) {
       console.error(e);
-      root.innerHTML = '<section class="wrap wrap--narrow section"><div class="error-screen"><h1 class="h3">Не удалось открыть проект</h1><p class="text">Данные проекта на месте, токены не списывались. Обновите страницу или вернитесь в кабинет.</p><div class="row"><button class="btn btn--ghost" type="button" onclick="location.reload()">Обновить страницу</button><a class="btn btn--link" href="account.html#projects">В кабинет</a></div></div></section>';
+      root.innerHTML = '<section class="wrap wrap--narrow section"><div class="error-screen"><h1 class="h3">Не удалось открыть проект</h1><p class="text">Данные проекта на месте, генерация не списывалась. Обновите страницу или вернитесь в кабинет.</p><div class="row"><button class="btn btn--ghost" type="button" onclick="location.reload()">Обновить страницу</button><a class="btn btn--link" href="account.html#projects">В кабинет</a></div></div></section>';
       return;
     }
     root.querySelector('[data-rename]').addEventListener('click', function () { rename(pr); });

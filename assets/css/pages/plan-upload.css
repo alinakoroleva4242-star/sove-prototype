@@ -55,6 +55,14 @@
 .pu-busy i { width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--line-2); border-top-color: var(--accent); animation: pu-spin .8s linear infinite; }
 @keyframes pu-spin { to { transform: rotate(360deg); } }
 
+/* план уже в объекте: «Взять этот план» / «Распознать комнаты» (скан — экран «Проверь план» Планировки), PDF без картинки — подсказка */
+.pu-use { display: flex; flex-direction: column; gap: 8px; }
+.pu-or { margin: 2px 0 0; font-size: 11px; line-height: 1.4; color: var(--graphite); text-align: center; }
+a.pu-btn2 { text-decoration: none; }
+.pu-note { margin: 0; font-size: 12.5px; line-height: 1.45; color: var(--graphite); }
+.pu-link:focus-visible, .pu-btn:focus-visible, .pu-btn2:focus-visible, .pu-card:focus-visible, .pu__x:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { .pu-back, .pu { transition: none; } .pu-busy i { animation: none; } }
+
 /* Бюджет (scout.js): план из Моего ремонта вместо рисованного примера; кнопка-загрузчик открывает это окно */
 .scout-plan--img { padding: 0; overflow: hidden; }
 .scout-plan--img img { display: block; width: 100%; height: auto; }

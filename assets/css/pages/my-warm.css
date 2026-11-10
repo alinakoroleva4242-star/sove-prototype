@@ -197,3 +197,15 @@ body[data-page="my"] #site-footer { display: none; }
 
 /* полоса Корзина · Избранное · Бюджет закрывала нижнюю кнопку корзины («Оформить заказ») на 390 — запас снизу, как на других страницах с полосой */
 body[data-page="my"].has-rp-strip #main { padding-bottom: 76px; }
+
+/* анкета объекта: строка «＋ Выбрать капсулу» (окно выбора интерьера) — значок вместо картинки; эталонные .q-chip / .q-big / .q-opt не меняем */
+.q-opt__ic { width: 56px; height: 56px; flex: none; display: grid; place-items: center; border-radius: var(--r-xs); background: var(--accent-soft); color: var(--accent); font-size: 26px; line-height: 1; }
+.q-later { align-self: flex-start; min-height: 40px; }
+/* «Выбрать позже» — ссылка-кнопка с подчёркиванием: скругление .btn этой страницы (12 px) гнуло линию дугой */
+body[data-page="my"] .q-later { border-radius: 0; }
+/* анкета новой квартиры (my.html?v=new): полоска «Квартира · Интерьер» и полоса «Корзина · Избранное · Бюджет» показывали бы прежнюю активную квартиру — прячем */
+body.my-new .ob, body.my-new .rp-strip { display: none; }
+body.my-new.has-rp-strip #main { padding-bottom: 24px; }
+/* экран объекта: под строкой «Интерьеры» — «Открыть в Интерьере» и «Все интерьеры · N» */
+.my-objlinks { display: flex; flex-wrap: wrap; gap: 4px 16px; margin-top: -4px; }
+.my-objlinks .arrow-link { min-height: 40px; font-size: 13px; }

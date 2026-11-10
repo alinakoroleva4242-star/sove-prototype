@@ -75,3 +75,34 @@ a.bg-btn { display: flex; align-items: center; justify-content: center; text-dec
 .bg-rm__c--sum { border-top: 1px solid #EFEAE3; font-weight: 700; }
 .bg-rm__foot { display: flex; justify-content: flex-end; padding: 0 12px 10px; } .bg-rm__foot a { font-size: 12px; font-weight: 700; color: var(--bg-acc); text-decoration: none; }
 .bg-note--l { text-align: left; margin-top: -4px; }
+
+/* ── вид как на финальной странице расчёта (budget-view.css) (Алина 10.11): списки «название — сумма», заголовки групп, одна сумма у комнаты ── */
+#my-root.bg.fr .bg-list { border-radius: 14px; }
+#my-root.bg.fr .bg-r { gap: 10px; padding: 9px 12px; min-height: 44px; }
+#my-root.bg.fr .bg-th { width: 32px; height: 32px; }
+#my-root.bg.fr .bg-r__b > b { font-size: 14px; font-weight: 500; }
+#my-root.bg.fr .bg-r__b > small { font-size: 11px; }
+#my-root.bg.fr .bg-th--n { width: 22px; height: 22px; font-size: 11px; font-weight: 600; color: var(--bg-mute); }
+#my-root.bg.fr .fr-h > span.bg-type { font-weight: 400; }
+#my-root.bg.fr .bg-rm__r, #my-root.bg.fr .bg-rm--sum { grid-template-columns: minmax(0, 1fr) auto 16px; grid-template-areas: 'n s a'; padding: 9px 12px; min-height: 44px; }
+#my-root.bg.fr .bg-rm__n b { font-size: 14px; font-weight: 500; }
+#my-root.bg.fr .bg-rm__sum { grid-area: s; font-size: 14px; font-weight: 600; white-space: nowrap; }
+#my-root.bg.fr .bg-rm--sum { border-top-color: var(--bg-line); }
+#my-root.bg.fr .bg-rm--sum .bg-rm__n b { font-weight: 600; }
+#my-root.bg.fr .bg-r__sum { flex: none; font-size: 14px; font-weight: 600; white-space: nowrap; }
+#my-root.bg.fr .bg-r__a { flex: none; width: 14px; text-align: center; font-size: 12px; }
+#my-root.bg.fr .bg-r__b { gap: 3px; }
+#my-root.bg.fr .bg-rm__a { width: 14px; text-align: center; }
+/* шрифт, ширина и заголовок — как на финальной странице расчёта: Manrope (--font) вместо Montserrat, поля страницы --gutter, заголовок с засечками */
+body[data-page="my"] #my-root.bg.fr { max-width: 720px; font-family: var(--font); color: var(--ink); }
+#my-root.bg.fr .bg-head h1, #my-root.bg.fr .bg-r, #my-root.bg.fr .bg-type button, #my-root.bg.fr .bg-btn, #my-root.bg.fr .bg-rm__r { font-family: inherit; }
+#my-root.bg.fr .bg-head { display: flex; align-items: center; gap: 6px; padding: 16px var(--gutter) 0; background: none; border-bottom: 0; }
+#my-root.bg.fr .bg-head a { width: 28px; height: 28px; margin-left: -8px; font-size: 22px; font-weight: 500; color: #A24E32; }
+#my-root.bg.fr .bg-head h1 { text-align: left; font: 600 26px/1.05 var(--font-display); color: var(--ink); }
+#my-root.bg.fr .bg-head > span { display: none; }
+#my-root.bg.fr .bg-body { padding: 12px var(--gutter) 14px; }
+#my-root.bg.fr .bg-btn { height: 48px; border-radius: 999px; font-size: 15px; font-weight: 600; }
+#my-root.bg.fr .bg-rm__foot a, #my-root.bg.fr .bg-goods__go { font-size: 12px; font-weight: 700; color: #A24E32; }
+
+#my-root.bg.fr .bg-goods { padding: 4px 12px 12px; background: none; }
+#my-root.bg.fr div.bg-r { cursor: default; }

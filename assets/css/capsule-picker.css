@@ -1,0 +1,136 @@
+/* Окно выбора интерьера и карточка капсулы (assets/js/capsule-picker.js, общий договор WP0, 02.11.2026).
+   Шторка снизу на телефоне, по центру на широком экране. z-index 300 — как «Основа квартиры» (.pu-back): выше шторок Интерьера
+   (.mt-back 200), тостов (.toasts 120), модалок (.modal-back 100) и полосок (45–48). SOVE.ui.modal / confirm изнутри не открывать —
+   окажутся под шторкой. Тосты — только после закрытия.
+   Классы только .cpk-* (префикс .cp- занят в extra.css). Блоки не дописывают стили к .cpk-*, только раскладку у себя.
+   Цвета, шрифты и скругления — токены app-theme.css (Manrope + Cormorant Garamond, 12/16). Фото не затемняем. */
+
+/* ---------- окно ---------- */
+.cpk-back { position: fixed; inset: 0; z-index: 300; display: flex; align-items: flex-end; justify-content: center; background: rgba(41,36,33,.5);
+  opacity: 0; transition: opacity .18s; font-family: var(--font); color: var(--ink); }
+.cpk-back.is-open { opacity: 1; }
+/* до первого кадра открытия нажатия проходят; закрытое окно (.is-closing) 180 мс гаснет и ловит второй тап двойного нажатия,
+   дальше до 350 мс его ловит прозрачный щит .cpk-shield (стили в capsule-picker.js) — тап не уходит на страницу */
+.cpk-back:not(.is-open):not(.is-closing) { pointer-events: none; }
+.cpk-back.is-closing { pointer-events: auto; }
+.cpk { width: 100%; max-width: 640px; max-height: 92vh; max-height: 92dvh; box-sizing: border-box; display: flex; flex-direction: column; overflow: hidden;
+  background: var(--paper); border-radius: 22px 22px 0 0; box-shadow: 0 -10px 30px rgba(0,0,0,.18); transform: translateY(24px); transition: transform .2s ease-out; }
+.cpk-back.is-open .cpk { transform: none; }
+
+/* шапка: заголовок и фильтр по стилям закреплены */
+.cpk__head { flex: none; display: flex; flex-direction: column; gap: 10px; padding: 10px 16px 12px; border-bottom: 1px solid var(--line); }
+.cpk__grip { align-self: center; width: 40px; height: 4px; border-radius: 2px; background: var(--line-2); }
+.cpk__h { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+.cpk__ttl { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.cpk__t { font-family: var(--font-display); font-weight: 500; font-size: 27px; line-height: 1; color: var(--ink); }
+.cpk__t:focus { outline: none; }                                   /* фокус на заголовке при открытии касанием — не элемент управления */
+.cpk__ttl small { font-size: 12px; line-height: 1.35; color: var(--graphite); }
+.cpk__x { flex: none; width: 40px; height: 40px; margin: -2px -4px 0 0; border: 0; border-radius: var(--pill); background: var(--white); color: var(--graphite); font: 400 22px/1 var(--font); cursor: pointer; }
+.cpk__back { align-self: flex-start; min-height: 40px; padding: 0; border: 0; background: none; color: var(--accent); font: 600 13px/1.2 var(--font); cursor: pointer; }
+.cpk-filt { display: flex; flex-wrap: wrap; gap: 6px; }
+.cpk-chip { min-height: 40px; padding: 0 14px; border: 1px solid var(--line-2); border-radius: var(--pill); background: var(--white); color: var(--ink); font: 500 13px/1.2 var(--font); cursor: pointer; transition: background .15s, border-color .15s, color .15s; }
+.cpk-chip.is-on, .cpk-chip[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--white); }
+@media (hover: hover) { .cpk-chip:not(.is-on):hover { border-color: var(--ink); } }
+
+/* тело прокручивается само, шапка и низ стоят */
+.cpk__body { flex: 1 1 auto; min-height: 0; position: relative; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; padding: 12px 16px 16px; }
+
+/* ---------- сетки: в окне две в ряд; в блоках — .cpk-grid и уменьшенная .cpk-grid--compact ---------- */
+.cpk-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.cpk-grid--compact { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+@media (min-width: 640px) { .cpk-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } .cpk-grid--compact { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+@media (min-width: 1100px) { .cpk-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } .cpk-grid--compact { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
+.cpk .cpk-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (min-width: 640px) { .cpk .cpk-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+
+/* ---------- карточка капсулы (как в Бюджете, scout.css .scout-cap) ---------- */
+.cpk-card { position: relative; display: flex; flex-direction: column; min-width: 0; margin: 0; padding: 0; border: 0; border-radius: var(--r); overflow: hidden;
+  background: var(--white); box-shadow: var(--shadow); color: var(--ink); font: inherit; font-family: var(--font); text-align: left; text-decoration: none; cursor: pointer; transition: box-shadow .15s; }
+@media (hover: hover) { .cpk-card:not([disabled]):not(.is-static):not(.is-on):hover { box-shadow: 0 8px 22px rgba(46,31,24,.12); } }
+.cpk-card.is-on { box-shadow: 0 0 0 2px var(--accent), var(--shadow); }
+.cpk-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.cpk-card[disabled], .cpk-card.is-off { opacity: .6; cursor: not-allowed; }
+.cpk-card.is-static { cursor: default; }
+.cpk-card__pic { position: relative; display: block; background: var(--surface-2); }
+.cpk-card__pic img { display: block; width: 100%; height: auto; max-width: none; aspect-ratio: 1.3; object-fit: cover; }
+.cpk-card__ok { position: absolute; top: 8px; right: 8px; width: 30px; height: 30px; border-radius: 50%; background: var(--accent); color: var(--white); box-shadow: 0 0 0 2px var(--white);
+  display: none; align-items: center; justify-content: center; }
+.cpk-card.is-on .cpk-card__ok { display: flex; }
+.cpk-card__now { position: absolute; left: 8px; top: 8px; max-width: calc(100% - 52px); padding: 4px 8px; border-radius: var(--pill); background: rgba(255,255,255,.94); color: var(--ink);
+  font-size: 11px; font-weight: 600; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cpk-card__body { flex: 1 1 auto; display: flex; flex-direction: column; gap: 4px; min-width: 0; padding: 10px 12px 12px; }
+.cpk-card__name { font-family: var(--font-display); font-weight: 500; font-size: 20px; line-height: 1.08; overflow-wrap: break-word; hyphens: manual; font-variant-numeric: lining-nums; }
+.cpk-card__style { font-size: 12px; line-height: 1.3; color: var(--graphite); }
+.cpk-card__foot { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 4px 6px; margin-top: auto; padding-top: 4px; }
+.cpk-card__dots { display: inline-flex; gap: 3px; }
+.cpk-card__dots i { width: 12px; height: 12px; border-radius: 50%; box-shadow: inset 0 0 0 1px rgba(0,0,0,.08); }
+.cpk-card__price { font-size: 12px; line-height: 1.3; color: var(--accent); white-space: nowrap; }
+.cpk-card__price b { font-size: 14px; font-weight: 700; }
+.cpk-card__price.is-muted { color: var(--graphite); white-space: normal; }
+/* авторская капсула: «авторский ·» переносится отдельно от цены */
+.cpk-card__price.has-au { white-space: normal; }
+.cpk-card__au { color: var(--graphite); }
+.cpk-card__v { white-space: nowrap; }
+
+/* уменьшенная вертикальная — для Планировки и Интерьера */
+.cpk-card--compact .cpk-card__pic img { aspect-ratio: 1.6; }
+.cpk-card--compact .cpk-card__body { gap: 2px; padding: 8px 10px 10px; }
+.cpk-card--compact .cpk-card__name { font-size: 16px; line-height: 1.1; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.cpk-card--compact .cpk-card__style, .cpk-card--compact .cpk-card__dots { display: none; }
+.cpk-card--compact .cpk-card__price { font-size: 11px; white-space: normal; }
+.cpk-card--compact .cpk-card__v { display: inline-block; white-space: normal; }   /* «от …» целиком на новой строке, в узкой — переносится */
+.cpk-card--compact .cpk-card__price b { font-size: 12.5px; }
+.cpk-card--compact .cpk-card__ok { top: 6px; right: 6px; width: 24px; height: 24px; }
+.cpk-card--compact .cpk-card__ok svg { width: 13px; height: 13px; }
+.cpk-card--compact .cpk-card__now { left: 6px; top: 6px; max-width: calc(100% - 40px); padding: 3px 6px; font-size: 10px; }
+
+/* плитка «＋ Свой интерьер» */
+.cpk-own { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-width: 0; min-height: 160px; margin: 0; padding: 16px 12px; box-sizing: border-box;
+  border: 1.5px dashed var(--accent); border-radius: var(--r); background: var(--white); color: var(--ink); font: inherit; font-family: var(--font); text-align: center; cursor: pointer; }
+.cpk-own.is-on { border-style: solid; box-shadow: 0 0 0 1px var(--accent); }
+.cpk-own:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.cpk-own__plus { display: flex; color: var(--accent); }
+.cpk-own b { font-size: 14px; font-weight: 600; line-height: 1.25; }
+.cpk-own small { font-size: 11.5px; line-height: 1.35; color: var(--graphite); }
+
+/* ---------- низ: выбранное, тип ремонта, кнопка ---------- */
+.cpk__foot { flex: none; display: flex; flex-direction: column; gap: 8px; padding: 10px 16px calc(12px + env(safe-area-inset-bottom)); background: var(--white); border-top: 1px solid var(--line); }
+.cpk-sel { margin: 0; display: flex; align-items: baseline; gap: 6px; min-width: 0; font-size: 12px; line-height: 1.35; color: var(--graphite); }
+.cpk-sel span { flex: none; }
+.cpk-sel b { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; font-weight: 600; color: var(--ink); }
+.cpk-lv { display: flex; align-items: center; gap: 10px; }
+.cpk-seg { flex: 1 1 auto; display: flex; gap: 2px; min-width: 0; padding: 3px; border-radius: var(--r-sm); background: var(--surface-2); }
+.cpk-seg button { flex: 1 1 0; min-width: 0; min-height: 40px; padding: 0 8px; border: 0; border-radius: 9px; background: none; color: var(--graphite); font: 600 13px/1.2 var(--font); cursor: pointer; }
+.cpk-seg button.is-on, .cpk-seg button[aria-pressed="true"] { background: var(--white); color: var(--ink); box-shadow: 0 1px 4px rgba(41,36,33,.12); }
+.cpk-seg button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.cpk-info { flex: none; min-height: 40px; padding: 0 2px; border: 0; background: none; color: var(--accent); font: 600 13px/1.2 var(--font); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.cpk-info[hidden] { display: none; }
+.cpk-note { font-size: 12px; line-height: 1.4; color: var(--graphite); }
+.cpk-ok { display: flex; align-items: center; justify-content: center; width: 100%; min-height: 52px; padding: 0 16px; border: 0; border-radius: var(--pill); background: var(--accent); color: var(--white);
+  font: 600 15px/1.2 var(--font); text-align: center; cursor: pointer; }
+@media (hover: hover) { .cpk-ok:not([disabled]):hover { background: var(--accent-2); } }
+.cpk-ok[disabled] { background: var(--line-2); color: var(--graphite); cursor: not-allowed; }
+.cpk__x:focus-visible, .cpk__back:focus-visible, .cpk-chip:focus-visible, .cpk-info:focus-visible, .cpk-ok:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* ---------- «Что входит в ремонт» — внутренний вид шторки ---------- */
+.cpk-cls { display: flex; flex-direction: column; gap: 14px; }
+.cpk-cls__sec { display: flex; flex-direction: column; }
+.cpk-cls__t { margin: 0 0 4px; font-family: var(--font-display); font-weight: 600; font-size: 19px; line-height: 1.15; }
+.cpk-cls__row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: 2px 10px; padding: 8px 0; border-top: 1px solid var(--line); font-size: 12.5px; line-height: 1.35; overflow-wrap: anywhere; }
+.cpk-cls__row span { color: var(--graphite); }
+.cpk-cls__row b { font-weight: 600; color: var(--ink); }
+.cpk-cls__row small { grid-column: 2; font-size: 11.5px; color: var(--graphite); }
+.cpk-cls__note { margin: 0; font-size: 12px; line-height: 1.4; color: var(--graphite); }
+.cpk-msg { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; padding: 8px 0; font-size: 13px; line-height: 1.45; color: var(--graphite); }
+.cpk-msg b { font-size: 15px; color: var(--ink); }
+.cpk-msg--busy { flex-direction: row; align-items: center; gap: 10px; min-height: 120px; justify-content: center; }
+.cpk-msg--busy::before { content: ''; width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--line-2); border-top-color: var(--accent); animation: cpk-spin .8s linear infinite; }
+@keyframes cpk-spin { to { transform: rotate(360deg); } }
+
+/* широкий экран: окно по центру */
+@media (min-width: 640px) {
+  .cpk-back { align-items: center; padding: 16px; }
+  .cpk { border-radius: var(--r); max-height: min(88vh, 900px); }
+  .cpk__grip { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { .cpk-back, .cpk, .cpk-card, .cpk-chip { transition: none; } .cpk-msg--busy::before { animation: none; } }

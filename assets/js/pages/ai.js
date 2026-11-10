@@ -220,10 +220,10 @@
   /* ---------- 2. снимок выбран: цена до запуска ---------- */
   function costInfo() {
     var cost = mode().cost;
-    if (!cost) return { button: 'Найти товары', line: 'Бесплатно, без списания токенов', note: 'Платим только за разбор рендера интерьера — там работы больше.' };
+    if (!cost) return { button: 'Найти товары', line: 'Бесплатно, без списания генераций', note: 'Платим только за разбор рендера интерьера — там работы больше.' };
     if (S.auth.isIn()) {
       var bal = S.tokens.balance();
-      if (bal >= cost) return { line: 'Спишется ' + F.tokens(cost) + ' · останется ' + F.num(bal - cost), note: 'Если ничего не найдём, токены вернутся на баланс.' };
+      if (bal >= cost) return { line: 'Спишется ' + F.tokens(cost) + ' · останется ' + F.num(bal - cost), note: 'Если ничего не найдём, генерация вернётся на баланс.' };
       return { short: true, line: 'Нужно ' + F.tokens(cost) + ' · на балансе ' + F.num(bal), note: 'Снимок сохраним: после пополнения вернётесь на этот же экран.' };
     }
     var left = S.demo.left();
@@ -275,7 +275,7 @@
           '<span class="run__card" data-k="1"><i></i><b></b><em></em></span>' +
           '<span class="run__card" data-k="2"><i></i><b></b><em></em></span>' +
         '</div>' +
-        '<p class="ai-charge run__charge">' + (gen.opId ? 'В резерве ' + F.tokens(gen.cost) + ' · спишем, только когда найдём товары' : 'Пробный запуск · токены не нужны') + '</p>' +
+        '<p class="ai-charge run__charge">' + (gen.opId ? 'В резерве ' + F.tokens(gen.cost) + ' · спишем, только когда найдём товары' : 'Пробный запуск · без списания') + '</p>' +
         '<p class="small" role="status" aria-live="polite" id="ai-live" style="position:absolute;left:-9999px"></p>' +
       '</div>';
     }
@@ -288,7 +288,7 @@
           '<ol class="stages" id="ai-stages">' + labels.map(function (t, i) { return '<li data-i="' + i + '">' + t + '</li>'; }).join('') + '</ol>' +
           '<p class="small" role="status" aria-live="polite" id="ai-live" style="position:absolute;left:-9999px"></p>' +
         '</div>' +
-        '<p class="ai-charge">' + (gen.opId ? 'В резерве ' + F.tokens(gen.cost) + ' · спишем, только когда найдём товары' : 'Пробный запуск · токены не нужны') + '</p>' +
+        '<p class="ai-charge">' + (gen.opId ? 'В резерве ' + F.tokens(gen.cost) + ' · спишем, только когда найдём товары' : 'Пробный запуск · без списания') + '</p>' +
         (gen.kind === 'render' ? '<p class="text ai-leave">Можно уйти со страницы — результат появится в <a class="link" href="generations.html">Генерациях</a>.</p>' : '') +
       '</div></div>';
   }
@@ -396,7 +396,7 @@
   function chargeLine(gen) {
     if (gen.opId) return 'Списано ' + F.tokens(gen.cost) + ' · остаток ' + F.num(S.tokens.balance());
     if (!S.auth.isIn()) return 'Пробный запуск · осталось ' + S.demo.left() + ' из ' + D.demoLimit;
-    return 'Пробный запуск · токены не списаны';
+    return 'Пробный запуск · генерация не списана';
   }
   function ownNotice(gen) {
     return gen.sample === 'own' ? '<div class="notice" role="note"><span class="small">В прототипе распознавание не подключено — показываем результат на примере.</span></div>' : '';
@@ -593,12 +593,12 @@
     var m = MODES[gen.kind];
     var back = gen.opId
       ? F.tokens(gen.cost) + ' ' + plural(gen.cost, ['вернулся', 'вернулись', 'вернулись']) + ' на баланс · остаток ' + F.num(S.tokens.balance()) + '.'
-      : (S.auth.isIn() ? 'Токены не списаны.' : 'Пробный запуск не сгорел: осталось ' + S.demo.left() + ' из ' + D.demoLimit + '.');
+      : (S.auth.isIn() ? 'Генерация не списана.' : 'Пробный запуск не сгорел: осталось ' + S.demo.left() + ' из ' + D.demoLimit + '.');
     return '<div class="split ai-split">' +
       '<div class="col-5">' + frame(st.source ? st.source.src : gen.src, { fit: true, caption: gen.title, alt: gen.title }) + '</div>' +
       '<div class="col-7 ai-side">' +
         '<div class="stack stack--3"><span class="eyebrow">Результат · ' + m.name.toLowerCase() + '</span>' +
-          '<h2 class="h2" data-focus tabindex="-1">Ничего не нашли · ' + (gen.opId ? 'токены возвращены' : 'запуск не потрачен') + '</h2></div>' +
+          '<h2 class="h2" data-focus tabindex="-1">Ничего не нашли · ' + (gen.opId ? 'генерация вернулась на баланс' : 'запуск не потрачен') + '</h2></div>' +
         '<p class="ai-charge ai-charge--back">' + back + '</p>' +
         '<div class="stack stack--3"><p class="text">На снимке не получилось выделить мебель, свет или декор. Попробуйте другой кадр:</p>' +
           '<ul class="ai-advice">' + m.tips.map(function (t) { return '<li>' + t + '</li>'; }).join('') + '</ul></div>' +
@@ -625,8 +625,8 @@
   function pickFile(file) {
     if (!file) return;
     st.error = '';
-    if (!/^image\/(jpeg|png)$/.test(file.type)) { fail('Файл «' + file.name + '» не подходит: нужна картинка JPG или PNG. Поиск не запускался, токены не списаны.'); return; }
-    if (file.size > MAX_MB * 1024 * 1024) { fail('Файл весит ' + (Math.round(file.size / 1024 / 1024 * 10) / 10).toString().replace('.', ',') + ' МБ, а можно до ' + MAX_MB + ' МБ. Сожмите снимок или выберите другой. Токены не списаны.'); return; }
+    if (!/^image\/(jpeg|png)$/.test(file.type)) { fail('Файл «' + file.name + '» не подходит: нужна картинка JPG или PNG. Поиск не запускался, генерация не списана.'); return; }
+    if (file.size > MAX_MB * 1024 * 1024) { fail('Файл весит ' + (Math.round(file.size / 1024 / 1024 * 10) / 10).toString().replace('.', ',') + ' МБ, а можно до ' + MAX_MB + ' МБ. Сожмите снимок или выберите другой. Генерация не списана.'); return; }
     var drop = $('#ai-drop'); if (drop) drop.classList.add('is-over');
     var url = URL.createObjectURL(file), img = new Image();
     img.onload = function () {
@@ -636,7 +636,7 @@
       st.source = { kind: 'own', src: src, thumb: thumb, title: mode().ownTitle, name: file.name };
       afterShot();
     };
-    img.onerror = function () { URL.revokeObjectURL(url); fail('Не получилось открыть «' + file.name + '»: файл повреждён или это не картинка. Токены не списаны.'); };
+    img.onerror = function () { URL.revokeObjectURL(url); fail('Не получилось открыть «' + file.name + '»: файл повреждён или это не картинка. Генерация не списана.'); };
     img.src = url;
   }
   /* ---------- настоящий поиск: боевое ядро SOVEAPP ----------
@@ -1051,7 +1051,7 @@
     }
     if (fresh) {
       showFinished(fresh);
-      ui.toast(fresh.status === 'empty' ? 'Поиск завершился, пока вас не было: ничего не нашли, ' + (fresh.opId ? 'токены вернулись' : 'запуск не потрачен') : 'Поиск завершился, пока вас не было', fresh.status === 'empty' ? undefined : 'ok');
+      ui.toast(fresh.status === 'empty' ? 'Поиск завершился, пока вас не было: ничего не нашли, ' + (fresh.opId ? 'генерация вернулась' : 'запуск не потрачен') : 'Поиск завершился, пока вас не было', fresh.status === 'empty' ? undefined : 'ok');
       return;
     }
     render();
