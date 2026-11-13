@@ -113,7 +113,12 @@
   function loadEdits() { return store().edits; }
   function saveEdits() { saveStore(); }
   /* статус и паспорт капсулы — тоже только в этом браузере: { 'К1': { status: 'review' } } */
-  function loadMeta() { return store().capsules; }
+  /* 13.11: все интерьеры К1–К9 — в «Заполнить» (в данных много пробелов). Один раз для каждого браузера: потом статус меняется как обычно */
+  function loadMeta() {
+    var S = store(), c = S.capsules || (S.capsules = {});
+    if (!S.extra.draft1311) { ['К1', 'К2', 'К3', 'К4', 'К5', 'К6', 'К7', 'К8', 'К9'].forEach(function (k) { var m = c[k] || (c[k] = {}); if (!m.status || m.status === 'pub') m.status = 'draft'; }); S.extra.draft1311 = 1; try { localStorage.setItem(LS2, JSON.stringify({ edits: S.edits, capsules: c, extra: S.extra })); } catch (e) { /* приватный режим */ } }
+    return c;
+  }
   function saveMeta() { saveStore(); }
   /* версия: «Внести изменения» у опубликованной создаёт следующую версию-черновик, на витрине остаётся pubVersion */
   function versionOf(code) { var m = st.meta[code]; return (m && m.version) || 1; }
