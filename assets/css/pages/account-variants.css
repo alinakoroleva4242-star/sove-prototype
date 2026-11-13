@@ -204,7 +204,7 @@ body[data-page="account"] #acc { gap: 0; padding: 0 0 20px; }
 .pe-item__save { margin-top: 4px; height: 32px; padding: 0 14px; border-radius: 16px; border: 1px solid #A24E32; background: #FFFFFF; color: #A24E32; font: 700 12px Montserrat, Arial, sans-serif; cursor: pointer; }
 .pe-empty { font-size: 12px; color: #6B655F; padding: 6px 0; }
 
-/* ---------- история токенов (account.html?v=tokens) ---------- */
+/* ---------- история генераций (account.html?v=tokens) ---------- */
 #acc-tokens-wrap { display: flex; flex-direction: column; gap: 12px; padding-top: 10px; }
 #acc-tokens-wrap[hidden] { display: none; }
 #acc-tokens-wrap > .wrap { max-width: 640px; }
@@ -229,15 +229,6 @@ body[data-page="account"] #acc { gap: 0; padding: 0 0 20px; }
 .pt-op__a.is-back { color: #6B655F; text-decoration: line-through; }
 .pt-empty { background: #FFFFFF; border: 1px solid #E6E1DA; border-radius: 16px; padding: 16px 14px; font-size: 13px; color: #6B655F; line-height: 1.45; }
 .pv .pt-top { align-self: flex-start; }
-/* Профиль → Баланс (тарифы генераций, 03.11): «Докупить» у счётчиков, разделы тарифов, прайса и истории */
-.pt-buy { align-self: flex-start; margin-top: 6px; font-size: 12px; font-weight: 700; color: inherit; text-decoration: underline; text-underline-offset: 3px; }
-.pt-sec { display: flex; flex-direction: column; gap: 8px; }
-.pt-h { margin: 6px 0 0; font-size: 11px; letter-spacing: 2px; font-weight: 700; text-transform: uppercase; color: #6B655F; }
-.pt a.pt-plan, .pt a.pt-plan * { color: #1E1C1A; text-decoration: none; }
-.pt a.pt-plan .pt-op__m { color: #6B655F; }
-.pt-op__t--n { font-weight: 500; line-height: 1.35; }
-.pt-op__a--s { font-size: 13px; white-space: nowrap; }
-.pt-note { margin: 0; font-size: 12px; line-height: 1.45; color: #6B655F; }
 
 /* исходный Профиль (account-old.html) — только переключатель внизу */
 body[data-page="account"] main > .pv-pick { margin: 8px auto 20px; }
@@ -260,3 +251,21 @@ body[data-page="account"] main > .pv-pick { margin: 8px auto 20px; }
 .pe-flat .pv-bud + .pe-flat__f { padding-top: 12px; }
 .pv .pe-flat__f .pe-flat__open { margin-top: 0; }
 .pv .pa-btn--o, .pv .pa-btn--o:hover { color: #FFFFFF; }
+
+/* ── Профиль → Баланс (ТЗ 04.11): остаток крупно, тарифы, прайс действий ── */
+.pt-bal { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px; border: 1px solid var(--line, #e9e2dc); border-radius: 16px; background: var(--white, #fff); margin-bottom: 16px; }
+.pt-bal small { display: block; font-size: 12px; color: var(--stone, #817b76); }
+.pt-bal b { display: block; font-size: 28px; line-height: 1.1; }
+.pt-h { margin: 14px 0 8px; font-size: 15px; font-weight: 700; }
+.pt-tariffs { display: grid; gap: 8px; }
+.pt-tariff { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; padding: 12px 14px; border: 1px solid var(--line, #e9e2dc); border-radius: 14px; background: var(--white, #fff); text-align: left; cursor: pointer; }
+.pt-tariff.is-main { border-color: var(--ink, #1e1c1a); }
+.pt-tariff__t b { display: block; font-size: 14px; }
+.pt-tariff__t b i { display: inline-block; margin-left: 6px; padding: 1px 7px; border-radius: 999px; background: var(--ink, #1e1c1a); color: #fff; font: 600 11px/1.5 inherit; font-style: normal; vertical-align: middle; }
+.pt-tariff__t small { display: block; margin-top: 2px; font-size: 12px; color: var(--stone, #817b76); }
+.pt-tariff__p { white-space: nowrap; font-weight: 700; }
+.pt-price { border: 1px solid var(--line, #e9e2dc); border-radius: 14px; background: var(--white, #fff); padding: 4px 14px; }
+.pt-price__r { display: flex; justify-content: space-between; gap: 12px; padding: 9px 0; border-top: 1px solid var(--line, #e9e2dc); font-size: 13px; }
+.pt-price__r:first-child { border-top: 0; }
+.pt-price__r b { white-space: nowrap; }
+.pt-note { margin: 12px 0; font-size: 13px; line-height: 1.5; color: var(--stone, #817b76); }

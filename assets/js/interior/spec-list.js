@@ -45,7 +45,7 @@
   };
 
   /* zoneList(slots, dna, o) — список экрана B · Материалы (ТЗ Интерьера, 6.8–6.9; эталоны etalon-B1, etalon-B1one):
-     «Материалы · <зона> · N» · строки: фото-образец 46px · «ПОЛ · ОРЕХ» · товар · «от дизайнера · во всех комнатах» · сумма зоны · ⇄;
+     «Материалы · <зона> · N» · строки: фото-образец 46px · «ПОЛ · ОРЕХ» · товар · «от дизайнера · во всех комнатах» · сумма зоны · ›;
      первые 4 + «Ещё N ›»; внизу «В бюджет · материалы» — «примерно на 47 м² · уточнить по плану ›» / «на N м² из плана» + сумма.
      o = { zones, zone, zoneName, where (показывать «где применён»), sumOf(key), total, more, hl, area, exact, perUnit } */
   var FIRST = ['floor', 'walls', 'apron', 'light'];
@@ -60,7 +60,7 @@
         UI.sampleTile(it, 46, 46, { thickness: 3, flag: e.ok === false }) +
         '<span class="zl-row__t"><small>' + esc((s.name + ' · ' + (c ? c.name : '')).toUpperCase()) + '</small><b>' + esc(it.name) + '</b>' +
           '<small class="zl-row__src">' + src[0] + (o.where ? ' · <b>' + esc(KB.whereText(s, o.zones)) + '</b>' : '') + (e.ok === false ? ' · <em>! ' + esc(e.reason) + '</em>' : '') + '</small></span>' +
-        '<small class="zl-row__sum">' + (o.perUnit ? UI.unitPrice(it) : F.rub(o.sumOf(s.key))) + '</small><span class="zl-row__x">⇄</span></button>';
+        '<small class="zl-row__sum">' + (o.perUnit ? UI.unitPrice(it) : F.rub(o.sumOf(s.key))) + '</small><span class="zl-row__x">›</span></button>';
     }).join('');
     var sub = o.exact ? 'на ' + String(o.area).replace('.', ',') + ' м² из плана' : 'примерно на ' + String(o.area).replace('.', ',') + ' м² · <span class="sp-tot__plan" data-plan>уточнить по плану ›</span>';
     return '<section class="zl"><div class="zl__h"><b>Материалы · ' + esc(o.zoneName) + ' · ' + list.length + '</b><small>нажми, чтобы заменить</small></div>' + rows +

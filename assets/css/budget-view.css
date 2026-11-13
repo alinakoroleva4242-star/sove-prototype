@@ -35,6 +35,9 @@
 .fr-h .sq-group { margin: 0; }
 .fr-h > span { font-size: 13px; font-weight: 600; color: var(--ink); }
 .fr-note { margin: 0 2px -4px; }
+/* бюджет по своим фото: миниатюры фото под карточкой итога (задача 50) */
+.fr-photos { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 2px; }
+.fr-photos img { width: 72px; height: 72px; border-radius: 10px; object-fit: cover; background: var(--surface-2, #EFEAE3); }
 .fr-list { gap: 0; padding: 4px 12px; }
 .fr-list > .sq-note { padding: 6px 0 2px; }
 .fr-it { border-top: 1px solid var(--line); }
@@ -94,3 +97,12 @@ button.fr-r { cursor: pointer; }
 .fr-nx:focus-visible { outline: 2px solid var(--accent, #A24E32); outline-offset: 2px; border-radius: 6px; }
 .fr-restart { justify-self: start; padding: 6px 2px; }
 .fr-dl--wide > .btn { min-height: 48px; }
+/* витрина позиций с сервера (budget-api.js goodsHtml, 11.11): фото из таблицы капсулы, «кол-во × цена», итог строки */
+.bg-mc__pic img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.bg-mc__pic.is-none { background: #EFEAE3 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23B9B2AA' stroke-width='1.4'%3E%3Crect x='3' y='5' width='18' height='14' rx='2'/%3E%3Cpath d='M3 16l5-5 4 4 3-3 6 6'/%3E%3C/svg%3E") center / 28px no-repeat; }
+.bg-mc__pic.is-none img { display: none; }
+.bg-mc__q { font-size: 11px; color: #6B655F; }
+/* сервер расчёта: ждём / не ответил */
+.scout-srv { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.scout-srv--fail { background: #F7E9E3; }
+.scout-srv--wait { background: #F4F2EE; }

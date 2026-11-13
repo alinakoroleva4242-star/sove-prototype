@@ -1,12 +1,13 @@
 /* sampleTile(spec, w, h, {shape, thickness, rot, num, selected, flag}) — образец как физический предмет
    (ТЗ v2, раздел 7, приём Mattoboard): два слоя одной фактуры — кромка (сдвиг вниз, brightness .58)
    и лицо (блик сверху), общая мягкая тень. Формы: rect · plank · strip · round · circle · arch.
-   Фактура: реальное фото-вырезка (photo, sw/*.jpg) → выкраска краски (swatch: цвет × штукатурка, как малярная карточка) →
-   фактура tex (размер 1,4 × большая сторона) → CSS по виду материала. Логотипов нет. */
+   Фактура: выкраска краски (swatch: цвет × штукатурка, как малярная карточка) → своя фактура tex (размер 1,4 × большая сторона,
+   одинаково у всех образцов) → фото-вырезка (photo, sw/*.jpg — только у товара без фактуры) → CSS по виду материала. Логотипов нет.
+   До 05.11 вырезка шла раньше фактуры — четыре ореховых пола показывали один кусок фото с чужими предметами (Вика). */
 (function () {
   var UI = window.SOVE_MATUI = window.SOVE_MATUI || {};
-  /* цена генерации словами — одна функция на блок (TZ-interior-final, 6): fmtTokens(10) → «+10 токенов»; значков токенов  нет */
-  UI.fmtTokens = function () { return ''; };   /* кнопки без цен и чисел (тарифы генераций, 03.11) */
+  /* цена генерации словами — одна функция на блок (TZ-interior-final, 6): fmtTokens(10) → «+10 генераций»; значков генераций  нет */
+  UI.fmtTokens = function (n) { return '+' + window.SOVE.fmt.tokens(n); };
 
   function rgb(h) { h = String(h).replace('#', ''); return [0, 2, 4].map(function (i) { return parseInt(h.substr(i, 2), 16); }); }
   /* светлее (+) / темнее (−) на долю */
@@ -51,12 +52,12 @@
   }
   UI.texture = texture;
 
-  /* фон образца (ТЗ Интерьера, 8): фото-вырезка sw/ (cover) → выкраска краски: цвет товара × штукатурка → фактура tex → CSS */
+  /* фон образца (ТЗ Интерьера, 8): выкраска краски: цвет товара × штукатурка → своя фактура tex → фото-вырезка sw/ (cover) → CSS */
   function bgOf(spec, w, h) {
-    /* маленькие образцы (строки списка, карточки замены) — квадратная вырезка, крупные на доске — полная */
-    if (spec.photo) return 'url(' + (spec.photoSq && Math.max(w, h) <= 110 ? spec.photoSq : spec.photo) + ') center / cover';
     if (spec.swatch) return spec.swatch + ' url(assets/img/interior/tex/plaster-milk.jpg) center / 300px';
     if (spec.textureUrl) return 'url(' + spec.textureUrl + ') center / ' + Math.round(1.4 * Math.max(w, h)) + 'px';
+    /* маленькие образцы (строки списка, карточки замены) — квадратная вырезка, крупные на доске — полная */
+    if (spec.photo) return 'url(' + (spec.photoSq && Math.max(w, h) <= 110 ? spec.photoSq : spec.photo) + ') center / cover';
     return texture(spec, w, h).bg;
   }
   UI.tileBg = bgOf;
@@ -64,7 +65,7 @@
   var RADIUS = { rect: '4px', plank: '4px', strip: '4px', round: '10px', circle: '50%' };
   UI.sampleTile = function (spec, w, h, o) {
     o = o || {};
-    var shape = o.shape || 'rect', th = o.thickness != null ? o.thickness : 5, kind = spec.photo ? 'photo' : spec.swatch ? 'swatch' : 'tex';
+    var shape = o.shape || 'rect', th = o.thickness != null ? o.thickness : 5, kind = spec.swatch ? 'swatch' : spec.textureUrl ? 'tex' : spec.photo ? 'photo' : 'tex';
     var r = o.radius ? o.radius + 'px' : shape === 'arch' ? Math.round(w / 2) + 'px ' + Math.round(w / 2) + 'px 4px 4px' : RADIUS[shape] || '4px';
     var bg = bgOf(spec, w, h);
     return '<span class="st st--' + shape + ' st--' + kind + (o.selected ? ' is-sel' : '') + (o.flag ? ' is-flag' : '') + (o.cls ? ' ' + o.cls : '') + '"' +

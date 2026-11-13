@@ -1,5 +1,5 @@
 /* «Мои доступы» — перенос экрана /marketplace/access.
-   Показывает, что уже открыто (контакты поставщиков), сколько это дало выгоды и что с токенами. */
+   Показывает, что уже открыто (контакты поставщиков), сколько это дало выгоды и что с генерациями. */
 (function () {
   var S = window.SOVE, D = S.data, F = S.fmt, esc = F.esc;
   var root = document.getElementById('ac-root'); if (!root) return;
@@ -43,7 +43,7 @@
       '</div>' +
 
       '<div class="stack stack--3"><a class="btn btn--ghost btn--block" href="market.html">Открыть каталог</a>' +
-        '<a class="btn btn--link" href="account.html?v=tokens">Пополнить генерации</a></div>' +
+        '<a class="btn btn--link" href="tokens.html">Пополнить генерации</a></div>' +
       '<p class="small muted">Прототип: доступы и баланс хранятся только в этом браузере.</p>';
   }
   paint();

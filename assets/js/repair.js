@@ -1,7 +1,6 @@
 /* «Мой ремонт» — общий слой (ТЗ Алины 22.10.2026, design/moy-remont/TZ-moy-remont.md).
    Чистовик квартиры: сюда падает только сохранённое из Генерации (план, мудборд, рендеры), расчёта (бюджет) и Маркета (♡ и 🛒).
-   Подключать после site.js. Даёт window.SOVE.repair: квартиры, сохранения, Избранное и Корзина по квартире (товары, подборки, специалисты — R.favPros),
-   интерьеры объекта (R.interiors, выбор капсулы из любого блока — R.interiors.choose),
+   Подключать после site.js. Даёт window.SOVE.repair: квартиры, сохранения, Избранное и Корзина по квартире,
    общую карточку товара (та же, что под результатами Генерации) и полосу «Корзина · Избранное · Бюджет» над нижним меню.
    В бою всё это — сервер; здесь отдельный ключ localStorage, «Сбросить данные прототипа» чистит и его. */
 (function () {
@@ -20,7 +19,7 @@
   var ROOM_CATS = { liv: ['Мебель', 'Освещение', 'Техника', 'Текстиль и декор'], bed: ['Мебель', 'Освещение', 'Текстиль и декор'], bath: ['Сантехника', 'Отделка'], hall: ['Мебель', 'Освещение', 'Отделка'] };
 
   /* ---------- хранилище ---------- */
-  function blank() { return { flats: [], active: null, repair: {}, fav: {}, favSets: {}, favPros: {}, cart: {}, seq: 1 }; }
+  function blank() { return { flats: [], active: null, repair: {}, fav: {}, favSets: {}, cart: {}, seq: 1 }; }
   var st;
   function load() { try { st = Object.assign(blank(), JSON.parse(localStorage.getItem(KEY) || '{}')); } catch (e) { st = blank(); } }
   function save() { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (e) {} renderStrip(); window.dispatchEvent(new Event('sove:repair')); }
@@ -37,16 +36,12 @@
     if (!p || !p.id) return; addToData(p);
     var x = extras(); if (x[p.id]) return;
     /* brandRaw — исходный бренд каталога (DECARO СПБ): по нему склад продавца по умолчанию (sellers.js) */
-    x[p.id] = { id: p.id, name: p.name, brand: p.brand, brandRaw: p.brandRaw, metod: p.metod, retail: p.retail, img: p.img, category: p.category || 'Мебель', subcat: p.subcat || '' };
+    x[p.id] = { id: p.id, name: p.name, brand: p.brand, brandRaw: p.brandRaw, metod: p.metod, retail: p.retail, img: p.img, category: p.category || 'Мебель', subcat: p.subcat || '', unit: p.unit || '' };
     try { localStorage.setItem(XKEY, JSON.stringify(x)); } catch (e) {}
   }
   window.addEventListener('storage', function (e) { if (e.key === KEY) { load(); renderStrip(); window.dispatchEvent(new Event('sove:repair')); } });
 
   function roomKey(name) { var n = String(name || '').toLowerCase(); return /кух|гост/.test(n) ? 'liv' : /спал/.test(n) ? 'bed' : /сан|ванн|душ/.test(n) ? 'bath' : /прих|корид|холл/.test(n) ? 'hall' : n.replace(/[^a-zа-я0-9]+/g, '-'); }
-  /* имя капсулы — короткое, как в Интерьере и Планировке (SOVE_KB), одно на все экраны; коды К1–К7 в интерфейсе не показываем */
-  function capName(id) { var k = window.SOVE_KB && window.SOVE_KB.capsule && window.SOVE_KB.capsule(id), c = D.capsule(id); return (k && k.name) || (c && c.name) || ''; }
-  /* тип ремонта: 'base' | 'premium', всё остальное (mixed, пусто) — null */
-  function lvOf(x) { return x === 'base' || x === 'premium' ? x : null; }
 
   /* ---------- квартиры = объект (схема «Данные вокруг объекта v2», созвон 28.10: любая запись принадлежит объекту) ----------
      поля: id, name, jk (ЖК), city, m2, rooms, baths, state (concrete_free | concrete_walls | whitebox | finished), budgetType (base | premium),
@@ -75,45 +70,27 @@
     } catch (e) {}
   }
   var ALL = ['m2', 'state', 'budgetType', 'capsuleId', 'budget'];
-  /* копия интерьера в сценарии Планировки (sove.demo.flow.v1 → interior) — копия интерьера АКТИВНОЙ квартиры (demo-flow.js, adoptInterior).
-     Сменилась активная квартира (вторая и следующие, «Сделать активной») — копию переписываем под неё: иначе у квартиры без интерьера
-     полоска объекта, окно выбора капсулы и бюджет показывали интерьер другой квартиры (проверка 02.11). Первую квартиру не трогаем:
-     выбор, сделанный до неё, — её же (окно выбора создаёт её через ensure и сразу записывает выбор). Формат — как у demo-flow.js */
-  var FLOW = 'sove.demo.flow.v1';
-  function syncFlow() {
-    try {
-      var FL = window.SOVE_FLOW;
-      if (FL && typeof FL.adoptInterior === 'function' && S.repair) { FL.adoptInterior(); return; }
-      var f = flats.active(); if (!f) return;
-      var fl = JSON.parse(localStorage.getItem(FLOW) || '{}') || {}, it = rp(f.id).interior, c = f.capsuleId && D.capsule(f.capsuleId);
-      var want = it ? (it.capsuleId ? { type: 'capsule', id: it.capsuleId, name: capName(it.capsuleId) } : { type: 'own', how: it.how || 'photo', name: it.name || 'Свой интерьер' })
-        : c ? { type: 'capsule', id: c.id, name: capName(c.id) } : null;
-      var cur = fl.interior || null, same = !want ? !cur : !!cur && typeof cur === 'object' && cur.type === want.type && (want.type === 'capsule' ? (cur.id || cur.capsuleId) === want.id : cur.how === want.how && cur.name === want.name);
-      if (same) return;
-      fl.interior = want; localStorage.setItem(FLOW, JSON.stringify(fl));
-    } catch (e) {}
-  }
   var flats = {
     STATE: STATE, STATE_MY: STATE_MY, MY_STATE: MY_STATE, accuracy: accuracyOf,
     list: function () { return st.flats.slice(); },
     get: function (id) { return st.flats.filter(function (f) { return f.id === id; })[0] || null; },
     active: function () { return flats.get(st.active) || st.flats[0] || null; },
-    setActive: function (id) { var f = flats.get(id); if (f && st.active !== id) { st.active = id; syncFlow(); mirrorMy(f, ALL); save(); } },
+    setActive: function (id) { var f = flats.get(id); if (f && st.active !== id) { st.active = id; mirrorMy(f, ALL); syncBoardProducts(rp(id).interior); save(); } },
     /* новая квартира: первая — «Моя квартира», дальше «Квартира 2», «Квартира 3»; поля объекта подтягиваем из старой анкеты, если она есть; сразу активная */
     add: function (o) {
-      o = o || {}; var had = st.flats.length > 0, ob = (!st.flats.length && S.orders && S.orders.object.get()) || {}, now = Date.now();
+      o = o || {}; var ob = (!st.flats.length && S.orders && S.orders.object.get()) || {}, now = Date.now();
       var f = { id: uid('flat'), name: o.name || (st.flats.length ? 'Квартира ' + (st.flats.length + 1) : 'Моя квартира'), jk: o.jk || ob.complex || '', city: o.city || ob.city || '',
         m2: num(o.m2, ob.area || null), rooms: num(o.rooms, num(ob.rooms, null)), baths: num(o.baths, num(ob.bathrooms, null)), state: o.state || null, budgetType: o.budgetType || ob.tier || null,
         accuracy: 'примерно', isDraft: !!o.isDraft, currentInteriorId: null, capsuleId: o.capsuleId || null, ts: now, createdAt: now };
-      st.flats.push(f); st.active = f.id; if (had) syncFlow(); mirrorMy(f, ALL); save(); return f;
+      st.flats.push(f); st.active = f.id; mirrorMy(f, ALL); save(); return f;
     },
     /* квартира создаётся сама при первом действии с данными — черновик «Моя квартира» */
     ensure: function () { return flats.active() || flats.add({ name: 'Моя квартира', isDraft: true }); },
     update: function (id, patch) {
       var f = flats.get(id); if (!f) return null; patch = patch || {};
       Object.assign(f, patch); f.accuracy = accuracyOf(f.id);
-      /* расчёт (S.my) зеркалит только активную квартиру: правка другой (choose / setCurrent с flatId) активную и расчёт не трогает */
-      if (f === flats.active()) mirrorMy(f, Object.keys(patch).filter(function (k) { return ALL.indexOf(k) >= 0; }));
+      mirrorMy(f, Object.keys(patch).filter(function (k) { return ALL.indexOf(k) >= 0; }));
+      if (patch.m2 > 0) { if (!('m2Calc' in patch)) f.m2Calc = false; fitBoards(f.id); }   /* сменилась площадь квартиры: количества и суммы досок сразу на неё, а не при следующем открытии Интерьера. Клиент вписал её сам — она уже не «из расчёта» */
       save(); return f;
     },
     /* ensure + update: первое действие с данными создаёт квартиру и сразу заполняет; имя, ЖК, город или план снимают «черновик» */
@@ -123,7 +100,33 @@
       return flats.update(f.id, patch);
     }
   };
-  function rp(id) { id = id || (flats.active() || {}).id; if (!id) return { plan: null, interior: null, rooms: {}, budget: null }; return attachInteriors(st.repair[id] || (st.repair[id] = { plan: null, rooms: {}, budget: null, interiors: [] }), id); }
+  function rp(id) { id = id || (flats.active() || {}).id; if (!id) return { plan: null, interior: null, rooms: {}, budget: null }; return adoptSaved(attachInteriors(st.repair[id] || (st.repair[id] = { plan: null, rooms: {}, budget: null, interiors: [] }), id), id); }
+  /* доска собрана из этой капсулы (замены на ней не важны): source 'capsule', а не своя по фото */
+  function boardOfCapsule(it, capId) { return !!(it && it.slots && capId && it.source === 'capsule' && (it.capsuleId || it.baseCapsuleId) === capId); }
+  /* у всех слотов записана база замены. Нет — доска из старой версии: её замены в прежнюю цифру не входили */
+  function boardHasBases(it) { return !!(it && it.slots) && Object.keys(it.slots).every(function (k) { return !!it.slots[k].base; }); }
+  /* сохранённый расчёт + доска ТОЙ ЖЕ капсулы на всю квартиру = полный бюджет (тот же путь, что расчёт «из Интерьера»): итог прежний, замены материалов доходят до работ, сметы и итога.
+     Своя доска по фото, другая капсула, подборка по картинкам, доска на часть квартиры и старая доска без базы — расчёт остаётся как был, с прежней цифрой и обычной покупкой бюджета.
+     Условие перестало выполняться (новый расчёт другой капсулы, сменили интерьер, отменили первую замену) — возвращаем как было до принятия.
+     Более новое сохранение обновляет параметры; переключатель База / Премиум и прежние параметры не трогаем, пока сохранение то же */
+  function adoptSaved(r, id) {
+    var b = r.budget, it = r.interior, bp = r.budgetPlan, mine = !!(bp && bp.source === 'saved');
+    var ok = b && b.total > 0 && boardOfCapsule(it, b.capsuleId) && (!it.scope || it.scope === 'flat') && boardHasBases(it) && !(b.byRooms || []).some(function (x) { return x.byCat && x.byCat.visuals; });
+    if (!ok) {
+      if (mine) {
+        var pv = bp.prev || {}; r.budgetPlan = Object.assign({}, bp, { full: !!pv.full, source: pv.source || null }); delete r.budgetPlan.prev; delete r.budgetPlan.savedTs;
+        if (pv.scoutParams) r.scoutParams = pv.scoutParams; else delete r.scoutParams;
+      }
+      return r;
+    }
+    var f = flats.get(id); if (f && !f.m2 && b.area > 0) { f.m2 = b.area; f.m2Calc = true; fitBoards(id); }   /* доска считается на площадь квартиры: квартира из первого сохранения ещё без неё */
+    var bts = b.ts || 0; if (r.budgetPlan && r.budgetPlan.full && ((r.budgetPlan.savedTs || 0) >= bts || (r.budgetPlan.ts || 0) >= bts)) return r;
+    var prev = mine ? bp.prev : { full: !!(bp && bp.full), source: (bp && bp.source) || null, scoutParams: r.scoutParams || null };
+    r.scoutParams = { stateId: b.stateId || 'concrete', area: b.area, capsuleId: b.capsuleId, level: b.type === 'premium' ? 'premium' : 'base', rooms: b.rooms || [], byRooms: b.byRooms || null, works: b.works, rough: b.rough, total: b.total, roughMode: b.roughMode || 'share',
+      perM2: b.kitMetod > 0 && b.area > 0 ? b.kitMetod / b.area : null, perM2Level: b.type === 'premium' ? 'premium' : 'base', formatId: b.formatId || undefined, api: b.api || undefined };   /* api — ответ серверного расчёта (budget-api.js): Интерьер и Бюджет считают по нему */
+    r.budgetPlan = Object.assign({}, r.budgetPlan || {}, { full: true, type: b.type === 'premium' ? 'premium' : 'base', ts: Date.now(), source: 'saved', savedTs: bts, prev: prev });
+    return r;
+  }
   function favOf(id) { id = id || (flats.active() || {}).id; return id ? (st.fav[id] || (st.fav[id] = [])) : []; }
   function cartOf(id) { id = id || (flats.active() || {}).id; return id ? (st.cart[id] || (st.cart[id] = [])) : []; }
 
@@ -132,44 +135,14 @@
      renders, objects, status ('active'), createdAt, ts, …}. r.interior — ТЕКУЩИЙ (flat.currentInteriorId): свойство-аксессор, отдельно в localStorage не хранится,
      все экраны (бюджет, полоса, Мой ремонт) читают R.get().interior как раньше. Запись r.interior = доска кладёт её в список (по id; без id — новый интерьер)
      и делает текущей; прежний остаётся в списке со своими материалами и рендерами. Смена интерьера — круг заново: материалы и визуализации собираются под новый.
-     Старый формат (r.interior без r.interiors, r.interiorHistory) переезжает в список при первом чтении — данные не теряются.
-     Лёгкая запись — выбор капсулы без материалов (окно выбора капсулы в любом блоке, R.interiors.choose; договор частей 02.11):
-     {type:'capsule', source: блок, capsuleId, name, img, imageUrl, level} без slots, dna и productIds. У объекта она одна и обновляется на месте;
-     доска без id занимает её место (тот же id) — правило одно, здесь (adoptOf), для R.save, r.interior = … и выбора капсулы. */
+     Старый формат (r.interior без r.interiors, r.interiorHistory) переезжает в список при первом чтении — данные не теряются. */
   function curIdOf(r, flatId) { var f = flats.get(flatId); return f ? (f.currentInteriorId || null) : (r.currentInteriorId || null); }
   function setCurId(r, flatId, id) { var f = flats.get(flatId); if (f) f.currentInteriorId = id; else r.currentInteriorId = id; }
-  /* старые записи хранили имя с кодом капсулы («К2 · Изумрудная неоклассика»): коды в интерфейсе не показываем — срезаем в самой записи,
-     тогда Бюджет, Интерьер и любой экран, читающий R.get().interior.name, видят имя без кода (проверка 02.11). → true, если имя поменялось */
-  function stripCode(it) { if (!it || typeof it.name !== 'string') return false; var nm = it.name.replace(/^К\d+\s*·\s*/, ''); if (nm === it.name) return false; it.name = nm; return true; }
   function normInterior(it, now) {
     if (!it || typeof it !== 'object') return null;
     if (!it.id) it.id = uid('int'); if (!it.status) it.status = 'active'; if (!it.createdAt) it.createdAt = it.boardGeneratedAt || it.ts || now || Date.now();
-    stripCode(it);
     return it;
   }
-  function isLight(x) { return !!(x && x.type === 'capsule' && !x.slots && !(x.dna && x.dna.length) && !(x.productIds && x.productIds.length)); }
-  function lightOf(r) { var cur = r.interior; return isLight(cur) ? cur : (r.interiors || []).filter(isLight).pop() || null; }
-  /* запись интерьера без id — чьё место она занимает (null — новый интерьер объекта):
-     доска (slots) — текущей лёгкой записи (любой капсулы), текущей заготовки той же капсулы без slots или лёгкой записи той же капсулы —
-     после сборки в Интерьере в списке один интерьер, а не два одинаковых; лёгкая — прежней лёгкой; мудборд капсулы без slots — лёгкой записи той же капсулы */
-  function adoptOf(r, v) {
-    if (!v || typeof v !== 'object' || v.id) return null;
-    var cur = r.interior, l = lightOf(r), cap = v.capsuleId || v.baseCapsuleId || null;
-    if (v.slots) return isLight(cur) ? cur : cur && !cur.slots && cur.type !== 'own' && cap && cur.capsuleId === cap ? cur : l && cap && l.capsuleId === cap ? l : null;
-    if (isLight(v)) return l;
-    return l && cap && v.type !== 'own' && l.capsuleId === cap ? l : null;
-  }
-  /* выбор капсулы, смена текущего интерьера: капсула и тип ремонта расчёта и бюджета следуют за объектом
-     (договор: r.scoutParams.level и r.budgetPlan.type равны flat.budgetType; капсула расчёта — капсула текущего интерьера) */
-  function syncCalc(r, lv, capsuleId) {
-    var ch = false, sp = r.scoutParams, bp = r.budgetPlan;
-    if (sp && capsuleId && sp.capsuleId !== capsuleId) { sp.capsuleId = capsuleId; ch = true; }
-    if (sp && lv && sp.level !== lv) { sp.level = lv; ch = true; }
-    if (bp && lv && bp.type !== lv) { bp.type = lv; ch = true; }
-    return ch;
-  }
-  /* полный бюджет Планировки (budgetPlan.full) пересчитать под новый тип и капсулу — тот же путь, что у переключателя типа в Планировке (бесплатно) */
-  function refreshFlow(f) { try { var FL = window.SOVE_FLOW; if (FL && FL.refreshBudget && f && f === flats.active()) FL.refreshBudget(); } catch (e) {} }
   /* тихая запись хранилища (без события и полосы) — после миграции старого формата */
   var persistT = null;
   function persistSoon() { if (persistT) return; persistT = setTimeout(function () { persistT = null; try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (e) {} }, 0); }
@@ -178,18 +151,17 @@
     var legacy = r.interior || null, hist = r.interiorHistory || [], now = Date.now();
     delete r.interior; delete r.interiorHistory;
     if (!Array.isArray(r.interiors)) r.interiors = [];
-    var has = function (id) { return r.interiors.some(function (x) { return x.id === id; }); }, renamed = false;
-    r.interiors.forEach(function (x) { if (stripCode(x)) renamed = true; normInterior(x, now); });
+    var has = function (id) { return r.interiors.some(function (x) { return x.id === id; }); };
+    r.interiors.forEach(function (x) { normInterior(x, now); });
     /* старый формат: история «Заменить?» (новые сверху) → в порядке создания, затем сохранённый интерьер — он и текущий */
     hist.slice().reverse().concat(legacy ? [legacy] : []).forEach(function (x) { if (normInterior(x, now) && !has(x.id)) r.interiors.push(x); });
     if (legacy) setCurId(r, flatId, legacy.id);
     var cid = curIdOf(r, flatId); if (!has(cid) && r.interiors.length) setCurId(r, flatId, r.interiors[r.interiors.length - 1].id);
-    if (legacy || hist.length || renamed) persistSoon();   /* переезд старого формата и имена без кода — записать сразу (id интерьеров стабильны, экраны без repair.js видят список) */
+    if (legacy || hist.length) persistSoon();   /* переезд старого формата — записать сразу (id интерьеров стабильны, экраны без repair.js видят список) */
     Object.defineProperty(r, 'interior', { enumerable: false, configurable: true,
       get: function () { var id = curIdOf(r, flatId); return r.interiors.filter(function (x) { return x.id === id; })[0] || null; },
       set: function (v) {
         if (!v) { setCurId(r, flatId, null); return; }
-        var a = adoptOf(r, v); if (a) { v.id = a.id; if (!v.createdAt) v.createdAt = a.createdAt; }   /* доска без id — на место лёгкой записи */
         normInterior(v); var i = r.interiors.map(function (x) { return x.id; }).indexOf(v.id);
         if (i >= 0) r.interiors[i] = v; else r.interiors.push(v);
         setCurId(r, flatId, v.id);
@@ -197,22 +169,14 @@
       } });
     return r;
   }
-  /* имя интерьера для списков, полоски и тостов — без кода капсулы: своё (переименованный), иначе короткое имя капсулы;
-     полное имя из data.js (так пишут старые сохранения мудборда) тоже показываем коротким — одно имя на все экраны */
-  function interiorName(it) {
-    var c = it.capsuleId && D.capsule(it.capsuleId), nm = String(it.name || '').replace(/^К\d+\s*·\s*/, '');
-    if (c && nm === c.name) nm = '';
-    return nm || (c ? capName(c.id) : '') || it.style || 'Мой интерьер';
-  }
-  /* карточка интерьера для списков: «Изумрудная неоклассика» (title = name, без кода), n — номер в порядке создания («1 из 2»), rooms / renders / slots — счётчики,
-     light — выбор капсулы без материалов (доску соберёт Интерьер). code — только для данных, в интерфейсе не показывать */
+  /* карточка интерьера для списков: «К2 · Изумрудная неоклассика», n — номер в порядке создания («1 из 2»), rooms / renders / slots — счётчики */
   function interiorSummary(it, i, cid, flatId) {
-    var c = it.capsuleId && D.capsule(it.capsuleId), name = interiorName(it);
+    var c = it.capsuleId && D.capsule(it.capsuleId), name = it.name || it.style || (c && c.name) || 'Мой интерьер';
     var rooms = it.scope === 'rooms' ? (it.zones || []).length : it.scope === 'room' ? 1 : (planZones(flatId).zones.length || roomsOf(flatId).length);
     return { id: it.id, n: i + 1, name: name, title: name, code: c ? c.code : '', type: it.type || (it.capsuleId ? 'capsule' : 'own'),
       capsuleId: it.capsuleId || null, baseCapsuleId: it.baseCapsuleId || null, img: it.img || it.imageUrl || (c && c.cover) || '', level: it.level || null,
       scope: it.scope || 'flat', zones: (it.zones || []).slice(), rooms: rooms, status: it.status || 'active', createdAt: it.createdAt || it.ts || null, ts: it.ts || null,
-      renders: (it.renders || []).length, slots: it.slots ? Object.keys(it.slots).length : 0, light: isLight(it), source: it.source || null, current: it.id === cid };
+      renders: (it.renders || []).length, slots: it.slots ? Object.keys(it.slots).length : 0, current: it.id === cid };
   }
   var interiors = {
     list: function (flatId) { var r = rp(flatId), cid = r.interior ? r.interior.id : null; return (r.interiors || []).map(function (it, i) { return interiorSummary(it, i, cid, flatId || (flats.active() || {}).id); }); },
@@ -224,39 +188,12 @@
     current: function (flatId) { return rp(flatId).interior; },
     /* новый интерьер квартиры — становится текущим; прежний остаётся в списке (не архив — просто не текущий) */
     add: function (data, flatId) { var f = flatId ? flats.get(flatId) : flats.ensure(); if (!f) return null; var v = write('interior', Object.assign({}, data, { id: null }), f.id); save(); return v; },
-    /* выбор капсулы из любого блока (окно выбора капсулы, Бюджет, Планировка, Мой ремонт) — ОДНА запись на объект, без дублей; ничего не списывает.
-       Та же капсула уже есть у объекта (текущий интерьер, доска, своя на её основе) — становится текущей; иначе лёгкая запись (одна, обновляется на месте).
-       o = {level: 'base'|'premium', source: блок, flatId}; уровень → flat.budgetType, тип расчёта и бюджета. → запись интерьера или null */
-    choose: function (capsuleId, o) {
-      o = o || {}; var c = D.capsule(capsuleId); if (!c || c.soon) return null;
-      var f = o.flatId ? flats.get(o.flatId) : flats.ensure(); if (!f) return null;
-      var r = rp(f.id), lv = lvOf(o.level), cur = r.interior, list = r.interiors || [];
-      var same = function (x) { return x.capsuleId === capsuleId; };
-      var hit = cur && same(cur) ? cur : list.filter(function (x) { return same(x) && x.slots; }).pop() || list.filter(same).pop() || null;
-      if (hit) {
-        var lvl = lv && !hit.slots && hit.level !== lv, src = o.source && isLight(hit) && hit.source !== o.source;   /* уровень доски задают её материалы — у доски не трогаем */
-        if (lvl) hit.level = lv; if (src) hit.source = o.source; if (lvl || src) hit.ts = Date.now();
-        setCurId(r, f.id, hit.id);
-      } else {
-        hit = write('interior', { type: 'capsule', source: o.source || 'picker', capsuleId: capsuleId, name: capName(capsuleId), img: c.cover, imageUrl: c.cover,
-          level: lv || lvOf(f.budgetType) }, f.id);
-      }
-      var ch = syncCalc(r, lv, capsuleId), patch = { capsuleId: capsuleId }; if (lv) patch.budgetType = lv;
-      flats.update(f.id, patch);   /* всегда через update: зеркало в расчёт (S.my) и событие 'sove:repair' */
-      if (ch) refreshFlow(f);
-      return hit;
-    },
-    /* переключение: flat.currentInteriorId; капсула и тип ремонта интерьера (База / Премиум) — капсула и тип квартиры, расчёта и бюджета;
-       save → 'sove:repair' — полоса, бюджет и Мой ремонт перерисуются */
+    /* переключение: flat.currentInteriorId, капсула интерьера — капсула квартиры (и расчёта); save → 'sove:repair' — полоса, бюджет и Мой ремонт перерисуются */
     setCurrent: function (id, flatId) {
       var f = flatId ? flats.get(flatId) : flats.active(); if (!f) return null;
       var r = rp(f.id), it = (r.interiors || []).filter(function (x) { return x.id === id; })[0]; if (!it) return null;
       setCurId(r, f.id, it.id);
-      var lv = lvOf(it.level), patch = {};
-      if (it.capsuleId) patch.capsuleId = it.capsuleId; if (lv) patch.budgetType = lv;
-      var ch = syncCalc(r, lv, it.capsuleId || null);
-      flats.update(f.id, patch);
-      if (ch) refreshFlow(f);
+      flats.update(f.id, it.capsuleId ? { capsuleId: it.capsuleId } : {});
       return it;
     },
     remove: function (id, flatId) {
@@ -288,8 +225,8 @@
       : { text: 'Оформить корзину', cta: 'Оформить', href: MY + '?v=basket' };
     return { steps: steps, next: next };
   }
-  /* бюджет устарел: после него сохранили другой план или мудборд */
-  function budgetStale(id) { var r = rp(id); if (!r.budget) return false; return (r.plan && r.plan.ts > r.budget.ts) || (r.interior && r.interior.ts > r.budget.ts); }
+  /* бюджет устарел: после него сохранили новый план или выбрали другую капсулу. Замена материала не делает его устаревшим: Бюджет сам пересчитывает её в view() */
+  function budgetStale(id) { var r = rp(id), b = r.budget, it = r.interior; if (!b) return false; return !!((r.plan && r.plan.ts > b.ts) || (it && it.capsuleId && b.capsuleId && it.capsuleId !== b.capsuleId)); }
 
   /* ---------- тосты с действием: «Сохранено в Мой ремонт · Открыть» ---------- */
   function toast(text, act) {
@@ -317,7 +254,7 @@
 
   /* ---------- сохранения из Генерации и расчёта (таблица п. 3 ТЗ) ----------
      kind: 'plan' {level, img, rooms:[{name,m2}], variant} · 'interior' {capsuleId|null, name, img, dna:[src], productIds}
-           'render' {room, src, mine} — без лимита · 'budget' {type:'base'|'premium', area, works, kitMetod, kitRetail, total} */
+           'render' {room, src, mine} — без лимита · 'budget' {type:'base'|'premium', capsuleId, stateId, area, works, kitMetod, kitRetail, kit, kitMarket, rough, roughMode, total, rooms, byRooms} */
   function write(kind, data, flatId) {
     var r = rp(flatId), now = Date.now();
     if (kind === 'render') {
@@ -329,27 +266,23 @@
       list.unshift(item); if (!r.rooms[k + ':main']) r.rooms[k + ':main'] = item.id; return item;
     }
     var v = Object.assign({}, data, { ts: now });
-    /* интерьер: с id — обновление той же доски, без id — НОВЫЙ интерьер квартиры (прежний остаётся в r.interiors со своими материалами и рендерами),
-       кроме места лёгкой записи (adoptOf: лёгкая — одна на объект, доска встаёт на её место); записанный становится текущим — flat.currentInteriorId ставит аксессор r.interior */
-    if (kind === 'interior') { var ad = data.id ? null : adoptOf(r, data); v.id = data.id || (ad && ad.id) || uid('int'); v.status = data.status || 'active'; v.createdAt = data.createdAt || (ad && ad.createdAt) || now; }
+    /* интерьер: с id — обновление той же доски, без id — НОВЫЙ интерьер квартиры (прежний остаётся в r.interiors со своими материалами и рендерами);
+       записанный становится текущим — flat.currentInteriorId ставит аксессор r.interior */
+    if (kind === 'interior') { v.id = data.id || uid('int'); v.status = data.status || 'active'; v.createdAt = data.createdAt || now; }
     var prevPlan = kind === 'plan' ? r.plan : null;
     r[kind] = v;
-    /* план — основа квартиры: площадь и ЖК, точность из уровня основы, черновик снимается.
-       Площадь и ЖК, взятые из плана (f.m2Src = 'plan'), идут за текущим планом: пришёл другой план — площадь по его комнатам (комнат
-       ещё нет — пусто, пока «Всё верно» Планировки их не запишет), ЖК — его; поля примера ЖК PRIDE своим планом не остаются
-       (Валерия 02.11: загрузила свой план — полоска всё равно «ЖК PRIDE · 47 м²»). Площадь, вписанную человеком в объект, не трогаем */
-    if (kind === 'plan') { var f = flats.get(flatId), m2 = (data.rooms || []).reduce(function (a, x) { return a + (x.m2 || 0); }, 0); if (f) {
-      var m2r = m2 ? Math.round(m2 * 10) / 10 : null, smp = data.sample === 'pride' || data.jk === 'PRIDE';
-      var other = !prevPlan || (prevPlan.file || '') !== (data.file || '') || !!prevPlan.sample !== !!data.sample;
-      if (f.jk === 'PRIDE' && !smp) { f.jk = data.jk || ''; f.m2Src = 'plan'; }
-      if (f.m2Src === 'plan' && (m2r || other)) f.m2 = m2r;
-      else if (m2r && !f.m2) { f.m2 = m2r; f.m2Src = 'plan'; }
-      if (data.jk && !f.jk) f.jk = data.jk;
-      if (m2r) mirrorMy(f, ['m2']);
-      f.accuracy = accuracyOf(f.id); f.isDraft = false; } }
+    /* план — основа квартиры: площадь и ЖК (planPatch), точность из уровня основы, черновик снимается. Сменилась площадь плана — следом доски материалов и корзина */
+    if (kind === 'plan') {
+      var f = flats.get(flatId);
+      if (f) {
+        var pp = planPatch(f, prevPlan, data); Object.assign(f, pp); if (pp.m2) mirrorMy(f, ['m2']);
+        f.accuracy = accuracyOf(f.id); f.isDraft = false;
+      }
+      if (planM2(data)) fitBoards(flatId);
+    }
     /* капсула интерьера — капсула квартиры */
     if (kind === 'interior') { var fi = flats.get(flatId); if (fi && data.capsuleId) fi.capsuleId = data.capsuleId; }
-    if (kind === 'budget') { var fb = flats.get(flatId); if (fb) fb.budgetType = data.type; }
+    if (kind === 'budget') { var fb = flats.get(flatId); if (fb) { fb.budgetType = data.type; if (!fb.m2 && data.area > 0) { fb.m2 = data.area; fb.m2Calc = true; fitBoards(flatId); } } }   /* квартира, созданная этим сохранением, получает площадь расчёта: на неё считаются материалы. m2Calc — площадь из расчёта, первый план её заменит (planPatch) */
     return v;
   }
   function saveTo(kind, data, opts) {
@@ -362,7 +295,7 @@
         var src = rp(f.id), dst = rp(to);
         if (kind === 'render') { var k = roomKey(data.room); var it = (src.rooms[k] || []).shift(); if (it) (dst.rooms[k] = dst.rooms[k] || []).unshift(it); if (src.rooms[k + ':main'] === (it && it.id)) src.rooms[k + ':main'] = (src.rooms[k][0] || {}).id || null; if (!dst.rooms[k + ':main'] && it) dst.rooms[k + ':main'] = it.id; }
         /* интерьер — в список другой квартиры; здесь текущим снова становится прежний */
-        else if (kind === 'interior') { var ii = src.interior; if (ii) { src.interiors = src.interiors.filter(function (x) { return x.id !== ii.id; }); setCurId(src, f.id, cur && cur.id !== ii.id ? cur.id : (src.interiors.length ? src.interiors[src.interiors.length - 1].id : null)); dst.interior = ii; } }
+        else if (kind === 'interior') { var ii = src.interior; if (ii) { src.interiors = src.interiors.filter(function (x) { return x.id !== ii.id; }); setCurId(src, f.id, cur ? cur.id : (src.interiors.length ? src.interiors[src.interiors.length - 1].id : null)); dst.interior = ii; } }
         else { dst[kind] = src[kind]; src[kind] = cur || null; }
       });
       if (opts.done) opts.done();
@@ -413,6 +346,8 @@
     has: function (pid) { return cartOf().some(function (r) { return r.productId === Number(pid); }); },
     rows: cartRows, totals: cartTotals,
     add: function (pid, source, quiet, seller) {
+      var known = D.product(pid);
+      if (known && !(known.metod > 0 || known.retail > 0)) { if (!quiet && ui && ui.toast) ui.toast('Цена уточняется, товар пока нельзя добавить в корзину'); return; }
       var f = flats.ensure(), list = cartOf(f.id); pid = Number(pid);
       var row = list.filter(function (r) { return r.productId === pid; })[0], sl = sellerOf(pid, seller);
       if (row) { row.qty += 1; if (sl && (!row.seller || seller)) { row.seller = sl; try { if (S.orders) S.orders.basket.setSeller(pid, sl); } catch (e) {} } }
@@ -423,6 +358,7 @@
       if (!row && !D.product(pid) && S.catalog && S.catalog.resolve) {
         S.catalog.resolve(pid).then(function (p) {
           if (!p) return; registerProduct(p);
+          if (!(p.metod > 0 || p.retail > 0)) { cart.remove(pid); if (ui && ui.toast) ui.toast('Цена уточняется, товар пока нельзя добавить в корзину'); return; }
           var r2 = cartOf(f.id).filter(function (r) { return r.productId === pid; })[0]; if (!r2) return;
           if (!r2.seller) { var s2 = sellerOf(pid, seller); if (s2) r2.seller = s2; }
           mirror(pid, source, r2.qty, r2.seller); save();
@@ -440,6 +376,8 @@
     },
     addMany: function (ids, source) { var n = 0; flats.ensure(); ids.forEach(function (id) { if (!cart.has(id)) { cart.add(id, source, true); n++; } }); save(); cartToast(); return n; },
     remove: function (pid) { var f = flats.active(); if (!f) return; st.cart[f.id] = cartOf(f.id).filter(function (r) { return r.productId !== Number(pid); }); unmirror(pid); save(); },
+    /* «Очистить корзину» на экране корзины — пустеют и плашка «Корзина», и 🛒 в Маркете и Интерьере */
+    clear: function () { var f = flats.active(); if (!f) return; cartOf(f.id).forEach(function (r) { unmirror(r.productId); }); st.cart[f.id] = []; save(); },
     toggle: function (pid, source) { if (cart.has(pid)) { cart.remove(pid); toast('Убрали из корзины'); return false; } cart.add(pid, source); return true; },
     qty: function (pid, d) { var row = cartOf().filter(function (r) { return r.productId === Number(pid); })[0]; if (!row) return; row.qty = Math.max(1, row.qty + d); save(); },
     /* «Оформить»: корзина квартиры уходит в общую корзину оплаты (my.html?v=basket — оплата через SOVEAPP, заказы по поставщикам) */
@@ -454,7 +392,7 @@
   var favSets = {
     capsule: function (capId) {
       var c = D.capsule(capId), ids = capsuleProducts(capId).map(function (p) { return p.id; }); if (!c || !ids.length) return null;
-      return { id: 'cap:' + capId, kind: 'capsule', capsuleId: capId, title: 'Товары к интерьеру «' + capName(capId) + '»', cover: c.cover, productIds: ids };
+      return { id: 'cap:' + capId, kind: 'capsule', capsuleId: capId, title: 'Товары к интерьеру «' + (c.name || '') + '»', cover: c.cover, productIds: ids };
     },
     has: function (sid) { return setsOf().some(function (x) { return x.id === sid; }); },
     list: function (id) { return setsOf(id).map(function (x) { return x.kind === 'capsule' ? Object.assign({}, favSets.capsule(x.capsuleId) || x, { ts: x.ts }) : x; }); },
@@ -465,26 +403,7 @@
       return i < 0;
     }
   };
-  /* ♡ специалиста (раздел «Строители, дизайнеры и мастера») — в Избранном квартиры наравне с товарами и подборками.
-     st.favPros[flatId] = [{id, sec, name, what, disc, ts}], новые сверху: снимок карточки — Избранное покажет его, даже если раздел поменяется.
-     В R.fav (id товаров) и R.favSets не кладём. toggle(snapshot | id, quiet) → true, если добавили */
-  function prosOf(id) { id = id || (flats.active() || {}).id; if (!st.favPros) st.favPros = {}; return id ? (st.favPros[id] || (st.favPros[id] = [])) : []; }
-  var favPros = {
-    has: function (pid) { pid = String(pid); return prosOf().some(function (x) { return x.id === pid; }); },
-    list: function (flatId) { return prosOf(flatId).map(function (x) { return Object.assign({}, x); }); },
-    toggle: function (snap, quiet) {
-      if (snap !== null && typeof snap !== 'object') snap = { id: snap };
-      if (!snap || snap.id === undefined || snap.id === null || snap.id === '') return false;
-      var f = flats.ensure(), list = prosOf(f.id), id = String(snap.id), i = list.map(function (x) { return x.id; }).indexOf(id);
-      if (i >= 0) list.splice(i, 1);
-      else list.unshift({ id: id, sec: String(snap.sec || ''), name: String(snap.name || ''), what: String(snap.what || ''), disc: String(snap.disc || ''), ts: Date.now() });
-      save();
-      if (!quiet) toast(i >= 0 ? 'Убрали из Избранного' : 'Специалист в Избранном · ' + f.name, i >= 0 ? null : { label: 'Открыть', href: 'favorites.html#fv-pros' });
-      return i < 0;
-    }
-  };
-  /* число позиций — по строкам корзины, а не по найденным карточкам: товар живого каталога дотягивается позже, и было «В корзине · 0» */
-  function cartToast(seller) { toast('В корзине · ' + (seller && seller.name ? seller.name : cartOf().length), { label: 'Оформить', href: anchor('cart') }); }
+  function cartToast(seller) { var t = cartTotals(); toast('В корзине · ' + (seller && seller.name ? seller.name : t.count), { label: 'Оформить', href: anchor('cart') }); }
   /* сердечки Маркета и карточки товара пишут в Избранное текущей квартиры */
   S.favs = { has: fav.has, list: function () { return fav.list(); }, toggle: function (id) { return fav.toggle(id); } };
 
@@ -533,22 +452,16 @@
     var sum = materialsSum('flat', { id: id });
     return { known: whole, value: whole ? sum : 0, part: sum, zones: zones, total: planZones(id).zones.length || roomsOf(id).length };
   }
-  /* итог сохранённого расчёта квартиры — та же цифра, что «Плановый бюджет» экрана Бюджета без полного бюджета (my-budget.js, fromSaved):
-     r.budget.total («Сохранить в Мой ремонт» в Расчёте), иначе сумма комнат r.scoutParams.byRooms; расчёта нет — 0 */
-  function savedTotal(r) {
-    var b = r && r.budget, br = r && r.scoutParams && r.scoutParams.byRooms;
-    if (b && b.total > 0) return Math.round(b.total);
-    var t = br && br.length ? br.reduce(function (a, x) { return a + (Number(x.total) || 0); }, 0) : 0;
-    return t > 0 ? Math.round(t) : 0;
-  }
 
   /* зоны квартиры и их площади: план (Мой ремонт / Планировка) → точно; нет плана — комнаты квартиры, площадь — м² квартиры или 47 м² примера */
+  /* открыт пример Планировки (не свой план клиента), а у квартиры уже есть свой расчёт: пример не подменяет ни площадь, ни комнаты, ни цифры бюджета, пока клиент его не сохранит */
+  function sampleOver(r, Pd) { return !!(Pd && Pd.T && !Pd.T.live && ((r.budget && r.budget.total > 0) || (r.budgetPlan && r.budgetPlan.full && r.budgetPlan.source && r.scoutParams))); }
   function planZones(id) {
     var KB = window.SOVE_KB; if (!KB) return { zones: [], zoneArea: {}, area: 0, exact: false };
     var f = flats.get(id || (flats.active() || {}).id), r = rp(id), rooms = r.plan && r.plan.rooms ? r.plan.rooms : [];
     var m2 = rooms.reduce(function (a, x) { return a + (x.m2 || 0); }, 0);
     var Pd = window.SOVE_FLOW && window.SOVE_FLOW.planDoc && window.SOVE_FLOW.planDoc();
-    if (!m2 && Pd && Pd.rooms) { rooms = Pd.rooms; m2 = rooms.reduce(function (a, x) { return a + (x.m2 || 0); }, 0); }
+    if (!m2 && Pd && Pd.rooms && !sampleOver(r, Pd)) { rooms = Pd.rooms; m2 = rooms.reduce(function (a, x) { return a + (x.m2 || 0); }, 0); }
     /* каждая комната плана — отдельная единица со своей площадью (Алина 26.10): первая комната типа — ключ зоны, следующие — тип-2, тип-3 */
     var za = {}, n = {}, units = [];
     (rooms.length ? rooms : roomsOf(id)).forEach(function (x) {
@@ -560,6 +473,58 @@
     units.sort(function (a, b) { return order.indexOf(a.type) - order.indexOf(b.type) || (a.key < b.key ? -1 : 1); });
     return { zones: units.map(function (u) { return u.key; }), units: units, zoneArea: za, exact: !!m2,
       area: m2 ? Math.round(m2 * 10) / 10 : (f && f.m2 ? f.m2 : KB.AREA), rooms: rooms, doc: Pd };
+  }
+  function planM2(p) { return (p && p.rooms || []).reduce(function (a, x) { return a + (x.m2 || 0); }, 0); }
+  /* что новый план меняет в объекте. Площадь и ЖК: пусто — из плана; были взяты из прежнего плана (пример ЖК PRIDE, другой файл) — новый план их меняет
+     (Вика 05.11: «у тебя должно всё меняться»); вписанные клиентом остаются */
+  function planPatch(f, prev, data) {
+    var m2 = planM2(data), fromPrev = !!(prev && prev.jk && prev.jk === f.jk), out = {};
+    if (m2 && (!f.m2 || f.m2Calc || fromPrev || Math.abs(f.m2 - planM2(prev)) <= 0.5)) { out.m2 = Math.round(m2 * 10) / 10; out.m2Calc = false; }
+    if (data.jk && !f.jk) out.jk = data.jk; else if (!data.jk && fromPrev) out.jk = '';
+    return out;
+  }
+  /* доска материалов считается на площадь плана: база каталога (на 47 м² примера) × площадь. Одна формула на выборе, замене и смене плана; штуки — целые */
+  function scaleSlots(slots, area) {
+    var KB = window.SOVE_KB; if (!KB || !slots) return slots;
+    Object.keys(slots).forEach(function (k) {
+      var it = KB.item(slots[k].sku); if (!it) return;
+      var fx = it.unit === 'компл.' || area === KB.AREA ? 1 : area / KB.AREA, pcs = fx !== 1 && it.unit === 'шт';
+      var q = fx === 1 ? it.qty : pcs ? Math.max(1, Math.round(it.qty * fx)) : Math.round(it.qty * fx * 10) / 10;
+      slots[k].sum = fx === 1 ? it.sum : Math.round(it.sum * (pcs ? q / it.qty : fx) / 100) * 100;
+      slots[k].qty = q;
+      slots[k].price = it.price; slots[k].unit = it.unit; slots[k].level = it.level;
+    });
+    return slots;
+  }
+  /* товар материала один на SKU: его название и цена показывают количество и сумму текущей доски — иначе корзина и заказ поставщику всегда были на 47 м² примера */
+  function syncBoardProducts(b) {
+    var KB = window.SOVE_KB; if (!KB || !b || !b.slots) return;
+    var x = extras(), dirty = false;
+    Object.keys(b.slots).forEach(function (k) {
+      var e = b.slots[k], it = KB.item(e.sku), p = it && D.product(it.pid); if (!p || !(e.sum > 0)) return;
+      var name = it.name + ' · ' + (it.unit === 'компл.' ? 'комплект' : String(e.qty).replace('.', ',') + ' ' + it.unit);
+      if (p.name === name && p.metod === e.sum && p.retail === e.sum) return;
+      p.name = name; p.metod = e.sum; p.retail = e.sum;
+      if (x[p.id]) { Object.assign(x[p.id], { name: name, metod: e.sum, retail: e.sum }); dirty = true; }
+    });
+    if (dirty) { try { localStorage.setItem(XKEY, JSON.stringify(x)); } catch (e2) {} }
+  }
+  function fitBoards(id) {
+    if (!window.SOVE_KB) return;
+    var r = rp(id), area = planZones(id).area;
+    (r.interiors || []).forEach(function (b) { if (!b.slots) return; scaleBoard(b, area); b.materialsSum = materialsSum('flat', { id: id, board: b }); });
+    if (id === (flats.active() || {}).id) syncBoardProducts(r.interior);
+  }
+  /* доска целиком на площадь: общие материалы и замены «только здесь» (board.roomSlots: {зона: {слот: запись}}) */
+  function scaleBoard(b, area) { scaleSlots(b.slots, area); Object.keys(b.roomSlots || {}).forEach(function (z) { scaleSlots(b.roomSlots[z], area); }); }
+  /* материал слота в комнате: своя замена «только здесь» или общий материал доски */
+  function slotIn(b, key, zone) { var o = b && b.roomSlots && b.roomSlots[zone]; return (o && o[key]) || (b && b.slots && b.slots[key]) || null; }
+  function slotsIn(b, zone) { return Object.assign({}, b.slots, (b.roomSlots && b.roomSlots[zone]) || {}); }
+  /* доля комнаты в материале слота: по площади (план или комнаты расчёта), комплекты и штуки — поровну */
+  function zoneShare(key, room, pz, it) {
+    var KB = window.SOVE_KB, zs = pz.zones.filter(function (z) { return KB.inZone(key, z); }); if (zs.indexOf(room) < 0) zs.push(room);
+    var byArea = it.unit !== 'компл.' && it.unit !== 'шт' && zs.every(function (z) { return pz.zoneArea[z]; });
+    return byArea ? pz.zoneArea[room] / zs.reduce(function (x, z) { return x + pz.zoneArea[z]; }, 0) : 1 / zs.length;
   }
   /* ОДНА сумма материалов (ТЗ chips-budget, 4; TZ-budget, 4) — для Интерьера, Моего ремонта и Бюджета: room — id зоны или 'flat';
      o.slot — один слот; o.category — категория бюджета (finish | light | sockets | plumbing | doors, поле budgetCat слота); o.board — доска вместо паспорта.
@@ -573,11 +538,8 @@
       return on.reduce(function (a, z) { return a + materialsSum(z, Object.assign({}, o, { plan: pz })); }, 0);
     }
     return keys.reduce(function (a, k) {
-      var e = b.slots[k], it = e && KB.item(e.sku); if (!it || !KB.inZone(k, room)) return a;
-      var zs = pz.zones.filter(function (z) { return KB.inZone(k, z); }); if (zs.indexOf(room) < 0) zs.push(room);
-      var byArea = it.unit !== 'компл.' && it.unit !== 'шт' && zs.every(function (z) { return pz.zoneArea[z]; });
-      var w = byArea ? pz.zoneArea[room] / zs.reduce(function (x, z) { return x + pz.zoneArea[z]; }, 0) : 1 / zs.length;
-      return a + Math.round((e.sum || 0) * w / 100) * 100;
+      var e = slotIn(b, k, room), it = e && KB.item(e.sku); if (!it || !KB.inZone(k, room)) return a;
+      return a + Math.round((e.sum || 0) * zoneShare(k, room, pz, it) / 100) * 100;
     }, 0);
   }
   function stripOn() { return document.body && document.body.hasAttribute('data-repair-strip'); }
@@ -590,9 +552,8 @@
     /* раздел 17: полный бюджет куплен — «итого ≈ …»; нет — «мебель ≈ … · весь — узнать ›» (мебель из Планировки) */
     /* мебель — по текущей расстановке Планировки; нет её — из последнего сохранения */
     var furn = null, fl = {}; try { fl = JSON.parse(localStorage.getItem('sove.demo.flow.v1') || '{}') || {}; furn = fl.toSave && fl.toSave.furniture; } catch (x) {}
-    /* интерьер не выбран — ни мебели, ни бюджета не показываем (Алина 24.10): только «выбери интерьер».
-       Есть квартира — её интерьер или капсула; выбор Планировки (одна копия на все квартиры) — только пока квартиры нет */
-    var fa = flats.active(), noInt = !(rp().interior || (fa ? fa.capsuleId : fl.interior));
+    /* интерьер не выбран — ни мебели, ни бюджета не показываем (Алина 24.10): только «выбери интерьер» */
+    var noInt = !(rp().interior || fl.interior);
     if (!furn) furn = bp && bp.furniture;
     /* одна цифра «итого» с карточкой «Бюджет квартиры» (методология, П6): сумма известных слоёв */
     var BL = window.SOVE_FLOW && window.SOVE_FLOW.budgetLayers && window.SOVE_FLOW.budgetLayers();
@@ -600,25 +561,21 @@
     if (!BL && window.SOVE_BUDGET && window.SOVE_BUDGET.current) { var C0 = window.SOVE_BUDGET.current(); if (C0 && C0.full && C0.totals.plan !== null) BL = { total: C0.totals.plan, known: 4 }; }
     /* слои ещё не посчитаны (0 ₽) — показываем известное из Интерьера, а не «≈ 0 ₽ · 0 из 4», как было после «Сохранить в бюджет» */
     if (BL && !BL.total) BL = null;
-    /* сохранённый расчёт (Расчёт → «Сохранить в Мой ремонт»): пока полный бюджет не куплен и доски Интерьера со слотами нет, экран Бюджета
-       показывает его итог («Плановый бюджет», my-budget.js) — полоса ту же цифру. Сумма известных слоёв его не перекрывает: после захода
-       в расстановку было «итого ≈ 1 201 803 ₽ · 1 из 4» (одна мебель) при 5 311 000 ₽ на экране Бюджета (проверка 02.11) */
-    var r0 = rp(), it0 = r0.interior, sv = savedTotal(r0), saved = sv && !(bp && bp.full) && !(it0 && it0.slots) ? sv : 0;
     /* Интерьер на часть квартиры: в «итого» по правилу П6 не идёт, но известная сумма есть — как «Известно ≈ …» на экране Бюджета */
-    var omP = ownMat(), part = !saved && !BL && omP && !omP.known && omP.part > 0 ? omP.part : 0;
+    var omP = ownMat(), part = !BL && omP && !omP.known && omP.part > 0 ? omP.part : 0;
+    /* расчёт сохранён, а полного бюджета нет (подборка по картинкам или доска на часть квартиры): на экране Бюджета — его итог, здесь тот же */
+    var savedOnly = !(bp && bp.full) && b && b.total > 0; if (savedOnly) part = 0;
     /* новый план ещё не расставлен — старую сумму не показываем */
     var newPlan = document.body.getAttribute('data-page') === 'plan-demo';
-    /* сумм ещё нет (выбрана только капсула — лёгкая запись, мудборд без расчёта, доска без базы материалов на странице): 0 ₽ не пишем —
-       '' → «посчитать ›», экран Бюджета с кнопкой «Рассчитать бюджет» */
-    var bTotal = newPlan || noInt ? '' : saved ? F.rub(saved) : BL ? '≈ ' + F.rub(BL.total) + ' · ' + BL.known + ' из 4' : bp && bp.full ? '≈ ' + (bp.total === null || bp.total === undefined ? '[сумма] ₽' : F.rub(bp.total))
-      : omP && omP.value > 0 ? '≈ ' + F.rub(omP.value) + ' · ' + (omP.known ? 1 : 0) + ' из 4'
-      : furn ? null : b && b.total > 0 ? F.rub(b.total) : '';
+    var bTotal = newPlan || noInt ? '' : savedOnly ? F.rub(b.total) : BL ? '≈ ' + F.rub(BL.total) + (BL.known < 4 ? ' · ' + BL.known + ' из 4' : '') : bp && bp.full ? '≈ ' + (bp.total === null || bp.total === undefined ? '[сумма] ₽' : F.rub(bp.total))
+      : ownMat() ? '≈ ' + F.rub(ownMat().value) + ' · ' + (ownMat().known ? 1 : 0) + ' из 4'
+      : furn ? null : F.rub(b && b.total ? b.total : 0);
     /* полоса ведёт на свои экраны (ТЗ 22.10, п. 0.4 и 5): корзина и бюджет квартиры — виды my.html, избранное — общая страница */
     var h = function (sec) { return { cart: 'my.html?v=basket', fav: 'favorites.html', budget: 'my.html?v=budget' }[sec]; };
     el.innerHTML =
-      '<a href="' + h('cart') + '" data-strip="cart">' + CART + '<span><b>Корзина</b><small>' + (t.count ? t.qty + ' · ' + F.rub(t.metod) : 'пока пусто') + '</small></span></a>' +
+      '<a href="' + h('cart') + '" data-strip="cart">' + CART + '<span><b>Корзина</b><small>' + (t.count ? t.qty + ' · ' + F.rub(S.metod && S.metod.active() ? t.metod : t.retail) : 'пока пусто') + '</small></span></a>' +   /* та же цена, что в корзине: без подписки — розница (Валерия 10.11: полоска 4 235, корзина 7 700) */
       '<a href="' + h('fav') + '" data-strip="fav">' + HEART + '<span><b>Избранное</b><small>' + (fv ? fv : 'пока пусто') + '</small></span></a>' +
-      '<a href="' + h('budget') + '" data-strip="budget"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 7h8M8 11h3M13 11h3M8 15h3M13 15h3"/></svg><span><b>Бюджет</b><small>' + (newPlan ? 'после расстановки' : noInt ? (sv ? 'итого ' + F.rub(sv) : 'выбери интерьер') : part ? 'известно ≈ ' + F.rub(part) : bTotal === null ? 'мебель ≈ ' + F.rub(furn) + ' · весь — узнать ›' : bTotal ? 'итого ' + bTotal : 'посчитать ›') + '</small></span></a>';
+      '<a href="' + h('budget') + '" data-strip="budget"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 7h8M8 11h3M13 11h3M8 15h3M13 15h3"/></svg><span><b>Бюджет</b><small>' + (newPlan ? 'после расстановки' : noInt && !(b && b.total) ? 'выбери интерьер' : noInt ? 'итого ' + F.rub(b.total) : part ? 'известно ≈ ' + F.rub(part) : bTotal === null ? 'мебель ≈ ' + F.rub(furn) + ' · весь — узнать ›' : 'итого ' + bTotal) + '</small></span></a>';
   }
 
   /* ---------- данные прототипа: 3 состояния экрана из п. 6 ТЗ ---------- */
@@ -635,7 +592,7 @@
       flats.update(f.id, { jk: 'PRIDE' });
       write('plan', { level: 'developer_plan', img: 'assets/img/demo/1-domik-vsya-kvartira.jpg', rooms: sp.rooms.map(function (r) { return { name: r.name, m2: r.area }; }), variant: 'Расстановка по анкете', jk: 'PRIDE' }, f.id);
       var mats = capsuleProducts('k2'), KB = window.SOVE_KB, RENDERS = [['Кухня-гостиная', '3-kuhnya-gostinaya'], ['Спальня', '2-spalnya'], ['Спальня', '6-spalnya-pravka-komandoy'], ['Санузел', '4-sanuzel'], ['Прихожая', '5-prihozhaya']];
-      var board = { capsuleId: 'k2', name: capName('k2'), img: c.cover, dna: c.dna, productIds: mats.map(function (p) { return p.id; }) };
+      var board = { capsuleId: 'k2', name: c.name, img: c.cover, dna: c.dna, productIds: mats.map(function (p) { return p.id; }) };
       /* на экранах с базой материалов (kb/*) — полная доска К2 со слотами и визуализациями, как после экрана «Интерьер»: иначе мудборд без слотов */
       if (KB && KB.fromCapsule && KB.capsule && KB.capsule('k2') && KB.zoneOf) {
         var kc = KB.capsule('k2'), slots = KB.fromCapsule('k2', 'base'), snap = {}, ang = {}; Object.keys(slots).forEach(function (k) { snap[k] = slots[k].sku; });
@@ -650,7 +607,6 @@
       st.cart[f.id] = mats.slice(0, 5).map(function (p, i) { return { productId: p.id, qty: 1, source: i < 3 ? 'budget' : 'moodboard', ts: Date.now() }; });
       flats.add({ name: 'Квартира 2' }); st.active = f.id;
     }
-    syncFlow();   /* копия интерьера в Планировке — под активную квартиру примера (прежняя к ней не относится) */
     save();
   }
   function reset() { try { localStorage.removeItem(KEY); } catch (e) {} load(); renderStrip(); }
@@ -663,8 +619,8 @@
   }, true);
 
   S.repair = { LINK: LINK, LEVEL: LEVEL, RANK: RANK, SRC: SRC, STATE: STATE, ACCURACY: ACCURACY, flats: flats, flatLine: flatLine, get: rp, level: level, rooms: roomsOf, roomKey: roomKey, rendersCount: rendersCount,
-    capsuleProducts: capsuleProducts, roomProducts: roomProducts, progress: progress, budgetStale: budgetStale, interiors: interiors,
+    capsuleProducts: capsuleProducts, roomProducts: roomProducts, progress: progress, budgetStale: budgetStale, interiors: interiors, boardOfCapsule: boardOfCapsule, boardHasBases: boardHasBases,
     save: saveTo, saveButton: saveButton, setMainRender: setMainRender, removeRender: removeRender, fav: fav, cart: cart, card: card, price: price, btns: btns, sync: syncButtons,
-    toast: toast, renderStrip: renderStrip, ownMat: ownMat, favSets: favSets, favPros: favPros, capName: capName, planZones: planZones, materialsSum: materialsSum, registerProduct: registerProduct, seed: seed, reset: reset };
+    toast: toast, renderStrip: renderStrip, ownMat: ownMat, favSets: favSets, planZones: planZones, materialsSum: materialsSum, planPatch: planPatch, scaleSlots: scaleSlots, scaleBoard: scaleBoard, slotIn: slotIn, slotsIn: slotsIn, zoneShare: zoneShare, syncBoardProducts: syncBoardProducts, registerProduct: registerProduct, seed: seed, reset: reset };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', renderStrip); else renderStrip();
 })();

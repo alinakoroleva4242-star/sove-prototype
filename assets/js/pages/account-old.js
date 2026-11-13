@@ -126,7 +126,7 @@
     var area = pr.area || (pr.scout && pr.scout.area);
     var meta = [c ? c.name : 'Капсула не выбрана', area ? F.area(area) : null].filter(Boolean).join(' · ');
     return '<a class="pr-card" href="project.html?id=' + encodeURIComponent(pr.id) + '">' +
-      '<div class="pr-card__pic">' + (c ? '<img src="' + c.cover + '" alt="Капсула ' + c.code + ': ' + esc(c.name) + '" loading="lazy"><span class="pr-card__code">' + c.code + '</span>' : '<span class="pr-card__nocap">капсула не выбрана</span>') + '</div>' +
+      '<div class="pr-card__pic">' + (c ? '<img src="' + c.cover + '" alt="Капсула «' + esc(c.name) + '»" loading="lazy">' : '<span class="pr-card__nocap">капсула не выбрана</span>') + '</div>' +
       '<div class="pr-card__body"><span class="pr-card__name">' + esc(pr.name) + '</span>' +
       '<span class="small muted num">' + meta + '</span>' +
       (pr.scout && pr.scout.total ? '<span class="small">Смета ремонта: <span class="num">' + F.rub(pr.scout.total) + '</span></span>' : '<span class="small muted">Сметы пока нет</span>') +
@@ -149,7 +149,7 @@
     var caps = D.capsules.filter(function (c) { return !c.soon; });
     var html = '<div class="field"><label for="np-name">Название</label><input class="input" id="np-name" maxlength="60" autocomplete="off" placeholder="Например, квартира на Лесной"><span class="field__error" id="np-error" hidden>Введите название — по нему вы найдёте проект в кабинете.</span></div>' +
       '<fieldset class="cap-pick"><legend>Капсула</legend><div class="cap-pick__grid">' +
-      caps.map(function (c) { return '<label class="cap-pick__item"><input type="radio" name="np-capsule" value="' + c.id + '"><img src="' + c.cover + '" alt=""><span>' + c.code + '<small>' + esc(c.style) + '</small></span></label>'; }).join('') +
+      caps.map(function (c) { return '<label class="cap-pick__item"><input type="radio" name="np-capsule" value="' + c.id + '"><img src="' + c.cover + '" alt=""><span>' + esc(c.name) + '<small>' + esc(c.style) + '</small></span></label>'; }).join('') +
       '<label class="cap-pick__item is-active"><input type="radio" name="np-capsule" value="" checked><i class="cap-pick__none"></i><span>Пока без капсулы<small>выберу позже</small></span></label>' +
       '</div></fieldset>';
     var m = S.ui.modal({ eyebrow: 'Кабинет', title: 'Новый проект', html: html, actions: [

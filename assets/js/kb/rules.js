@@ -109,8 +109,9 @@
     KB.SLOTS.forEach(function (s) { slots[s.key] = KB.slotEntry(KB.item(KB.capsuleSku(capId, s.key, level)), 'capsule', null); });
     return slots;
   };
-  KB.slotEntry = function (it, source, confidence) {
-    return { sku: it.sku, level: it.level, qty: it.qty, unit: it.unit, price: it.price, sum: it.sum, dnaRef: KB.slot(it.slot).dna,
+  /* base — товар, под который считалась работа (меняется только новой доской, не заменой): замена сравнивается с ним, а не с типом бюджета */
+  KB.slotEntry = function (it, source, confidence, base) {
+    return { sku: it.sku, base: base || it.sku, level: it.level, qty: it.qty, unit: it.unit, price: it.price, sum: it.sum, dnaRef: KB.slot(it.slot).dna,
       source: source || 'sove', confidence: confidence || null, ok: true, reason: null };
   };
   /* пересчитать ✓ / ! у всех слотов (после замены одного меняется контекст соседей) */

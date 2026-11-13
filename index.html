@@ -7,24 +7,31 @@
 <link rel="icon" href="assets/img/logo-sg.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<!-- Cormorant Garamond 300 — тонкий знак «Метод ремонта» в карточке 3 (500/600 — свои файлы в assets/fonts) -->
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300&family=Montserrat:wght@300;400;500;600;700;800&display=swap">
-<link rel="stylesheet" href="assets/css/site.css?v=20261104150800">
-<link rel="stylesheet" href="assets/css/app-theme.css?v=20261104150800">
-<link rel="stylesheet" href="assets/css/pages/home3.css?v=20261104150800">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap">
+<link rel="stylesheet" href="assets/css/site.css?v=20261112172140">
+<link rel="stylesheet" href="assets/css/cap-card.css?v=20261112172140">
+<link rel="stylesheet" href="assets/css/app-theme.css?v=20261112172140">
+<link rel="stylesheet" href="assets/css/pages/scout-ideas.css?v=20261112172140">
+<link rel="stylesheet" href="assets/css/adept-banner.css?v=20261112172140">
+<link rel="stylesheet" href="assets/css/pages/home3.css?v=20261112172140">
+  <link rel="stylesheet" href="assets/css/pages/home-first.css?v=20261112172140">
 </head>
-<!-- Главная одна — «Квадраты» (Вика, 20.10). Вариант «Орбита» и тумблер сравнения убраны: archive/index-orbit-2026-10-20.html.
-     02.11: первый экран по макетам Вики и саммари дизайн-ревью 30.10, варианты ?hero=a|b|c|d × ?card=1|2|3 (плашка выбора — внизу страницы). -->
+<!-- Главная одна — «Квадраты» (Вика, 20.10). Вариант «Орбита» и тумблер сравнения убраны: archive/index-orbit-2026-10-20.html -->
 <body data-page="home" data-title="SOVEAPP" data-variant="feed">
 <a class="skip" href="#main">К содержанию</a>
 <div id="site-header"></div>
 <main id="main"><div id="home3"></div></main>
 <div id="site-footer"></div>
-<script src="assets/js/data.js?v=20261104150800"></script>
-<script src="assets/js/site.js?v=20261104150800"></script>
-<script src="assets/js/tier-map.js?v=20261104150800"></script>
-<script src="assets/js/catalog-api.js?v=20261104150800"></script>
-<script src="assets/js/home-lanes.js?v=20261104150800"></script>
-<script src="assets/js/pages/home3.js?v=20261104150800"></script>
+<script src="assets/js/data.js?v=20261112172140"></script>
+<script src="assets/js/site.js?v=20261112172140"></script>
+<script src="assets/js/cap-card.js?v=20261112172140"></script>
+<script src="assets/js/tier-map.js?v=20261112172140"></script>
+<script>/* срез каталога — только локально, на стенде живой каталог */
+if (!location.hostname || /^(localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\])$/.test(location.hostname))
+  document.write('<script src="assets/js/market-snapshot.js?v=20261112172140"><\/script>');</script>
+<script src="assets/js/catalog-api.js?v=20261112172140"></script>
+<script src="assets/js/adept-banner.js?v=20261112172140"></script>
+<script src="assets/js/home-first.js?v=20261112172140"></script>
+  <script src="assets/js/pages/home3.js?v=20261112172140"></script>
 </body>
 </html>

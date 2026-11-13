@@ -13,7 +13,7 @@
 .rv__author { display: block; margin-top: 8px; font-size: 12px; color: var(--stone); }
 
 /* ---------- партнёры «на заказ» ---------- */
-.co-chips { gap: 8px; padding-bottom: 2px; }
+.co-chips { display: flex; flex-wrap: wrap; gap: 8px; padding-bottom: 2px; }
 .co-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 .co { display: flex; flex-direction: column; gap: 4px; padding: 14px; border: 1px solid var(--line); border-radius: var(--r); background: var(--white); color: inherit; }
 .co__flag { align-self: flex-start; font-size: 9.5px; letter-spacing: .08em; text-transform: uppercase; font-weight: 700;
@@ -22,6 +22,26 @@
 .co__cat { font-size: 11px; color: var(--stone); }
 .co__note { font-size: 12px; font-weight: 600; color: var(--ink); }
 .co__cta { margin-top: 4px; font-size: 12px; font-weight: 600; color: var(--accent); }
+/* страница бренда: фото, чертёж, заявка */
+.cob { display: grid; gap: 18px; max-width: 560px; min-width: 0; }
+.cob-back { justify-self: start; font-size: 13px; font-weight: 600; color: var(--accent); }
+.cob-pics, .cob-pic { display: grid; gap: 8px; margin: 0; position: relative; min-width: 0; }
+.cob-main { display: block; width: 100%; aspect-ratio: 16 / 10; object-fit: cover; border-radius: 16px; background: var(--line); }
+.cob-tag { position: absolute; left: 10px; right: 10px; bottom: 10px; padding: 6px 10px; border-radius: 12px; background: rgba(41, 36, 33, .78); color: var(--white); font-size: 12px; line-height: 1.3; }
+.cob-ths { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.cob-th { aspect-ratio: 1; padding: 0; border: 2px solid transparent; border-radius: 12px; overflow: hidden; background: none; cursor: pointer; }
+.cob-th.is-on { border-color: var(--accent); }
+.cob-th img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.cob-ph { display: grid; place-items: center; aspect-ratio: 16 / 10; padding: 16px; border: 1px dashed var(--stone); border-radius: 16px; background: var(--white); color: var(--stone); font-size: 13px; text-align: center; }
+.cob-acts { display: grid; gap: 10px; min-width: 0; }
+.cob-state { display: grid; gap: 6px; min-width: 0; }
+.cob-state .field__error { margin: 0; overflow-wrap: anywhere; }
+.cob-picked { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-width: 0; font-size: 13px; }
+.cob-picked span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cob-picked button { flex: none; min-height: 44px; padding: 0; border: 0; background: none; color: var(--accent); font: inherit; font-weight: 600; cursor: pointer; }
+/* на телефоне :hover залипает после нажатия: вторая кнопка не должна спорить с «Просчитать проект» */
+@media (hover: none) { #cob-pick.btn--ghost:hover { background: var(--white); border-color: var(--line-2); color: var(--ink); } }
+.cob-hint { margin: 0; font-size: 12px; color: var(--stone); }
 
 /* ---------- чаты ---------- */
 .ch-tabs { gap: 8px; }
@@ -118,8 +138,10 @@
 .pl-shot figcaption { padding: 10px 14px; font-size: 12px; color: var(--graphite); }
 
 /* капсула в других комнатах */
-.cap-rooms { gap: 10px; }
-.cap-room { flex: 0 0 168px; margin: 0; }
+/* сеткой, без горизонтальной прокрутки: команда смотрит демо мышью в рамке телефона */
+.cap-rooms { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+@media (min-width: 960px) { .cap-rooms { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.cap-room { min-width: 0; margin: 0; }
 .cap-room img { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: var(--r-sm); }
 .cap-room figcaption { margin-top: 6px; font-size: 11px; color: var(--graphite); }
 
@@ -203,7 +225,7 @@
 .tr-hero__k { font-size: 11px; letter-spacing: .16em; text-transform: uppercase; font-weight: 700; opacity: .9; }
 .tr-hero__body b { font-size: 26px; font-weight: 700; line-height: 1.1; }
 .tr-hero__d { font-size: 13px; opacity: .9; }
-.tr-pipe { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 12px; padding: 12px var(--gutter);
+.tr-pipe { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 12px; padding: 12px var(--gutter); width: auto;
   border: 1px solid var(--line); border-radius: var(--r); background: var(--white); margin-inline: var(--gutter); }
 .tr-pipe span { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 10.5px; color: var(--graphite); text-align: center; line-height: 1.2; }
 .tr-pipe i { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-style: normal; font-size: 11px; font-weight: 700;

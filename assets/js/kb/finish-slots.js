@@ -97,30 +97,30 @@
   /* фактуры (design/materialy/img/tex → assets/img/interior/tex): фото 512 px без логотипов.
      REF — кадр с картинки примера (флэтлей mb-ref.jpg): центр кадра в долях картинки, как на эталоне */
   var TEX = 'assets/img/interior/tex/', SW = 'assets/img/interior/sw/';
-  /* фото образца по материалу (ТЗ Интерьера, 8: приоритет — реальные вырезки sw/*.jpg; краска и штукатурка — выкраска цветом) */
-  var PHOTO = { 'fl-lam-walnut': 'walnut', 'fl-parq-walnut': 'walnut', 'fl-lvt-walnut': 'walnut', 'fl-eng-walnut': 'walnut', 'fl-parq-oak': 'taupe', 'fl-lam-oak': 'cer',
-    'ft-60': 'taupe', 'ft-120': 'taupe', 'bw-20x60': 'cer', 'bw-60x120': 'cer', 'ap-metro': 'marble', 'ap-zellige': 'marble',
-    'pl-brass': 'faucet', 'pl-brushed': 'faucet', 'lt-track': 'brass', 'lt-sconce': 'brass' };
+  /* фото-вырезки sw/*.jpg — 9 кусков одной фотографии мудборда: в них попадают соседние предметы и подписи («CERAMIC»),
+     у четырёх ореховых полов была одна и та же вырезка, у «дуба светлого» — кусок керамогранита (Вика 05.11).
+     Теперь у товара со своей фактурой tex/ — фактура; вырезка — только где фактуры нет (список пуст, оставлен на будущее) */
+  var PHOTO = {};
   var SWATCH = { paint: 1, plaster: 1, enamel: 1, matte: 1, molding: 1 };
 
   /* товары: [sku, slot, level, название, материал, hex, фактура, тон, подтон, металл, единица, цена, сумма, фото фактуры] */
   var ROWS = [
     ['fl-lam-walnut',   'floor', 'base',    'Ламинат 33 кл., орех',          'Ламинат',     '#4E3020', 'wood',        'warm', 'red',     null, 'м²', 1290,  55100, 'walnut-lam'],
-    ['fl-parq-walnut',  'floor', 'premium', 'Паркет орех, ёлочка',           'Паркет',      '#4A2B1B', 'herringbone', 'warm', 'red',     null, 'м²', 4270, 182300, 'plaster-milk'],
+    ['fl-parq-walnut',  'floor', 'premium', 'Паркет орех, ёлочка',           'Паркет',      '#4A2B1B', 'herringbone', 'warm', 'red',     null, 'м²', 4270, 182300, 'walnut'],   /* было plaster-milk — штукатурка (05.11) */
     /* альтернативы пола для замены (раздел 9): сумма — цена × те же 42,7 м² */
     ['fl-lvt-walnut',   'floor', 'base',    'Кварц-винил, орех',             'Кварц-винил', '#523424', 'wood',        'warm', 'red',     null, 'м²', 1650,  70500, 'walnut-lam'],
     ['fl-lam-oak',      'floor', 'base',    'Ламинат, дуб светлый',          'Ламинат',     '#C8A77E', 'wood',        'warm', 'neutral', null, 'м²',  990,  42300, 'oak-lam'],
     ['fl-eng-walnut',   'floor', 'premium', 'Инж. доска, орех',              'Инж. доска',  '#47291A', 'wood',        'warm', 'red',     null, 'м²', 3480, 148600, 'walnut'],
-    ['fl-parq-oak',     'floor', 'premium', 'Керамогранит под дерево',       'Керамогранит', '#8B6440', 'tileBig',    'warm', 'yellow',  null, 'м²', 3900, 166500, 'oak'],   /* имя — по эталону etalon-swap (25.10) */
+    ['fl-cer-wood',     'floor', 'premium', 'Керамогранит под дерево',       'Керамогранит', '#8B6440', 'tileBig',    'warm', 'yellow',  null, 'м²', 3900, 166500, 'oak'],   /* имя — по эталону etalon-swap (25.10); sku был fl-parq-oak (паркет дуб) — старые доски читаются через KB.ALIAS (05.11) */
 
     ['ft-60',      'floorTile',  'base',    'Керамогранит 60×60',            'Керамогранит', '#B7AA99', 'tile',     'warm', null,  null,     'м²',     1190,  12400, 'tile-taupe-60'],
-    ['ft-120',     'floorTile',  'premium', 'Керамогранит 60×120, мат',      'Керамогранит', '#BBAE9E', 'tileBig',  'warm', null,  null,     'м²',     3290,  34200, 'plaster-milk'],
+    ['ft-120',     'floorTile',  'premium', 'Керамогранит 60×120, мат',      'Керамогранит', '#BBAE9E', 'tileBig',  'warm', null,  null,     'м²',     3290,  34200, 'tile-taupe'],   /* была заглушка plaster-milk, фото держала вырезка */
     ['wl-paint',   'walls',      'base',    'Краска моющаяся',               'Краска',       '#E8E0D2', 'paint',    'warm', null,  null,     'м²',      210,  24800, 'paint-milk'],
     ['wl-plaster', 'walls',      'premium', 'Декоративная штукатурка',       'Штукатурка',   '#E6DDCE', 'plaster',  'warm', null,  null,     'м²',     1450,  87000, 'plaster-milk'],
     ['ac-paint',   'accentWall', 'base',    'Краска матовая',                'Краска',       '#5F6C40', 'paint',    'warm', null,  null,     'м²',      230,   2200, 'paint-olive'],
     ['ac-mineral', 'accentWall', 'premium', 'Краска минеральная',            'Краска',       '#5C693C', 'plaster',  'warm', null,  null,     'м²',      690,   6600, 'paint-olive'],
     ['bw-20x60',   'bathWalls',  'base',    'Плитка 20×60, глянец',          'Плитка',       '#EAE2D5', 'tileWall', 'warm', null,  null,     'м²',     1090,  19600, 'tile-milk'],
-    ['bw-60x120',  'bathWalls',  'premium', 'Керамогранит 60×120',           'Керамогранит', '#E5DCCD', 'tileBig',  'warm', null,  null,     'м²',     2150,  38700, 'plaster-milk'],
+    ['bw-60x120',  'bathWalls',  'premium', 'Керамогранит 60×120',           'Керамогранит', '#E5DCCD', 'tileBig',  'warm', null,  null,     'м²',     2150,  38700, 'travertine'],   /* была заглушка plaster-milk, фото держала вырезка с надписью */
     ['ap-metro',   'apron',      'base',    'Кабанчик, изумруд',             'Плитка',       '#3F5541', 'metro',    'warm', null,  null,     'м²',     1400,   2500, 'enamel-emerald'],
     ['ap-zellige', 'apron',      'premium', 'Зеллиж ручной, изумруд',        'Плитка',       '#3B5340', 'zellige',  'warm', null,  null,     'м²',     6900,  12400, 'zellige-emerald'],
     ['dr-enamel',  'doors',      'base',    'Эмаль, гладкие',                'Двери',        '#EAE3D6', 'enamel',   'warm', 'red', null,     'шт',    14500,  58000, 'paint-milk'],
@@ -130,26 +130,50 @@
     ['cl-stretch', 'ceiling',    'base',    'Натяжной матовый',              'Потолок',      '#EDE7DC', 'paint',    'warm', null,  null,     'м²',      650,  30500, 'paint-milk'],
     ['cl-gkl',     'ceiling',    'premium', 'Окраска по ГКЛ',                'Потолок',      '#EAE3D7', 'plaster',  'warm', null,  null,     'м²',     1150,  54000, 'plaster-milk'],
     ['pl-brass',   'plumbing',   'base',    'Смесители, покрытие латунь',    'Сантехника',   '#C39858', 'metal',    'warm', null,  'латунь', 'компл.', 18600,  18600, 'brass-plate'],
-    ['pl-brushed', 'plumbing',   'premium', 'Смесители, латунь брашир.',     'Сантехника',   '#C69C5E', 'brushed',  'warm', null,  'латунь', 'компл.', 46800,  46800, 'plaster-milk'],
+    ['pl-brushed', 'plumbing',   'premium', 'Смесители, латунь брашир.',     'Сантехника',   '#C69C5E', 'brushed',  'warm', null,  'латунь', 'компл.', 46800,  46800, 'brass'],   /* была заглушка plaster-milk */
     ['lt-track',   'light',      'base',    'Трек + споты, латунь',          'Свет',         '#C49A5A', 'metal',    'warm', null,  'латунь', 'компл.', 21400,  21400, 'brass-plate'],
     ['lt-sconce',  'light',      'premium', 'Бра и споты, латунь',           'Свет',         '#C29757', 'brushed',  'warm', null,  'латунь', 'компл.', 52400,  52400, 'brass'],
     ['hw-sockets', 'hardware',   'base',    'Розетки графит',                'Фурнитура',    '#2F2B28', 'matte',    'warm', null,  null,     'компл.',  9800,   9800, null],
     ['hw-handles', 'hardware',   'premium', 'Розетки + ручки, графит мат',   'Фурнитура',    '#2C2826', 'matte',    'warm', null,  null,     'компл.', 24600,  24600, null]
   ];
+  /* работа материала (Алина 06.11: «меняется материал — меняется работа»): цены и этапы — прайс «Цены» WEB · Монтажные работы и смета №684.
+     row — строка прайса; stage — этап договора (budget.js, WORKS). Плитка — вместе с затиркой 2 000 ₽ (Ц90), плинтус — 1 200 ₽ за планку 2 м (Ц140) = 600 ₽/м */
+  KB.WORK = {
+    lam:     { name: 'Монтаж ламината', short: 'ламинат', unit: 'м²', price: 1800, stage: 'finish_works', row: 131 },
+    lvt:     { name: 'Монтаж кварцвиниловой плитки', short: 'кварцвинил', unit: 'м²', price: 1300, stage: 'finish_works', row: 133 },
+    eng:     { name: 'Монтаж инженерной доски на клей', short: 'инж. доска', unit: 'м²', price: 2000, stage: 'finish_works', row: 137 },
+    parquet: { name: 'Монтаж инженерной доски ёлкой', short: 'паркет', unit: 'м²', price: 3500, stage: 'finish_works', row: 138 },
+    tileFl:  { name: 'Облицовка пола керамогранитом с затиркой', short: 'керамогранит', unit: 'м²', price: 8125, stage: 'prefinish', row: '86+90' },
+    tileWl:  { name: 'Облицовка стен плиткой с затиркой', short: 'плитка', unit: 'м²', price: 8125, stage: 'prefinish', row: '85+90' },
+    paint:   { name: 'Покраска стен в 2 слоя', short: 'покраска', unit: 'м²', price: 873, stage: 'finish_works', row: 120 },
+    stretch: { name: 'Монтаж натяжного потолка', short: 'натяжной', unit: 'м²', price: 4000, stage: 'finish_works', row: 125 },
+    gkl:     { name: 'Монтаж потолка из ГКЛ', short: 'ГКЛ', unit: 'м²', price: 3700, stage: 'finish_works', row: 126 },
+    plinth:  { name: 'Монтаж плинтуса с покраской', short: 'плинтус', unit: 'м', price: 600, stage: 'finish_works', row: 140 },
+    molding: { name: 'Монтаж молдингов на стену', short: 'молдинги', unit: 'м', price: 876, stage: 'finish_works', row: 122 },
+    doors:   { name: 'Установка дверей', short: 'двери', unit: 'шт', price: 12000, stage: 'finish_works', row: null }
+  };
+  /* товар → работа. null — работы нет в прайсе: «работа уточняется», без суммы. Товара здесь нет (свет, сантехника, фурнитура) — разницу работ не считаем: нет числа приборов в комплекте */
+  KB.SKU_WORK = {
+    'fl-lam-walnut': 'lam', 'fl-lam-oak': 'lam', 'fl-lvt-walnut': 'lvt', 'fl-eng-walnut': 'eng', 'fl-parq-walnut': 'parquet', 'fl-cer-wood': 'tileFl', 'ft-60': 'tileFl', 'ft-120': 'tileFl',
+    'bw-20x60': 'tileWl', 'bw-60x120': 'tileWl', 'wl-paint': 'paint', 'ac-paint': 'paint', 'ac-mineral': 'paint', 'cl-stretch': 'stretch', 'cl-gkl': 'gkl', 'ml-mdf': 'plinth', 'ml-gypsum': 'molding',
+    'dr-enamel': 'doors', 'dr-hidden': 'doors', 'wl-plaster': null, 'ap-metro': null, 'ap-zellige': null
+  };
   /* основные (База / Премиум) — первые два у слота; остальные — альтернативы */
   KB.ITEMS = ROWS.map(function (r, i) {
     var t = r[13];
-    return { sku: r[0], pid: 910001 + i, slot: r[1], level: r[2], name: r[3], material: r[4], hex: r[5], texture: r[6],
+    return { sku: r[0], pid: 910001 + i, slot: r[1], level: r[2], name: r[3], material: r[4], hex: r[5], texture: r[6], work: KB.SKU_WORK[r[0]],
       tone: r[7], undertone: r[8], metal: r[9], unit: r[10], price: r[11], sum: r[12],
       qty: Math.round(r[12] / r[11] * 10) / 10,
-      photo: PHOTO[r[0]] ? SW + PHOTO[r[0]] + '.jpg' : null, photoSq: PHOTO[r[0]] ? SW + PHOTO[r[0]] + '-sq.jpg' : null, swatch: !PHOTO[r[0]] && SWATCH[r[6]] ? r[5] : null,
+      photo: !t && PHOTO[r[0]] ? SW + PHOTO[r[0]] + '.jpg' : null, photoSq: !t && PHOTO[r[0]] ? SW + PHOTO[r[0]] + '-sq.jpg' : null, swatch: SWATCH[r[6]] ? r[5] : null,
       textureUrl: typeof t === 'string' ? TEX + t + '.jpg' : null, crop: null };
   });
+  /* старые sku в сохранённых досках (localStorage) → новые */
+  KB.ALIAS = { 'fl-parq-oak': 'fl-cer-wood' };
   var MAIN = {};
   KB.ITEMS.forEach(function (it) { var m = MAIN[it.slot] || (MAIN[it.slot] = {}); if (!m[it.level]) { m[it.level] = it.sku; it.main = true; } });
 
   KB.slot = function (key) { return KB.SLOTS.filter(function (s) { return s.key === key; })[0] || null; };
-  KB.item = function (sku) { return KB.ITEMS.filter(function (x) { return x.sku === sku; })[0] || null; };
+  KB.item = function (sku) { sku = KB.ALIAS[sku] || sku; return KB.ITEMS.filter(function (x) { return x.sku === sku; })[0] || null; };
   KB.itemsFor = function (slot) { return KB.ITEMS.filter(function (x) { return x.slot === slot; }); };
   KB.mainFor = function (slot, level) { return KB.item((MAIN[slot] || {})[level === 'premium' ? 'premium' : 'base']); };
   /* цвет ДНК для слота: по ключу; у ДНК капсулы или картинки ключей может не быть — тогда ближайший по ΔE к цвету примера */

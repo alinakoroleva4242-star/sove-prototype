@@ -33,9 +33,9 @@
   function chargeLine(g) {
     var t = g.cost ? F.tokens(g.cost) : '';
     var bal = S.auth.isIn() ? ' <span class="muted">· на балансе ' + F.num(S.tokens.balance()) + '</span>' : '';
-    if (g.status === 'running') return g.cost ? '<b>В резерве ' + t + '</b> <span class="muted">· спишем, только если что-то найдём</span>' : '<b>Пробный запуск</b> <span class="muted">· без списания</span>';
-    if (g.status === 'empty' || g.status === 'error') return g.cost ? '<b>Генерация вернулась</b> <span class="muted">· ' + t + ' снова на балансе</span>' : '<b>Пробный запуск возвращён</b>';
-    return g.cost ? '<b>Списано ' + t + '</b>' + bal : '<b>Пробный запуск</b> <span class="muted">· генерация не списывалась</span>';
+    if (g.status === 'running') return g.cost ? '<b>В резерве ' + t + '</b> <span class="muted">· спишем, только если что-то найдём</span>' : '<b>Пробный запуск</b> <span class="muted">· генерации не нужны</span>';
+    if (g.status === 'empty' || g.status === 'error') return g.cost ? '<b>Генерации возвращены</b> <span class="muted">· ' + t + ' снова на балансе</span>' : '<b>Пробный запуск возвращён</b>';
+    return g.cost ? '<b>Списано ' + t + '</b>' + bal : '<b>Пробный запуск</b> <span class="muted">· генерации не списывались</span>';
   }
   function head(g, actions) {
     var pr = g.projectId ? S.projects.get(g.projectId) : null;
@@ -140,7 +140,7 @@
   function renderEmpty(g) {
     var mode = encodeURIComponent(g.kind || 'photo');
     return stateScreen(g,
-      '<h2 class="h2">Ничего не нашли · ' + (g.cost ? 'генерация вернулась на баланс' : 'пробный запуск возвращён') + '</h2>' +
+      '<h2 class="h2">Ничего не нашли · ' + (g.cost ? 'генерации возвращены' : 'пробный запуск возвращён') + '</h2>' +
       '<p class="text">На изображении не получилось выделить мебель, свет или отделку. ' + (g.cost ? F.tokens(g.cost) + ' вернулись на баланс — поиск без результата бесплатный.' : 'Пробный запуск не потрачен.') + '</p>' +
       '<ul class="rows rows--tight gen-tips"><li><span>Предмет виден целиком и ничем не перекрыт</span></li><li><span>Ровный свет, без сильных бликов и размытия</span></li><li><span>' + (g.kind === 'render' ? 'Общий план комнаты, а не фрагмент отделки' : 'В кадре один предмет, а не вся комната') + '</span></li></ul>' +
       '<div class="row"><a class="btn btn--primary" href="ai.html?mode=' + mode + '">Повторить поиск</a><a class="btn btn--ghost" href="generations.html">Все генерации</a></div>');
@@ -148,7 +148,7 @@
   function renderError(g) {
     var mode = encodeURIComponent(g.kind || 'photo');
     return stateScreen(g,
-      '<div class="error-screen"><h2 class="h3">Поиск не удался · ' + (g.cost ? 'генерация вернулась на баланс' : 'пробный запуск возвращён') + '</h2>' +
+      '<div class="error-screen"><h2 class="h3">Поиск не удался · ' + (g.cost ? 'генерации возвращены' : 'пробный запуск возвращён') + '</h2>' +
       '<p class="text">' + F.esc(g.error || 'Сервис распознавания не ответил вовремя.') + ' ' + (g.cost ? F.tokens(g.cost) + ' вернулись на баланс.' : 'Пробный запуск не потрачен.') + ' Попробуйте ещё раз — с тем же или другим изображением.</p></div>' +
       '<div class="row"><a class="btn btn--primary" href="ai.html?mode=' + mode + '">Повторить поиск</a><a class="btn btn--ghost" href="generations.html">Все генерации</a></div>');
   }
@@ -247,7 +247,7 @@
     if (g.sample === 'empty' || g.src === D.ai.emptySample.src) {
       if (g.opId) S.tokens.refund(g.opId, 'ничего не найдено'); else if (g.demo || (!g.cost && !S.auth.isIn())) S.demo.giveBack();
       S.gens.update(id, { status: 'empty', finishedAt: Date.now() });
-      S.ui.toast('Поиск завершён: ничего не нашли. ' + (g.cost ? 'Генерация вернулась на баланс.' : 'Пробный запуск вернули.'));
+      S.ui.toast('Поиск завершён: ничего не нашли. ' + (g.cost ? 'Генерации вернулись на баланс.' : 'Пробный запуск вернули.'));
     } else {
       if (g.opId) S.tokens.commit(g.opId);
       S.gens.update(id, { status: 'done', finishedAt: Date.now(), result: g.result || (g.kind === 'render' ? { sample: true } : { items: D.ai.photoSample.items }) });

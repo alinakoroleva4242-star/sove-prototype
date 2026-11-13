@@ -1,14 +1,12 @@
-/* capsuleCard(c) — карточка капсулы SOVE в ленте входа (ТЗ Интерьера, 3; эталон etalon-I1): 160×200, фото 146, полоса ДНК 8px,
-   название, «12 материалов · N комнат». Прямоугольная плитка radius 10, без арок, без кодов К1–К7.
+/* capsuleCard(c) — карточка капсулы SOVE в ленте входа (ТЗ Интерьера, 3): единая карточка интерьера SOVE.ui.capCard (cap-card.js, Вика 03.11),
+   размер s — название и «12 материалов · N комнат» как были, фото, стиль, палитра и цена из data.js; без кодов К1–К7. Лента — .ucap-lane.
    myCapsuleRow(it) — строка «МОИ КАПСУЛЫ»: превью 56×44, название, «12 материалов · N комнат · когда», «Открыть ›». */
 (function () {
   var UI = window.SOVE_MATUI = window.SOVE_MATUI || {};
   UI.capsuleCard = function (c) {
-    var esc = window.SOVE.fmt.esc;
-    return '<button type="button" class="cc" data-capsule="' + c.id + '" aria-label="Капсула ' + esc(c.name) + '">' +
-      '<span class="cc__pic" style="background-image:url(' + c.cover + ')"></span>' +
-      '<span class="cc__dna">' + c.dna.map(function (x) { return '<i style="background:' + x.hex + '"></i>'; }).join('') + '</span>' +
-      '<span class="cc__t"><b>' + esc(c.name) + '</b><small>12 материалов · ' + c.rooms.length + ' ' + UI.roomsWord(c.rooms.length) + '</small></span></button>';
+    var S = window.SOVE;
+    return S.ui.capCard(Object.assign({}, S.data.capsule(c.id) || c, { name: c.name }), { tag: 'button', size: 's', label: 'Капсула ' + c.name,
+      attrs: { 'data-capsule': c.id }, meta: '12 материалов · ' + c.rooms.length + ' ' + UI.roomsWord(c.rooms.length) });
   };
   UI.roomsWord = function (n) { var a = n % 100, b = n % 10; return a > 10 && a < 20 ? 'комнат' : b === 1 ? 'комната' : b >= 2 && b <= 4 ? 'комнаты' : 'комнат'; };
   UI.ago = function (ts) {

@@ -38,7 +38,7 @@
     var el = document.querySelector('.appbar__title'); if (el) el.textContent = t;
     else document.addEventListener('DOMContentLoaded', function () { var x = document.querySelector('.appbar__title'); if (x) x.textContent = t; });
   }
-  function caps() { return D.capsules.filter(function (c) { return !c.soon && c.pricePerM2; }); }
+  function caps() { return D.capsules.filter(function (c) { return !c.soon && !c.auto && c.pricePerM2; }); }
   /* ⚠️ цена Премиума есть только у К7 — чтобы варианты сравнивались честно, бюджет везде по Базовому, Премиум помечаем */
   function kit(c) { return c.pricePerM2; }
   function budgetOf(c) { return G.budget({ pricePerM2: kit(c) }, G.area()); }

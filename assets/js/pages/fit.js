@@ -24,9 +24,9 @@
   }
   function main(product) {
   var ROOMS = [
-    { id: 'k1', title: 'Гостиная, капсула К1', src: 'assets/img/slides/k1-living-1.jpg' },
-    { id: 'k5', title: 'Гостиная, капсула К5', src: 'assets/img/slides/k5-living-1.jpg' },
-    { id: 'k7', title: 'Гостиная, капсула К7', src: 'assets/img/slides/k7-living-1.jpg' }
+    { id: 'k1', title: 'Гостиная, капсула «Бургундский камень в арт‑классике»', src: 'assets/img/slides/k1-living-1.jpg' },
+    { id: 'k5', title: 'Гостиная, капсула «Органика в песочном минимализме»', src: 'assets/img/slides/k5-living-1.jpg' },
+    { id: 'k7', title: 'Гостиная, капсула «Минималистичная классика с солнечным дубом»', src: 'assets/img/slides/k7-living-1.jpg' }
   ].filter(function (r) { return !!r.src; });
 
   var st = { view: 'idle', room: null, x: 50, y: 74, scale: 1, genId: null };

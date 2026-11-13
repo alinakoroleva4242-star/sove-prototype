@@ -123,7 +123,7 @@
             '<span class="hc__rooms"><span>' + ['k1-bedroom', 'g-bath', 'g-hall'].map(function (n) { return '<i style="background-image:url(' + IMG + n + '.jpg)"></i>'; }).join('') + '</span><small>+ ' + (c.rooms.length - 1) + ' ' + UI.roomsWord(c.rooms.length - 1) + '</small></span></div>' +
           '<div class="hc__f"><small>материалы База / Премиум · всё сочетается · цены из Маркета</small><button type="button" class="mt-a" data-capsule="' + HERO + '">смотреть ›</button></div></div></div>' +
       '<button type="button" class="mt-btn mt-btn--56" data-capsule="' + HERO + '">Выбрать капсулу — бесплатно</button>' +
-      '<div class="cc-strip cc-strip--s">' + KB.CAPSULES.map(UI.capsuleCard).join('') + '</div>' +
+      '<div class="ucap-lane">' + KB.CAPSULES.map(UI.capsuleCard).join('') + '</div>' +
       '<div class="mt-or"><span></span><small>ИЛИ СВОЯ КАРТИНКА</small><span></span></div>' +
       upload('<span class="up__ic">⇪</span><span class="up__t"><b>Загрузить рендер, фото или Pinterest</b><small>разберём ДНК и соберём такую же капсулу из твоей картинки · от ' + PRICE.room + ' 🎟</small></span><span class="up__a">›</span>', 'up up--line') +
       '<small class="mt-cap">у тебя ' + balance() + ' 🎟' + (S.auth.isIn() ? '' : ' в подарок') + (mine ? ' · <a class="mt-a" href="interior.html?v=2">мои капсулы · ' + mine + ' ›</a>' : '') + '</small>' +

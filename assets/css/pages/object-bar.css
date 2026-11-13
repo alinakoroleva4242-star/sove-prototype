@@ -1,11 +1,8 @@
-/* Полоска «Квартира · Интерьер» (assets/js/object-bar.js): закреплена сверху, одна строка, слева квартира, справа интерьер.
-   Подключать после app-theme.css. Отступ сверху (под шапкой приложения) и --ob-h выставляет скрипт; нет ни квартиры, ни интерьера — скрыта (hidden).
+/* Полоска «Объект · Интерьер» (assets/js/object-bar.js): закреплена сверху, одна строка, слева квартира, справа интерьер.
+   Подключать после app-theme.css. Отступ сверху (под шапкой приложения) и --ob-h выставляет скрипт.
    z-index 45: выше контента и sticky-блоков страниц (20), ниже шапки (50), шторок (100) и тостов (120). */
 .ob { position: sticky; top: 0; z-index: 45; display: flex; align-items: stretch; gap: 4px; box-sizing: border-box; width: 100%; max-width: 100%; margin: 0; padding: 4px calc(var(--gutter) - 6px);
   background: rgba(248,246,243,.96); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-bottom: 1px solid var(--line); font-family: var(--font); }
-.ob[hidden] { display: none; }
-/* компьютер: слева закреплено боковое меню (site.css, от 960px) — полоска начинается после него, как main; иначе «Квартира» уходит под меню */
-@media (min-width: 960px) { .ob { padding-left: calc(var(--side-w, 240px) + var(--gutter) - 6px); } }
 .ob a { display: flex; align-items: center; gap: 8px; min-width: 0; min-height: 38px; padding: 2px 6px; border-radius: var(--r-sm); color: inherit; text-decoration: none; -webkit-tap-highlight-color: transparent; }
 .ob a:hover, .ob a:active { background: var(--surface-2); }
 .ob a:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
@@ -21,6 +18,8 @@
 .ob__t small { font-size: 10px; line-height: 1.2; font-weight: 600; color: var(--stone); letter-spacing: 0; }
 .ob__t b { font-size: 13px; line-height: 1.25; font-weight: 600; color: var(--ink); }
 .ob__t b.is-empty { font-weight: 500; color: var(--graphite); }
+/* «Объект появится после первого действия» — без подписи, в две строки, чтобы не резалось многоточием */
+.ob__t b.is-empty--2 { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; font-size: 12px; line-height: 1.2; }
 
 /* экраны со своими закреплёнными блоками — сдвигаем их под полоску, чтобы не перекрывались */
 body.has-object-bar .sai-hd { top: var(--ob-h, 0px); }                                                 /* Генерации: своя шапка */

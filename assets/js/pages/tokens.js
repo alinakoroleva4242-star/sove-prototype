@@ -1,5 +1,5 @@
-/* Пополнение: выбор одной позиции (тариф, докупка или METOD), заказ, переход к оплате.
-   Документ «Генерации SOVE — тарифы и экономика» (03.11): ✦ генерации и ⇄ замены, три тарифа по результату и докупка; СБП — по умолчанию. */
+/* Пополнение генераций ✦ (ТЗ Алины 04.11): три тарифа по результату, докупка по одной (после первого тарифа) и подписка METOD; всё — из data.js → gen.
+   Решение созвона 28.10: оплата за зоны / интерьер, замены входят в пакет; в подписке — один интерьер, бесплатных генераций нет. Цены пакетов — пример (data.js). */
 (function () {
   var S = window.SOVE, D = S.data, F = S.fmt;
   var DAY = 864e5;
@@ -12,18 +12,19 @@
   function dateYear(ts) { var d = new Date(ts); return F.dateLong(ts) + (d.getFullYear() !== new Date().getFullYear() ? ' ' + d.getFullYear() : ''); }
 
   var returnTo = safeReturn(S.ui.qs('returnTo'));
-  /* всё про генерации живёт в Профиль → Баланс (Алина 03.11): страница тарифов не нужна:
-     тариф или докупка (?pack=) — сразу к оплате из Баланса */
-  /* METOD (?plan=) оформляется на странице METOD — страница тарифов больше не открывается совсем */
-  var pk = S.ui.qs('pack'), pl = S.ui.qs('plan'), rtQ = returnTo ? '&returnTo=' + encodeURIComponent(returnTo) : '';
-  location.replace(pl ? 'feed.html?buy=' + encodeURIComponent(pl) : 'account.html?v=tokens' + (pk ? '&buy=' + encodeURIComponent(pk) : '') + rtQ);
-  return;
   var cameFromWork = returnTo && !/^(metod|tokens|account)\.html/i.test(returnTo);
 
-  /* позиции: тарифы и докупка (kind 'pack': генерации и замены) и METOD — всё из данных */
-  var items = {}, PLANS = D.genPlans || [], TOPS = D.genTopups || [];
-  PLANS.concat(TOPS).forEach(function (p) {
-    items['pack:' + p.id] = { key: 'pack:' + p.id, plan: PLANS.indexOf(p) >= 0, src: p, item: { kind: 'pack', id: p.id, title: p.title, price: p.price, tokens: p.gens, swaps: p.swaps } };
+  /* позиции: всё из одной настройки (data.js → gen) */
+  var G = D.gen || { tariffs: [], topup: [], topupAfterTariffOnly: false }, items = {}, PKGS = [];
+  var canTopup = !G.topupAfterTariffOnly || S.tokens.tariffBought();
+  G.tariffs.forEach(function (t) {
+    items['pack:' + t.id] = { key: 'pack:' + t.id, item: { kind: 'pack', id: t.id, title: t.title, price: t.price, tokens: t.gens, tariff: true }, perToken: t.price / t.gens, caption: t.caption || '', main: !!t.main };
+  });
+  (canTopup ? G.topup : []).forEach(function (t) {
+    items['pack:' + t.id] = { key: 'pack:' + t.id, item: { kind: 'pack', id: t.id, title: t.title, price: t.price, tokens: t.gens, tariff: false }, perToken: t.price / t.gens };
+  });
+  D.metodPlans.forEach(function (m) {
+    items['metod:' + m.id] = { key: 'metod:' + m.id, item: { kind: 'metod', id: m.id, title: 'METOD · ' + months(m.months), price: m.price, months: m.months, giftGens: m.giftGens || 0 }, perMonth: m.price / m.months };
   });
   D.metodPlans.forEach(function (m) {
     items['metod:' + m.id] = { key: 'metod:' + m.id, item: { kind: 'metod', id: m.id, title: 'METOD · ' + months(m.months), price: m.price, months: m.months }, perMonth: m.price / m.months };
@@ -33,11 +34,12 @@
   var saved = S.draft.get('checkout');
   function pick() {
     var pack = S.ui.qs('pack'), plan = S.ui.qs('plan'), pkg = S.ui.qs('package');
+    if (pkg && items['package:' + pkg]) return 'package:' + pkg;
     if (pack && items['pack:' + pack]) return 'pack:' + pack;
     if (plan && items['metod:' + plan]) return 'metod:' + plan;
     if (saved && items[saved.kind + ':' + saved.id]) return saved.kind + ':' + saved.id;
-    var main = PLANS.filter(function (p) { return p.main; })[0] || PLANS[0];
-    return main ? 'pack:' + main.id : Object.keys(items)[0];
+    var main = G.tariffs.filter(function (t) { return t.main; })[0];
+    return main && items['pack:' + main.id] ? 'pack:' + main.id : Object.keys(items)[0];
   }
   var current = pick();
 
@@ -48,32 +50,33 @@
   var busy = false;
 
   /* тексты, зависящие от данных и адреса */
-  /* подпись «вернём на тот же экран» убрана из шапки (Алина 03.11) */
+  document.getElementById('tk-return-note').hidden = !cameFromWork;
+  document.getElementById('tk-topup-note').hidden = canTopup;
   if (returnTo) document.getElementById('tk-metod-link').href = 'metod.html?returnTo=' + encodeURIComponent(returnTo);
 
-  function units(it) { return [it.tokens ? '✦ ' + F.tokens(it.tokens) : '', it.swaps ? '⇄ ' + F.swaps(it.swaps) : ''].filter(Boolean).join(' · '); }
-  /* строка докупки и подписки: название, что входит, цена */
+  function zonesWord(z) { return z === null ? 'все комнаты' : plural(z, 'зона', 'зоны', 'зон'); }
+
   function option(o) {
-    var it = o.item, title = it.kind === 'pack' ? it.title : months(it.months);
-    var note = it.kind === 'pack' ? units(it) + (it.tokens ? ' · ' + F.rub(Math.round(it.price / it.tokens)) + ' за генерацию' : '') : (it.months === 1 ? F.rub(o.perMonth) : '≈ ' + F.rub(o.perMonth)) + ' в месяц' + (D.metodBonus && it.months >= D.metodBonus.minMonths ? ' · «Твоя квартира» в подарок' : '');
+    var it = o.item, note = it.kind === 'pack' ? F.tokens(it.tokens) + ' · ' + kop(o.perToken) + ' за генерацию' : (it.months === 1 ? F.rub(o.perMonth) : '≈ ' + F.rub(o.perMonth)) + ' в месяц';
+    var title = it.kind === 'pack' ? it.title : months(it.months);
     return '<label class="option tk-opt" data-key="' + o.key + '">' +
       '<input type="radio" name="item" value="' + o.key + '">' +
       '<span class="tk-opt__mark" aria-hidden="true"></span>' +
       '<span class="tk-opt__main"><span class="option__title num">' + F.esc(title) + '</span><span class="option__note num">' + note + '</span></span>' +
       '<span class="tk-opt__price num">' + F.rub(it.price) + '</span></label>';
   }
-  /* карточка тарифа: название, генерации и замены, цена за генерацию */
+  /* карточка тарифа: название, сколько генераций и цена за одну, состав; главный — помечен */
   function pkgCard(o) {
-    var it = o.item, p = o.src;
-    return '<label class="option tk-opt tk-pkg" data-key="' + o.key + '">' +
+    var it = o.item;
+    return '<label class="option tk-opt tk-pkg' + (o.main ? ' tk-pkg--main' : '') + '" data-key="' + o.key + '">' +
       '<input type="radio" name="item" value="' + o.key + '">' +
-      '<span class="tk-pkg__head"><span class="tk-opt__mark" aria-hidden="true"></span><span class="option__title">' + F.esc(it.title) + (p.main ? ' · главный' : '') + '</span><span class="tk-opt__price num">' + F.rub(it.price) + '</span></span>' +
-      '<span class="option__note">' + F.rub(p.perGen) + ' за генерацию</span>' +
-      '<ul class="tk-pkg__list"><li>✦ ' + F.tokens(p.gens) + '</li><li>⇄ ' + F.swaps(p.swaps) + ' · ' + F.esc(p.swapsNote) + '</li></ul>' +
+      '<span class="tk-pkg__head"><span class="tk-opt__mark" aria-hidden="true"></span><span class="option__title">' + F.esc(it.title) + (o.main ? ' <i class="tk-pkg__tag">главный</i>' : '') + '</span><span class="tk-opt__price num">' + F.rub(it.price) + '</span></span>' +
+      '<span class="option__note num">' + F.tokens(it.tokens) + ' · ' + kop(o.perToken) + ' за генерацию</span>' +
+      (o.caption ? '<ul class="tk-pkg__list"><li>' + F.esc(o.caption) + '</li></ul>' : '') +
       '</label>';
   }
-  if (pkgBox) pkgBox.innerHTML = PLANS.map(function (p) { return pkgCard(items['pack:' + p.id]); }).join('');
-  packsBox.innerHTML = TOPS.map(function (p) { return option(items['pack:' + p.id]); }).join('');
+  if (pkgBox) pkgBox.innerHTML = G.tariffs.map(function (t) { return pkgCard(items['pack:' + t.id]); }).join('');
+  packsBox.innerHTML = canTopup ? G.topup.map(function (t) { return option(items['pack:' + t.id]); }).join('') : '';
   plansBox.innerHTML = D.metodPlans.map(function (m) { return option(items['metod:' + m.id]); }).join('');
 
   function selfUrl() {
@@ -93,26 +96,27 @@
 
     var rows = '', note = '', title = '', done = '';
     if (it.kind === 'pack') {
-      title = it.title;
-      note = (o.plan ? 'Тариф: ' : 'Докупка: ') + units(it) + '. Генерации и замены не сгорают, тратятся на любые ваши квартиры.';
-      rows += row(o.plan ? 'Тариф' : 'Докупка', F.rub(it.price));
-      if (it.tokens) rows += row('✦ Генерации', '+' + F.num(it.tokens));
-      if (it.swaps) rows += row('⇄ Замены', '+' + F.num(it.swaps));
-      if (it.tokens) rows += row('За генерацию', F.rub(Math.round(it.price / it.tokens)));
-      if (inn) rows += row('Баланс после оплаты', '✦ ' + F.num(S.tokens.balance() + (it.tokens || 0)) + ' · ⇄ ' + F.num((S.tokens.swaps ? S.tokens.swaps() : 0) + (it.swaps || 0)));
-      rows += row('Оплата', 'СБП · или картой');
-      done = 'Генерации и замены зачислим сразу после подтверждения оплаты';
+      title = it.tariff ? 'Тариф «' + it.title + '»' : 'Докупка · ' + it.title;
+      note = (o.caption ? o.caption.charAt(0).toUpperCase() + o.caption.slice(1) + '. ' : '') + 'Генерации не сгорают и тратятся на любые действия.';
+      rows += row(it.tariff ? 'Тариф' : 'Докупка', F.rub(it.price));
+      rows += row('Генераций', F.num(it.tokens));
+      rows += row('Цена за генерацию', kop(o.perToken));
+      if (inn) {
+        rows += row('Сейчас на балансе', F.gens(S.tokens.balance()));
+        rows += row('Баланс после оплаты', F.gens(S.tokens.balance() + it.tokens));
+      } else {
+        rows += row('Зачислим после оплаты', '+' + F.tokens(it.tokens));
+      }
+      done = 'Генерации зачислим сразу после подтверждения оплаты';
     } else {
       var active = S.metod.active(), from = active ? S.metod.until() : Date.now();
       title = 'Подписка METOD · ' + months(it.months);
-      var gift = D.metodBonus && it.months >= D.metodBonus.minMonths;
-      note = 'Контакты всех поставщиков и закрытый клуб в Telegram на весь срок.' + (gift ? ' «Твоя квартира» в подарок: 16 генераций и 8 замен.' : '');
+      note = 'Контакты всех поставщиков и закрытый клуб в Telegram на весь срок.' + (it.giftGens ? ' В подарок — тариф «Твоя квартира»: ' + F.tokens(it.giftGens) + '.' : '');
       rows += row('Подписка на ' + months(it.months), F.rub(it.price));
       rows += row('Выходит в месяц', (it.months === 1 ? '' : '≈ ') + F.rub(o.perMonth));
       rows += row(active ? 'Продлим до' : 'Будет активна до', dateYear(from + it.months * 30 * DAY));
-      rows += row('Подарок', gift ? '✦ 16 · ⇄ 12' : 'нет');
-      rows += row('Оплата', 'СБП · или картой');
-      done = gift ? 'Подписку и подарок включим сразу после подтверждения оплаты' : 'Подписку включим сразу после подтверждения оплаты';
+      rows += row('Подарок', it.giftGens ? F.tokens(it.giftGens) : 'нет');
+      done = 'Подписку' + (it.giftGens ? ' и ' + F.tokens(it.giftGens) : '') + ' включим сразу после подтверждения оплаты';
     }
     document.getElementById('tk-item-title').textContent = title;
     document.getElementById('tk-item-note').textContent = note;
@@ -172,10 +176,10 @@
     new IntersectionObserver(function (en) { bar.hidden = en[0].isIntersecting; }, { threshold: 0.05 }).observe(order);
   }
 
-  var lastIn = S.auth.isIn(), lastBal = S.tokens.balance(), lastMetod = S.metod.until(), lastPk = (S.tokens.swaps ? S.tokens.swaps() : 0);
+  var lastIn = S.auth.isIn(), lastBal = S.tokens.balance(), lastMetod = S.metod.until(), lastPk = S.tokens.packageChip ? S.tokens.packageChip() : null;
   S.onChange(function () {
     if (busy) return;
-    var a = S.auth.isIn(), b = S.tokens.balance(), m = S.metod.until(), p = (S.tokens.swaps ? S.tokens.swaps() : 0);
+    var a = S.auth.isIn(), b = S.tokens.balance(), m = S.metod.until(), p = S.tokens.packageChip ? S.tokens.packageChip() : null;
     if (a !== lastIn || b !== lastBal || m !== lastMetod || p !== lastPk) { lastIn = a; lastBal = b; lastMetod = m; lastPk = p; render(); }
   });
 

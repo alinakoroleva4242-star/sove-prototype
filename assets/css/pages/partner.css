@@ -433,3 +433,163 @@ select.input { appearance: none; -webkit-appearance: none; background-image: lin
 .pc-chat__m small { display: block; font-size: 10.5px; color: var(--stone); margin-bottom: 2px; }
 .pc-chat__in { display: flex; gap: 8px; align-items: center; margin-top: 8px; } .pc-chat__in .input { flex: 1; min-height: 44px; }
 button.pc-msg2 { width: 100%; border: 0; background: none; font: inherit; color: inherit; text-align: left; cursor: pointer; }
+
+/* ---------- Вика 03.11: кабинет строго по ТЗ и макету 21.10 (10 экранов, телефон) ---------- */
+/* показатели главной: цветной круглый значок слева, подпись, число шрифтом заголовков, «+N» под числом (экран 01) */
+.pc-kpi { flex-direction: row; align-items: flex-start; gap: 10px; }
+.pc-kpi > .pc-ic { width: 38px; height: 38px; border-radius: 50%; }
+.pc-kpi .pc-ic--new { background: #F8E3DF; } .pc-kpi .pc-ic--new svg { color: #C64E45; }
+.pc-kpi .pc-ic--wait, .pc-kpi .pc-ic--pay { background: #F8EADB; } .pc-kpi .pc-ic--wait svg, .pc-kpi .pc-ic--pay svg { color: #C97729; }
+.pc-kpi .pc-ic--msg { background: #E2EBF2; } .pc-kpi .pc-ic--msg svg { color: #48799E; }
+.pc-kpi__c { display: flex; flex-direction: column; gap: 3px; min-width: 0; font-size: 12px; color: var(--ink); }
+.pc-kpi__c small { font-size: 11.5px; line-height: 1.2; color: var(--graphite); font-weight: 500; }
+.pc-kpi__c b { font-size: 24px; font-weight: 700; line-height: 1; font-variant-numeric: lining-nums; color: var(--ink); }
+.pc-kpi__c em { font-style: normal; font-size: 12px; font-weight: 600; color: var(--accent); }
+.pc-kpi__c .pc-kpi__s { font-size: 12px; color: var(--graphite); }
+/* изменение к прошлому периоду: «+12 %» цветом бренда, подпись серым */
+.pc-trend { display: block; font-style: normal; font-size: 12px; color: var(--graphite); } .pc-trend__v { color: var(--accent); font-weight: 700; } .pc-trend__v.is-down { color: var(--danger); }
+/* статусы заказа и товара — с точкой, цвета ТЗ: ожидание — оранжевый, в работе — синий, наличие и доставка — зелёный */
+.pill--dot { display: inline-flex; align-items: center; gap: 6px; } .pill--dot::before { content: ''; flex: none; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.pill--warn { background: #FBEFE3; color: #B5641F; }
+/* в строках списков цвет текста плашки перебивало правило .pc-ord__b span */
+.pc-ord__b .pill--ok { color: var(--green); } .pc-ord__b .pill--warn { color: #B5641F; } .pc-ord__b .pill--blue { color: var(--pc-blue); } .pc-ord__b .pill--bad { color: var(--danger); } .pc-ord__b .pill--on { color: var(--accent-ink); }
+/* выпадающий список: статус в «Остатки и цены», категория в «Добавить товар» */
+.pc-select { position: relative; display: inline-flex; align-items: center; min-width: 150px; }
+.pc-select select { appearance: none; -webkit-appearance: none; width: 100%; min-height: 40px; border: 1px solid var(--line-2); border-radius: 12px; background: var(--white); padding: 0 34px 0 12px; font: inherit; font-size: 13.5px; color: var(--ink); cursor: pointer; }
+.pc-select svg { position: absolute; right: 12px; pointer-events: none; color: var(--graphite); }
+.pc-select--wide { display: flex; width: 100%; } .pc-select--wide select { min-height: 44px; }
+@media (max-width: 1099px) {
+  /* шрифты по ТЗ, раздел 2: названия экранов — Manrope 700 22–26, крупные показатели — Manrope 700 20–24 (Cormorant — только
+     в заголовках-акцентах, не в числах; шрифт по картинке макета не брать) */
+  .pc-head__k { font-size: 22px; font-weight: 700; color: var(--ink); line-height: 1.2; }
+  .pc-bar__t { font-size: 24px; font-weight: 700; line-height: 1.2; }
+  .pc-big { font-size: 24px; font-weight: 700; } .pc-mid, .pc-client .grow b.pc-mid { font-size: 20px; font-weight: 700; }
+  /* график оборота на главной — без осей, как на макете; оси остаются в «Финансах» */
+  .pc-card--b .pc-chart { grid-template-columns: minmax(0, 1fr); grid-template-rows: 72px; }
+  .pc-card--b .pc-chart > .pc-chart__y, .pc-card--b .pc-chart > .pc-chart__x { display: none; }
+  .pc-card--b .pc-chart__g { grid-column: 1; background: none; }
+}
+@media (min-width: 1100px) { .pc-dmetrics--3 { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+
+/* ---------- сверка 03.11 с макетом и ТЗ: вид элементов ---------- */
+/* заголовки разделов над карточками («Склад», «Цены», «Фото товара»…) — антиквой: Cormorant в заголовках ТЗ разрешает */
+.pc-h3 { display: block; font-family: var(--font-display); font-size: 21px; font-weight: 600; line-height: 1.2; color: var(--ink); margin: 6px 0 -4px; }
+.pc-h4 { display: block; font-size: 15px; font-weight: 700; color: var(--ink); margin: 4px 0 -4px; }
+.pc-card--ink .pc-spec > span { color: var(--ink); } .pc-iconbtn { color: var(--ink); }
+.pc-info { border: 0; background: none; padding: 0 0 0 2px; color: var(--stone); vertical-align: -2px; cursor: pointer; display: inline-grid; place-items: center; min-width: 24px; min-height: 24px; }
+/* вкладки «Остатки | Цены» на светлой плашке */
+.pc-tabs2 { background: var(--white); border-radius: 12px; border-bottom: 0; padding: 2px 6px; box-shadow: var(--pc-shadow); }
+.pc-row--flat { background: none; box-shadow: none; padding: 0; }
+/* список товаров: крупное фото, жирная цена */
+.pc-row--good .pc-ord__pic { width: 80px; height: 80px; border-radius: 12px; }
+.pc-good__price { font-size: 16px !important; font-weight: 700; color: var(--ink); }
+/* характеристики товара — строками на фоне */
+.pc-specs--flat { display: flex; flex-direction: column; padding: 0 2px; }
+/* приветствие: тёплая плашка, круглое фото; колокольчик без подложки */
+.pc-hello { background: #F1E7DD; box-shadow: none; } .pc-hello img { width: 96px; height: 96px; border-radius: 50%; }
+.pc-head .pc-bell { background: none; box-shadow: none; }
+/* фильтры: число — в круглой плашке */
+.pc-chip i { display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 6px; margin-left: 4px; border-radius: 999px; background: #F6E3D9; color: var(--accent-ink); opacity: 1; font-weight: 700; }
+.pc-chip.is-on i { background: rgba(255,255,255,.88); color: var(--accent-ink); }
+/* статус — кольцо с точкой цвета статуса */
+.pill--dot::before { width: 9px; height: 9px; border: 1.6px solid currentColor; background: radial-gradient(circle, currentColor 0 1.6px, transparent 2.1px); box-sizing: border-box; }
+/* заказ: статус и время — отдельными строками, сумма в списке отдельной строкой со значком */
+.pc-orderhead { flex-direction: column; align-items: flex-start; gap: 4px; }
+.pc-sum { display: inline-flex !important; align-items: center; gap: 4px; }
+.pc-client .pc-ic { border-radius: 50%; }
+.pc-client .pc-phone { color: var(--graphite) !important; font-weight: 500; display: inline-flex !important; align-items: center; gap: 4px; } .pc-client .pc-phone svg { color: var(--pc-blue); }
+.pc-client .pc-roundbtn { border: 0; background: var(--pc-soft); color: var(--ink); }
+/* сообщения: бежевые буквы-аватары, время справа, счётчик под ним */
+.pc-msg2 { align-items: flex-start; } .pc-msg2 .pc-ava, .pc-msg2 .pc-ava.is-hot { background: #EDE5DC; color: var(--ink); font-family: var(--font-display); font-size: 20px; font-weight: 600; }
+.pc-msg2__r { flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; } .pc-msg2__r small { font-size: 11.5px; color: var(--stone); }
+.pc-msg2__r i { font-style: normal; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 10px; background: var(--accent); color: var(--white); font-size: 11px; font-weight: 700; display: grid; place-items: center; }
+/* финансы: месяц в шапке, обе карточки белые, у «Ожидают выплаты» круглый значок */
+.pc-select--sm { min-width: 0; } .pc-select--sm select { min-height: 34px; font-size: 12.5px; padding: 0 30px 0 12px; border-radius: 999px; }
+.pc-bar__r { display: inline-flex; align-items: center; }
+@media (max-width: 1099px) { .pc-two .pc-card--acc { background: var(--white); box-shadow: var(--pc-shadow); } }
+/* подписи оси графика стояли не у своих линий: столбец подписей снова flex (его гасило .pc-chart > div:first-child) */
+.pc-chart > div.pc-chart__y { display: flex; }
+/* профиль: тёплая карточка компании, крупный аватар, «Редактировать» ≥ 44 px (ТЗ, раздел 4), значки без подложки, выход — цветом бренда */
+.pc-prof { background: #F4EDE6; box-shadow: none; } .pc-ava--lg { width: 76px; height: 76px; background: #6D4735; font-family: var(--font-display); font-size: 34px; font-weight: 600; }
+.pc-prof .grow > b { font-family: var(--font-display); font-size: 22px; font-weight: 600; }
+.pc-verified { color: var(--graphite); } .pc-verified svg { flex: none; width: 15px; height: 15px; padding: 2px; border-radius: 50%; background: var(--pc-ok); color: var(--white); stroke-width: 3; }
+.pc-prof .pc-btn--sm { min-height: 44px; padding: 0 22px; margin-top: 6px; }
+.pc-menu .pc-ic--round { background: none; color: var(--ink); }
+.pc-menu__r--out > span, .pc-menu__r--out .pc-ic--round { color: var(--accent-ink); }
+/* фото товара: три плитки в ряд, у загруженных — «×» */
+.pc-photos { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.pc-photos .pc-ph { position: relative; width: auto; height: auto; aspect-ratio: 1; border-radius: 12px; overflow: hidden; background: var(--pc-soft); display: grid; place-items: center; }
+.pc-photos .pc-ph img { width: 100%; height: 100%; object-fit: cover; }
+.pc-photos .pc-ph button { position: absolute; top: 6px; right: 6px; width: 28px; height: 28px; border: 0; border-radius: 50%; background: rgba(41,36,33,.72); color: #fff; font-size: 16px; line-height: 1; cursor: pointer; }
+.pc-photos .pc-ph.is-add { background: transparent; border: 1px dashed var(--line-2); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: var(--stone); cursor: pointer; }
+.pc-photos .pc-ph.is-add small { font-size: 11px; }
+
+/* ТЗ: быстрое действие в строке заказа, скрепка в переписке, «Сохранить как черновик» */
+.pc-orow { position: relative; } .pc-orow > .pc-quickact { position: absolute; right: 36px; top: 12px; margin: 0; }   /* справа от номера: снизу кнопка закрывала статус */
+.pc-attach { flex: none; cursor: pointer; border: 0; background: var(--pc-soft); color: var(--ink); }
+.pc-draft { align-self: center; }
+
+/* страница входа: три демо-кабинета поставщика видны сразу (Валерия 04.11) */
+.pc-team__h { display: block; font-size: 15px; font-weight: 700; margin: 4px 0 8px; }
+.pc-demo-list__a { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 10px; row-gap: 2px; padding: 12px 14px; min-height: 56px; }
+.pc-demo-list__a b { grid-column: 1; font-size: 14px; letter-spacing: 0; text-transform: none; color: var(--ink); font-weight: 600; }
+.pc-demo-list__a span { grid-column: 1; font-size: 12px; color: var(--graphite); }
+.pc-demo-list__a svg { grid-column: 2; grid-row: 1 / span 2; align-self: center; }
+
+/* переключатель демо-кабинетов на главной кабинета (только демо) */
+.pc-dsw { display: flex; align-items: center; justify-content: space-between; gap: 6px 10px; flex-wrap: wrap; }
+.pc-dsw__k { font-size: 12px; color: var(--graphite); font-weight: 500; }
+.pc-dsw__b { display: inline-grid; grid-auto-flow: column; gap: 2px; padding: 3px; border-radius: 999px; background: var(--white); box-shadow: var(--pc-shadow); }
+.pc-dsw__i { display: inline-flex; align-items: center; min-height: 34px; padding: 0 12px; border-radius: 999px; font-size: 12.5px; font-weight: 600; color: var(--graphite); text-decoration: none; white-space: nowrap; }
+.pc-dsw__i.is-on { background: var(--accent); color: var(--white); }
+
+/* заказ: вкладки «Заказ · Логистика · Документы» (Вика 05.11) */
+.pc-lg .pc-sec { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.pc-lg .field { display: flex; flex-direction: column; gap: 4px; }
+.pc-lg .field label { font-size: 12px; color: var(--stone); }
+.pc-lg .input { font-size: 16px; }
+.pc-lg .input:disabled { background: var(--pc-bg, #F6F3EF); color: var(--ink, #1E1C1A); opacity: 1; }
+.pc-lg__lift { display: flex; align-items: center; gap: 8px; font-size: 13.5px; }
+.pc-lg__lift input { width: 18px; height: 18px; accent-color: var(--accent); }
+.pc-doc { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 0; border-top: 1px solid var(--pc-line); }
+.pc-docs .pc-card__t + .pc-doc { border-top: 0; }
+.pc-doc__b { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.pc-doc__b b { font-size: 14px; }
+.pc-doc__b > span:not(.pill) { font-size: 12px; color: var(--stone); overflow-wrap: anywhere; }
+.pc-doc__b .pill { align-self: flex-start; }
+.pc-doc .pc-btn--sm, .pc-doc .btn--link { flex: none; margin: 0; }
+.pc-docs > label.pc-btn { cursor: pointer; }
+
+/* ссылка «политика» внутри галочки согласия на ПДн (анкета партнёра, 12.11) — строчная, не кнопка */
+.pt-agree__doc { display: inline; min-height: 0; padding: 0; margin: 0; font: inherit; color: var(--accent, #A24E32); text-decoration: underline; vertical-align: baseline; }
+
+/* выбор списком в анкете (Валерия 12.11): поле-кнопка как поле ввода + шторка с пунктами и галочками */
+.pt-sel { display: flex; align-items: center; justify-content: space-between; gap: 10px; text-align: left; font: inherit; font-size: 16px; color: var(--ink); cursor: pointer; }
+.pt-sel svg { flex: none; color: var(--graphite); }
+.pt-sel__v { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pt-sel__v.is-ph { color: var(--graphite); }
+.pt-sheet .modal { gap: 12px; }
+.pt-sheet .modal h2 { margin: 0; padding-right: 44px; font-family: var(--font-display); font-size: 26px; font-weight: 500; line-height: 1.1; letter-spacing: 0; }
+.pt-pick__hint { margin: -4px 0 0; }
+.pt-opts { display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: var(--white); }
+.pt-opt { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 48px; padding: 10px 14px; border: 0; border-top: 1px solid var(--line); background: none; font: inherit; font-size: 15px; color: var(--ink); text-align: left; cursor: pointer; }
+.pt-opt:first-child { border-top: 0; }
+.pt-opt:hover { background: var(--paper); }
+.pt-opt__ok { display: inline-flex; width: 22px; height: 22px; border-radius: 50%; border: 1px solid var(--stone); color: transparent; align-items: center; justify-content: center; flex: none; }
+.pt-opt[aria-pressed="true"] { font-weight: 600; }
+.pt-opt[aria-pressed="true"] .pt-opt__ok { background: var(--accent); border-color: var(--accent); color: var(--white); }
+.pt-pick__other[hidden] { display: none; }
+/* обязательные поля анкеты: звёздочка и подсветка не заполненных (12.11) */
+.field .req { color: var(--accent); font-style: normal; font-weight: 700; }
+.input.is-bad { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+
+/* кабинеты дизайнеров на экране «Дизайнерам» (Алина 12.11) */
+.pl-cabs { display: flex; flex-direction: column; background: var(--white); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+.pl-cab { display: grid; grid-template-columns: 44px minmax(0, 1fr) 16px; gap: 12px; align-items: center; min-height: 68px; padding: 10px 14px; border-top: 1px solid var(--line); color: var(--ink); text-decoration: none; }
+.pl-cab:first-child { border-top: 0; }
+.pl-cab:hover, .pl-cab:focus-visible { background: var(--paper); outline: none; }
+.pl-cab__ic { display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 50%; background: var(--accent-soft); color: var(--accent-ink); font-weight: 700; font-size: 16px; }
+.pl-cab__b { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.pl-cab__b b { font-size: 15px; font-weight: 600; }
+.pl-cab__b span { font-size: 12.5px; color: var(--graphite); }
+.pl-cab svg { color: var(--stone); }

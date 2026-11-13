@@ -18,6 +18,12 @@
   .pr-head__pic img, .pr-head__pic .hatch { aspect-ratio: 5 / 4; }
 }
 
+/* ---------- окно «Выберите капсулу»: единые карточки (cap-card.css); радиокнопка невидимо поверх карточки, как было; в окне — по две в ряд ---------- */
+.cap-pick .ucap-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.cap-pick__card { position: relative; }
+.cap-pick__card input { position: absolute; inset: 0; z-index: 2; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
+.cap-pick__card:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+
 /* ---------- смета Скаута ---------- */
 .est { display: grid; gap: var(--s8); grid-template-columns: minmax(0, 1fr); background: var(--white); border: 1px solid var(--line); padding: clamp(20px, 3vw, 40px); }
 .est__main { display: flex; flex-direction: column; gap: var(--s5); min-width: 0; }

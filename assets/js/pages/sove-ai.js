@@ -18,9 +18,13 @@
   }
   function count(h) { return h.plan.length + h.materials.length + h.visual.length; }
 
-  /* кнопки и карточки чистые: без цен и чисел генераций (тарифы генераций, 03.11); баланс — «✦ N» в шапке */
-  function price() { return ''; }
-  function tokensLabel() { return S.auth.isIn() ? '✦ ' + F.num(S.tokens.balance()) : ''; }
+  function price(g) {
+    var p = CFG.GEN_PRICES[g];
+    if (p === 0) return 'бесплатно';
+    if (p === null || p === undefined) return '[N] генераций';
+    return (CFG.fromPrice && CFG.fromPrice[g] ? 'от ' : '') + F.tokens(p) + (CFG.perFrame[g] ? (g === 'g5' ? ' за комнату' : ' за кадр') : '');
+  }
+  function tokensLabel() { return S.auth.isIn() ? F.tokens(S.tokens.balance()) : F.tokens(CFG.giftTokens) + ' 🎁'; }
 
   /* куда ведёт каждая генерация */
   /* Планировка всегда открывается с первой продающей страницы (ТЗ-planirovka 18.0, Алина), а не сразу с мебели */
@@ -44,7 +48,7 @@
   ];
   /* «Пример ›» блока «Материалы» (варианты A–F) — готовые варианты мудборда (gen-new.html?example=1), а не поиск по фото (26.10).
      Вика 28.10: «Пример ›» блока «2 Интерьеры» (interiorEx) — стартовый экран Интерьера «Так будет выглядеть результат» с К2 (?v=a),
-     и при своей доске тоже. Не ?capsule=k2: он сразу собирает доску капсулы и списывает токены (гостя уводит на вход) */
+     и при своей доске тоже. Не ?capsule=k2: он сразу собирает доску капсулы и списывает генерации (гостя уводит на вход) */
   var BLOCK_HREF = { plan: 'plan-demo.html', materials: 'gen-new.html?type=moodboard&example=1', visual: 'interior.html?tab=rooms', interior: 'interior.html', interiorEx: 'interior.html?v=a' };
   var CAPS = { 'Изумрудная неоклассика': 'k2', 'Бургундский камень': 'k1', 'Минимализм с голубым': 'k3', 'Тёплая классика': 'k4', 'Органика в песочном': 'k5' };
 
@@ -175,7 +179,7 @@
     return '<div class="gai-hero__pic"><img src="assets/img/demo/3-kuhnya-gostinaya.jpg" alt="Кухня-гостиная в капсуле «' + esc(c ? c.name : '') + '» с подписями товаров" width="824" height="1100">' +
       '<svg class="gai-lines" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">' + lines.join('') + '</svg>' + labels.join('') +
       /* Алина 26.10: «визуализация с товарами» ведёт в Интерьер на комнаты (interior.html?tab=rooms) — без ?capsule=:
-         он сразу собирает доску капсулы и списывает токены, гостя уводит на вход */
+         он сразу собирает доску капсулы и списывает генерации, гостя уводит на вход */
       '<a class="gai-hero__chip" href="interior.html?tab=rooms">' + G.ic('cube', 18) + '<span>Визуализация с товарами</span></a></div>';
   }
   /* «2 Интерьеры» (Вика 28.10: «соедини 2 и 3 как я сделала») — заменил карточку «2 Интерьер» из ветки Алины:
@@ -198,15 +202,15 @@
   /* макет Вики 27.10: сверху фото с товарами во всю ширину — без шапки и заголовка; «+ Создать» на светлой подложке,
      которая наезжает на низ фото; под ней два блока и капсулы. Заголовок страницы — только для экранного диктора */
   function variantB() {
+    /* «+ Создать» убрана (Вика 05.11: дублирует «Планировку» и «Интерьеры», логика не выстроена) — два входа ниже */
     var hero = '<section class="gai-hero"><h1 class="vh">Генерации</h1>' + heroShot() + '</section>';
-    var create = '<a class="gai-create" href="gen-new.html">' + G.ic('plus', 22) + '<span>Создать</span></a>';
     var caps = D.capsules.filter(function (c) { return !c.soon && CAPS_ORDER.indexOf(c.id) >= 0; }).sort(function (a, b) { return CAPS_ORDER.indexOf(a.id) - CAPS_ORDER.indexOf(b.id); });
     var capsHtml = '<section class="gai-caps"><header class="gai-caps__h"><div><h2>Капсулы SOVEAPP</h2><p>Готовые интерьерные решения под разные стили</p></div><a href="capsules.html">Все ' + D.capsules.filter(function (c) { return !c.soon; }).length + ' ' + G.ic('chev', 14) + '</a></header>' +
+      /* карточка — единая карточка интерьера (SOVE.ui.capCard, cap-card.js; Вика 03.11), название — короткое, как было */
       '<div class="gai-caps__row">' + caps.map(function (c) {
-        return '<a class="gai-cap" href="interior.html?capsule=' + c.id + '"><span class="gai-cap__pic"><img src="' + esc(c.wide || c.cover) + '"' + G.pos(c, c.wide || c.cover) + ' alt="" loading="lazy"></span>' +
-          '<b>' + esc(SHORT[c.id] || c.name) + '</b>' + G.dots(c) + '</a>';
+        return S.ui.capCard(Object.assign({}, c, { name: SHORT[c.id] || c.name }), { href: 'interior.html?capsule=' + c.id });
       }).join('') + '</div></section>';
-    return hero + '<div class="gai-sheet">' + create + '<div class="gai-stack">' + planBlock() + interiorBlock() + '</div>' + capsHtml + '</div>';
+    return hero + '<div class="gai-sheet"><div class="gai-stack">' + planBlock() + interiorBlock() + '</div>' + capsHtml + '</div>';
   }
   /* четыре капсулы, как в макете; короткие имена — как в эталонах Алины */
   var CAPS_ORDER = ['k2', 'k1', 'k3', 'k4'];
@@ -219,7 +223,7 @@
       return;
     }
     /* прежние варианты A–F — только по ссылке sove-ai.html?variants=1 (Вика выбрала B 23.10) */
-    var body = (v === 'F' ? variantF() : V[v]).replace(/\[N\] токенов/g, function () { n++; return price(n === 1 ? 'g2' : 'g3'); });
+    var body = (v === 'F' ? variantF() : V[v]).replace(/\[N\] генераций/g, function () { n++; return price(n === 1 ? 'g2' : 'g3'); });
     root.innerHTML = switcher(v) + header() + '<div class="sai-body">' + body + '</div>' + adept(h);
     var b = root.querySelector('.sai-body');
     /* Алина 22.10: «Материал по фото» — не генерация, а поиск товара по фото в Маркете; из блока Материалы убираем */

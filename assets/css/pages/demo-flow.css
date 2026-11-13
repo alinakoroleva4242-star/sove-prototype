@@ -51,7 +51,7 @@ body[data-page="plan-demo"] #main, body[data-page="result"] #main, body[data-pag
 .pz-bar__i.is-now { background: #A24E32; }
 .pz-bar small { font-size: 10px; color: var(--graphite); margin-left: 6px; white-space: nowrap; }
 #pd-root:has(> .pz-head:first-child), #ar-root:has(> .pz-head:first-child), #ps-root:has(> .pz-head:first-child) { padding-top: 0; }
-/* в блоке своя шапка с «← Назад» и токенами (эталон A1) — шапку приложения прячем, нижнее меню остаётся */
+/* в блоке своя шапка с «← Назад» и генерациями (эталон A1) — шапку приложения прячем, нижнее меню остаётся */
 body[data-page="plan-demo"] .appbar, body[data-page="arrange"] .appbar, body[data-page="plan-save"] .appbar { display: none; }
 .pz-head__top { display: flex; align-items: center; justify-content: space-between; }
 /* «← Назад» (выйти из Планировки) и «‹ Шаг назад» — две кнопки рядом (Алина 28.10); поле нажатия выше строки, вёрстка та же */
@@ -105,6 +105,18 @@ body[data-page="plan-demo"] .appbar, body[data-page="arrange"] .appbar, body[dat
 .pz-btn:hover { background: #7E3A24; }
 .pz-link { border: 0; background: none; padding: 4px; font: 700 12px var(--font); color: #A24E32; cursor: pointer; text-align: center; }
 .pz-link--left { text-align: left; padding: 2px 0; font-size: 11px; }
+/* A1: карточки «какой план есть» */
+.pz-src { display: grid; gap: 12px; }
+.pz-src__i { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 14px; background: var(--white); color: #1E1C1A;
+  border: 1px solid #E6E1DA; text-align: left; font: inherit; cursor: pointer; }
+.pz-src__i span { flex: 1; display: grid; gap: 2px; min-width: 0; }
+.pz-src__i b { font-size: 14px; }
+.pz-src__i small { font-size: 11px; color: #6B655F; }
+.pz-src__i em { font-style: normal; font-size: 9px; font-weight: 800; padding: 3px 7px; border-radius: 6px; background: #F4F2EE; color: #6B655F; white-space: nowrap; }
+.pz-src__i.is-on { border: 2px solid #A24E32; padding: 11px; }
+.pz-src__i.is-dark { background: #2B2926; color: #fff; }
+.pz-src__i.is-dark small { color: #CFC6BC; }
+.pz-src__i.is-dark em { background: #3A3734; color: #9FD3B5; }
 .pz-field { display: grid; gap: 6px; font-size: 13px; }
 /* A2–A3: план */
 .pz-plan { position: relative; height: 290px; border-radius: 16px; overflow: hidden; background: var(--white); }
@@ -149,24 +161,26 @@ body[data-page="plan-demo"] .appbar, body[data-page="arrange"] .appbar, body[dat
 .pz-chips { display: flex; gap: 6px; flex-wrap: wrap; }
 .pz-chip { font: 700 11px var(--font); padding: 7px 10px; border-radius: 16px; background: #F4F2EE; color: #1E1C1A; border: 0; cursor: pointer; }
 .pz-chip.is-on { background: #1E1C1A; color: #fff; }
-.pz-caps { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 10px 8px; min-width: 0; }
-.pz-cap { min-width: 0; display: grid; gap: 4px; align-content: start; border: 0; background: none; padding: 0; text-align: left; font: inherit; cursor: pointer; }
-.pz-cap__img { height: 104px; border-radius: 12px; background: #F4F2EE center / cover; border: 3px solid transparent; box-sizing: border-box; }
+.pz-caps { display: flex; gap: 8px; overflow-x: auto; min-width: 0; padding: 2px 2px 8px; scrollbar-width: none; }
+.pz-caps::-webkit-scrollbar { display: none; }
+.pz-cap { flex: none; width: 92px; display: grid; gap: 4px; align-content: start; border: 0; background: none; padding: 0; text-align: left; font: inherit; cursor: pointer; }
+.pz-cap__img { height: 120px; border-radius: 10px; background: #F4F2EE center / cover; border: 3px solid transparent; box-sizing: border-box; }
 .pz-cap.is-on .pz-cap__img { border-color: #A24E32; }
 .pz-cap b { font-size: 10px; font-weight: 700; line-height: 1.2; color: #1E1C1A; }
 .pz-cap--own .pz-cap__img { border: 1.5px dashed #A24E32; background: #fff; color: #A24E32; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-size: 22px; }
 .pz-cap--own.is-on .pz-cap__img { border: 3px solid #A24E32; }
 .pz-cap--own small { font-size: 9px; font-weight: 800; text-align: center; padding: 0 6px; }
+/* капсулы — общей карточкой интерьера (cap-card.css, Вика 03.11): ширина карточки в ленте; отступы ленты — место под тень и обводку выбранной */
+.pz-caps > .ucap { flex: none; width: 140px; }
 .pz-skip { background: #F4F2EE; border-radius: 12px; padding: 10px 12px; font-size: 11px; color: #6B655F; line-height: 1.45; }
-/* «＋ Свой интерьер»: строки — общий вид вопросов (.qs-opt, label с полем файла); ссылка — поле и «Готово» в строке */
-.pz-own__link { cursor: default; }
-.pz-own__url { display: flex; align-items: center; gap: 6px; margin-top: 8px; min-width: 0; } .pz-own__url .input { flex: 1; min-width: 0; height: 40px; }
+.pz-own { display: grid; gap: 8px; }
+.pz-own__i { display: grid; gap: 2px; padding: 12px; border-radius: 12px; border: 1px solid #E6E1DA; background: #fff; cursor: pointer; }
+.pz-own__i b { font-size: 14px; } .pz-own__i small { font-size: 11px; color: #6B655F; }
+.pz-own__url { display: flex; gap: 6px; margin-top: 6px; } .pz-own__url .input { flex: 1; min-width: 0; height: 36px; }
 .pz-prog { height: 4px; border-radius: 2px; background: #E6E1DA; overflow: hidden; }
 .pz-prog i { display: block; height: 100%; width: 25%; background: #A24E32; transition: width .45s linear; }
 .pz-rooms .input { min-height: 0; padding: 0 10px; }
 body[data-page="plan-demo"].has-rp-strip #main, body[data-page="arrange"].has-rp-strip #main, body[data-page="plan-save"].has-rp-strip #main { padding-bottom: 76px; }
-/* плашка «Прототип SOVEAPP…» стоит после #main — не прячется под закреплённой полосой «Корзина · Избранное · Бюджет» (сверка 02.11) */
-body[data-page="plan-demo"].has-rp-strip .proto-note, body[data-page="arrange"].has-rp-strip .proto-note, body[data-page="plan-save"].has-rp-strip .proto-note { margin-bottom: 76px; }
 
 /* ── A5а / A5б: экран расстановки в блоке ── */
 #ar-root { gap: 12px; }
@@ -221,6 +235,10 @@ body[data-page="plan-demo"].has-rp-strip .proto-note, body[data-page="arrange"].
 .pz-seg { position: absolute; right: 10px; top: 10px; z-index: 3; display: flex; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,.18); }
 .pz-seg button { border: 0; padding: 4px 9px; font: 800 10px var(--font); background: #fff; color: #6B655F; cursor: pointer; }
 .pz-seg button[aria-pressed="true"] { background: #1E1C1A; color: #fff; }
+/* «Что сейчас в квартире?» */
+.pz-state__i { display: grid; gap: 1px; text-align: left; padding: 8px 10px; border-radius: 10px; border: 1px solid #E6E1DA; background: #fff; font: inherit; color: #1E1C1A; cursor: pointer; }
+.pz-state__i b { font-size: 12px; } .pz-state__i small { font-size: 10px; color: #6B655F; }
+.pz-state__i.is-on { border: 2px solid #A24E32; padding: 7px 9px; }
 /* переключатель «Варианты стен» */
 .pz-toggle { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; border: 1px solid #E6E1DA; background: #fff; cursor: pointer; }
 .pz-toggle span { flex: 1; display: grid; gap: 2px; min-width: 0; } .pz-toggle b { font-size: 12px; } .pz-toggle small { font-size: 10px; color: #6B655F; }
@@ -287,23 +305,23 @@ body[data-page="plan-demo"].has-rp-strip .proto-note, body[data-page="arrange"].
 
 .pz-proj { display: block; color: #6B655F; text-decoration: underline; text-underline-offset: 2px; margin-top: 2px; }
 
-/* ── плашка «Выбери интерьер» (раздел 14; договор 02.11): над полосой «Корзина · Избранное · Бюджет» — заголовок и две кнопки:
-   «Выбрать капсулу» (окно выбора капсулы) и «＋ Свой интерьер». Карточек и ленты вбок нет. Кнопки — второстепенные:
-   главная кнопка экрана («Всё верно») остаётся одна ── */
+/* ── лента «Выбери интерьер» (раздел 14): над полосой «Корзина · Избранное · Бюджет» ── */
 .pz-istrip { position: fixed; left: 8px; right: 8px; z-index: 46; bottom: calc(var(--tabbar-h, 64px) + env(safe-area-inset-bottom) + 70px);
-  background: var(--white); border-radius: var(--r); box-shadow: 0 -6px 24px -10px rgba(46,31,24,.35); padding: 10px 10px 10px 14px; display: grid; gap: 8px; }
-.pz-istrip__h { display: flex; align-items: center; gap: 6px; min-width: 0; }
-.pz-istrip__h b { flex: 1; min-width: 0; font: 600 14px/1.25 var(--font); color: var(--ink); }
-.pz-istrip__h button { flex: none; width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--line); background: var(--white); font: 400 18px/1 var(--font); color: var(--graphite); cursor: pointer; }
-.pz-istrip__a { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
-.pz-istrip__go, .pz-istrip__own { min-width: 0; min-height: 40px; padding: 0 10px; border-radius: var(--r-sm); background: var(--white); font: 600 13px/1.2 var(--font); cursor: pointer; }
-.pz-istrip__go { border: 1.5px solid var(--accent); color: var(--accent); }
-.pz-istrip__own { border: 1px solid var(--line-2); color: var(--ink); }
-.pz-istrip__go:focus-visible, .pz-istrip__own:focus-visible, .pz-istrip__h button:focus-visible, .pz-istrip__fab:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  background: #fff; border-radius: 16px; box-shadow: 0 -6px 24px -10px rgba(46,31,24,.35); padding: 10px 10px 8px; display: grid; gap: 8px; }
+.pz-istrip__h { display: flex; align-items: center; gap: 6px; }
+.pz-istrip__h b { flex: 1; font: 800 13px/1.2 Montserrat, var(--font), sans-serif; color: #1E1C1A; }
+.pz-istrip__h button { width: 28px; height: 28px; border-radius: 50%; border: 1px solid #E6E1DA; background: #fff; font: 700 16px/1 var(--font); color: #1E1C1A; cursor: pointer; }
+.pz-istrip__l { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; min-width: 0; padding: 2px 2px 6px; }
+.pz-istrip__l::-webkit-scrollbar { display: none; }
+.pz-istrip__t { flex: none; width: 64px; display: grid; gap: 3px; border: 0; background: none; padding: 0; cursor: pointer; text-align: left; font: inherit; }
+.pz-istrip__t span { width: 64px; height: 64px; border-radius: 10px; background: #F4F2EE center / cover; display: grid; place-items: center; }
+.pz-istrip__t b { font-size: 9px; font-weight: 700; line-height: 1.15; color: #1E1C1A; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.pz-istrip__t--own span { border: 1.5px dashed #A24E32; background: #fff; color: #A24E32; font-size: 22px; }
+.pz-istrip__l > .ucap { flex: none; width: 124px; }   /* капсулы ленты — общей карточкой интерьера, самый маленький размер xs (Вика 03.11) */
+.pz-istrip__l > .pz-istrip__t--own { align-self: flex-start; }   /* «＋ Свой» с подписью — сверху, а не растянут на высоту карточек */
 .pz-istrip.is-folded { left: auto; right: 12px; padding: 0; background: none; box-shadow: none; }
 .pz-istrip__fab { border: 0; border-radius: 16px; padding: 8px 12px; background: #1E1C1A; color: #fff; font: 800 12px var(--font); box-shadow: 0 6px 16px -6px rgba(0,0,0,.4); cursor: pointer; }
-/* низ экрана не уходит под плашку: полоса меню + полоса «Корзина · Избранное · Бюджет» (70) + плашка (~100) + зазор */
-body.has-istrip #main { padding-bottom: calc(var(--tabbar-h, 64px) + env(safe-area-inset-bottom) + 190px) !important; }
+body.has-istrip #main { padding-bottom: 250px !important; }   /* лента с общими карточками интерьера (xs) чуть выше прежней — низ экрана не уходит под неё */
 @media (min-width: 960px) { .pz-istrip { left: auto; right: 24px; width: 420px; bottom: 86px; } }
 
 /* ── финал блока (раздел 15) ── */
@@ -347,11 +365,12 @@ body.has-plbar #pz-istrip { display: none; }
 body.has-plbar #main { padding-bottom: 196px !important; }
 @media (min-width: 960px) { .pz-plbar { left: auto; right: 24px; width: 420px; bottom: 86px; } }
 
-/* ── бюджет за токены (раздел 17) ── */
+/* ── бюджет за генерации (раздел 17) ── */
 .pz-furn { gap: 8px; }
 .pz-furn .pz-goods__h { font-size: 14px; padding: 0; }
-/* тип ремонта «База | Премиум» — общий сегмент q-style (.pz-btype.qs-seg); здесь только отступы */
-.pz-btype { margin: 0 0 8px; }
+.pz-btype { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 3px; border-radius: 12px; background: #3A3734; margin: 0 0 8px; }
+.pz-btype button { border: 0; border-radius: 9px; padding: 7px; background: none; color: #CFC6BC; font: 800 12px var(--font); cursor: pointer; }
+.pz-btype button[aria-pressed="true"] { background: #fff; color: #1E1C1A; }
 #pz-mybud { display: grid; }
 .pz-furn__t { font: 800 20px var(--font); }
 .pz-furn__h { font: 800 14px var(--font); }
@@ -379,16 +398,16 @@ a.ps-save { display: flex; align-items: center; justify-content: center; text-de
 .pz-bud__r em { font-style: normal; font-size: 13px; font-weight: 800; white-space: nowrap; }
 .pz-bud__go { flex: none; border: 1px solid #E0D9D0; background: #fff; border-radius: 999px; padding: 6px 10px; font: 700 11px var(--font); color: #1E1C1A; text-decoration: none; cursor: pointer; white-space: nowrap; }
 .pz-bud__go--pay { border-color: #A24E32; color: #A24E32; }
-/* цена уровня неизвестна (Премиум без цены за м²) — тихая подпись вместо суммы и кнопки */
-:is(body[data-page="plan-demo"], body[data-page="arrange"], body[data-page="plan-save"]) .pz-bud__r em.pz-bud__na { font-weight: 600; font-size: 11px; color: #6B655F; }
 .pz-bud__t { display: flex; justify-content: space-between; align-items: baseline; padding-top: 10px; border-top: 1px solid #1E1C1A; margin-top: 2px; }
 .pz-bud__t span { font-size: 13px; font-weight: 700; } .pz-bud__t b { font: 600 22px/1.1 var(--font-display); }
-.pz-bud .pz-btype { margin: 2px 0 8px; }
+.pz-bud .pz-btype { background: #F1EDE7; margin: 2px 0 8px; } .pz-bud .pz-btype button { color: #6B655F; }
+.pz-bud .pz-btype button[aria-pressed="true"] { background: #fff; color: #1E1C1A; }
 .pz-ipick .pz-bud__h { align-items: center; }
+.pz-ipick .pz-istrip__l { padding: 4px 2px 8px; }
 .pz-q__h [data-act="fit-open"] { font-size: 12px; font-weight: 700; flex: none; }
 
 /* ── первый экран Планировки — макет Вики 28.10 (прежде итог 18.0, эталон etalon-StFinal.html) и «Найди свой план у застройщика» (18.2) ── */
-/* шапка без белой полосы, токены — плашкой; на шагах блока шапка прежняя */
+/* шапка без белой полосы, генерации — плашкой; на шагах блока шапка прежняя */
 .pz-head--start { background: none; border-bottom: 0; gap: 2px; padding-top: 8px; padding-bottom: 0; margin-bottom: -4px; }
 .pz-head--start .pz-back { font: 500 13px/1.2 var(--font); color: #6B655F; }
 .pz-head--start .pz-tok { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 999px; background: #FCF0E9; border: 1px solid #F0DACD; color: #A24E32; font-size: 11px; font-weight: 600; line-height: 1.25; }
@@ -503,6 +522,10 @@ a.ps-save { display: flex; align-items: center; justify-content: center; text-de
 .pz-cad__err { margin: 0; padding: 12px; border-radius: 12px; background: #FCF0E9; border: 1px solid #F0DACD; color: #7E3A24; font-size: 13px; font-weight: 600; line-height: 1.4; }
 .pz-sheet--cad .pz-btn:disabled { opacity: .55; }
 
+/* площадь комнаты в «Проверь план» — поле, а не текст (Вика 05.11: план может прочитаться неточно) */
+.pz-rooms .pz-m2 { flex: none; display: inline-flex; align-items: center; gap: 4px; padding: 0; border-top: 0; }
+.pz-rooms .pz-m2 .input { flex: none; width: 58px; padding: 0 6px; text-align: right; font-size: 16px; }
+.pz-rooms .pz-m2 span { font-size: 12px; color: #6B655F; }
 /* ── Планировка по саммари 30.10 и договору частей 02.11: общий вид вопросов (q-style.css), карточки капсул (capsule-picker.css),
    окно загрузки (plan-upload.css). Правила — только для страниц блока: demo-flow.css подключён и на interior.html, my.html ── */
 /* вопросы: заголовок 15 px, метки и подсказки переносятся под него, а не за край */

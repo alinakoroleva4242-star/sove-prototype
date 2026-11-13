@@ -13,7 +13,7 @@
   var resetDesk = document.querySelector('.market-filters [data-reset]');
 
   var LIVE = !!(S.catalog && S.catalog.enabled) && S.ui.qs('demo') !== 'local';
-  var CAPS = D.capsules.filter(function (c) { return !c.soon; });
+  var CAPS = D.capsules.filter(function (c) { return !c.soon && !c.auto && !c.noMarket; });
   var DISCOUNTS = [10, 20, 30];
   function promoRank(p) { return D.isPromo(p.id) ? 0 : 1; }
   /* акции партнёров идут первыми: это платное продвижение, помечено на карточке */
@@ -53,7 +53,7 @@
   var loaded = false, demoError = S.ui.qs('demo') === 'error', loadError = false;
   var sheet = null; /* открытое окно фильтров на телефоне */
 
-  /* ---------- адрес ⇄ состояние ---------- */
+  /* ---------- адрес состояние ---------- */
   function toInt(v) { var n = parseInt(String(v == null ? '' : v).replace(/\D/g, ''), 10); return isFinite(n) && n > 0 ? n : null; }
   function readURL() {
     var u = new URLSearchParams(location.search);
@@ -103,9 +103,7 @@
   function filtersOn() { return st.cats.length + (st.capsule ? 1 : 0) + (st.promo ? 1 : 0) + (st.discount ? 1 : 0) + (st.brand ? 1 : 0) + (st.sale ? 1 : 0) + (((st.min || st.max) && !priceBad()) ? 1 : 0); }
   function plural(n, forms) { var a = Math.abs(n) % 100, b = a % 10; return (a > 10 && a < 20) ? forms[2] : b === 1 ? forms[0] : (b >= 2 && b <= 4) ? forms[1] : forms[2]; }
   function goods(n) { return F.num(n) + ' ' + plural(n, ['товар', 'товара', 'товаров']); }
-  function capCode() { var c = st.capsule ? D.capsule(st.capsule) : null; return c ? c.code : ''; }   /* только для запросов к API — в интерфейсе не показываем */
-  /* имя капсулы в интерфейсе — короткое, как в Интерьере (SOVE_KB), иначе из data.js; коды К1–К7 не показываем */
-  function capLabel(c) { if (typeof c === 'string') c = D.capsule(c); if (!c) return ''; var k = window.SOVE_KB && window.SOVE_KB.capsule && window.SOVE_KB.capsule(c.id); return (k && k.name) || c.name || ''; }
+  function capCode() { var c = st.capsule ? D.capsule(st.capsule) : null; return c ? c.code : ''; }
 
   /* ---------- «Выгодные» на общей витрине: разделы по кругу ---------- */
   /* по кругу: первый из каждого ряда, потом второй и т. д. */
@@ -450,7 +448,7 @@
       return '<div class="mf__group" role="group" aria-labelledby="' + pre + id + '"><span class="mf__title" id="' + pre + id + '">' + title + '</span>' + inner + '</div>';
     }
     return '<div class="mf">' +
-      group('Интерьер', '<div class="mf__chips">' + CAPS.map(function (c) { return '<button type="button" class="chip" data-capsule="' + c.id + '" aria-pressed="false" title="' + F.esc(c.name) + '">' + F.esc(capLabel(c)) + '</button>'; }).join('') + '</div>', '-cap') +
+      group('Интерьер', '<div class="mf__chips">' + CAPS.map(function (c) { return '<button type="button" class="chip" data-capsule="' + c.id + '" aria-pressed="false" title="' + F.esc(c.name) + '">' + F.esc(c.name) + '</button>'; }).join('') + '</div>', '-cap') +
       group('Категория', '<div class="mf__checks" data-cats></div>', '-cat') +
       group('Цена METOD, ₽', '<div class="mf__price" data-price>' +
         '<div class="field"><label for="' + pre + '-min">от</label><input class="input" id="' + pre + '-min" data-min type="text" inputmode="numeric" autocomplete="off" placeholder="' + F.num(PRICE_MIN) + '"></div>' +
@@ -597,7 +595,7 @@
   function pcatName() { if (st.pcat === 'all') return 'Все акции'; if (st.pcat === 'other') return 'Другое'; var c = PARTNERS && PARTNERS.cat(st.pcat); return c ? c.title : ''; }
   function heroName() {
     if (st.promo) return st.pcat ? 'Акции: ' + pcatName() : 'Акции партнёров';
-    return st.sub || (st.cats.length === 1 ? catTitle(st.cats[0]) : '') || (st.capsule ? 'Интерьер «' + capLabel(st.capsule) + '»' : '') || (st.brand ? st.brand + (st.sale ? ' · акция' : '') : '');
+    return st.sub || (st.cats.length === 1 ? catTitle(st.cats[0]) : '') || (st.capsule ? 'Интерьер «' + ((D.capsule(st.capsule) || {}).name || '') + '»' : '') || (st.brand ? st.brand + (st.sale ? ' · акция' : '') : '');
   }
   function renderHero(res) {
     var name = heroName();
@@ -623,7 +621,7 @@
     var chips = [];
     function chip(kind, value, text) { chips.push('<button type="button" class="chip" data-drop="' + kind + '" data-value="' + F.esc(value) + '" aria-label="Убрать фильтр: ' + F.esc(text) + '">' + F.esc(text) + ' <span aria-hidden="true">×</span></button>'); }
     if (st.q) chip('q', '', '«' + st.q + '»');
-    if (st.capsule) chip('capsule', '', 'Капсула «' + capLabel(st.capsule) + '»');
+    if (st.capsule) chip('capsule', '', 'Капсула ' + capCode());
     st.cats.forEach(function (c) { chip('cat', c, catTitle(c)); });
     if (st.sub) chip('sub', '', st.sub);
     if (st.min || st.max) chip('price', '', st.min && st.max ? F.num(st.min) + ' – ' + F.rub(st.max) : st.min ? 'от ' + F.rub(st.min) : 'до ' + F.rub(st.max));

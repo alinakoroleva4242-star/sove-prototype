@@ -1,23 +1,22 @@
 /* Шторки блока «Интерьер», которых нет на эталонах (ТЗ Интерьера, 8) — по описанию, на проверку Алине.
-   renderSwapSheet(slot, o) — шторка 2 на рендере (эталон etalon-swap-render): «Пол на рендере», «цвет ДНК — орех · после замены рендер обновится · 5 токенов»,
+   renderSwapSheet(slot, o) — шторка 2 на рендере (эталон etalon-swap-render): «Пол на рендере», «цвет ДНК — орех · после замены рендер обновится · 5 генераций»,
      три фото-карточки уровня материала, «меняется и на доске, и в бюджете» + «Все варианты ›», ракурсы, «Готово → Мой ремонт».
    objectSwapSheet(kind, o) — шторка 3 «Замена предмета»: товары Маркета с фото, габариты из названия, «встанет в комнату» по месту в расстановке, цена METOD.
-   changeInteriorSheet(o) — шторка 1 «Сменить интерьер» (если интерьеров больше одного): мои интерьеры («Переключиться»), новый — капсула SOVEAPP
-     (общее окно выбора) или свой рендер, «Отмена». Цена — честная (без «БЕСПЛАТНО» при списании). */
+   changeInteriorSheet(o) — шторка 1 «Сменить интерьер»: лента капсул SOVE, «загрузить свой рендер», предупреждение «твои замены сбросятся», «Отмена». */
 (function () {
   var UI = window.SOVE_MATUI = window.SOVE_MATUI || {};
 
   UI.renderSwapSheet = function (slot, o) {
     var KB = window.SOVE_KB, esc = window.SOVE.fmt.esc, s = KB.slot(slot), cur = o.slots[slot], it0 = KB.item(cur.sku), c = KB.dnaColor(o.dna, s.dna);
     var ctx = { dna: o.dna, slots: o.slots }, list = KB.itemsFor(slot).filter(function (it) { return it.level === it0.level; }).slice(0, 3);
-    return '<div class="sw-head"><span><b class="sw-t">' + esc(s.name) + ' на рендере</b><span class="sw-sub">цвет ДНК — ' + esc(c ? c.name.toLowerCase() : '') + ' · после замены рендер обновится</span></span>' +
+    return '<div class="sw-head"><span><b class="sw-t">' + esc(s.name) + ' на рендере</b><span class="sw-sub">цвет ДНК — ' + esc(c ? c.name.toLowerCase() : '') + ' · после замены рендер обновится · ' + UI.fmtTokens(o.price) + '</span></span>' +
         '<button type="button" class="sw-x" data-sw-close aria-label="Закрыть">✕</button></div>' +
       '<div class="sw-row">' + list.map(function (it) {
         var on = cur.sku === it.sku, r = KB.check(it, slot, ctx);
         return '<button type="button" class="sw-card' + (on ? ' is-cur' : '') + '" data-pick="' + it.sku + '" aria-pressed="' + on + '">' + UI.sampleTile(it, 96, 74, { thickness: 4, radius: 6 }) +
           '<span class="sw-card__t">' + esc(it.name) + '</span><b>' + UI.unitPrice(it) + '</b><small class="' + (r.ok ? 'is-ok' : 'is-bad') + '">' + (r.ok ? '✓ сочетается' : '! ' + esc(r.reason)) + '</small></button>';
       }).join('') + '</div>' +
-      '<div class="sw-foot"><small>меняется и на доске, и в бюджете' + (window.SOVE.auth.isIn() && window.SOVE.tokens.swaps ? '<br>осталось ' + window.SOVE.fmt.swaps(window.SOVE.tokens.swaps()) : '') + '</small><button type="button" class="mt-a" data-sw-all>Все варианты ›</button></div>' +
+      '<div class="sw-foot"><small>меняется и на доске, и в бюджете</small><button type="button" class="mt-a" data-sw-all>Все варианты ›</button></div>' +
       (o.angles > 1 ? UI.angleChips(o.angles, o.angle, {}) : '') +
       '<a class="mt-btn" href="my.html?v=center">Готово → Мой ремонт</a>';
   };
@@ -40,29 +39,26 @@
           '<span class="os__t"><b>' + esc(p.name) + '</b><small>' + esc(p.brand || '') + (d ? ' · ' + d[0] + '×' + d[1] + ' см' : '') + '</small>' + fit + '</span>' +
           '<span class="os__p"><b>' + F.rub(p.metod) + '</b>' + (p.retail > p.metod ? '<s>' + F.rub(p.retail) + '</s>' : '') + '</span></button>';
       }).join('') + '</div>' +
-      '<div class="sw-foot"><small>рендер комнаты потом обновить' + (window.SOVE.auth.isIn() && window.SOVE.tokens.swaps ? '<br>осталось ' + window.SOVE.fmt.swaps(window.SOVE.tokens.swaps()) : '') + '</small><a class="mt-a" href="market.html?q=' + encodeURIComponent(kind.toLowerCase()) + '">Ещё в Маркете ›</a></div>';
+      /* «Найти другую» по описанию (ТЗ 04.11): обычный поиск по каталогу без нейросети, выбранный товар перерисуется на картинке — 1 генерация */
+      '<form class="os-find" data-find><input class="input os-find__q" type="search" placeholder="Или опиши, что ищешь: кресло велюр горчичное" data-find-q required><button type="submit" class="os-find__b">Найти</button></form>' +
+      '<div class="os-find__res" data-find-res hidden></div>' +
+      '<div class="sw-foot"><small>выбери — предмет перерисуется на картинке</small><a class="mt-a" href="ai.html?mode=photo&swap=' + encodeURIComponent(kind) + '&returnTo=' + encodeURIComponent(location.pathname.split('/').pop() + location.search) + '">Найти другую по фото ›</a><a class="mt-a" href="market.html?q=' + encodeURIComponent(kind.toLowerCase()) + '">Ещё в Маркете ›</a></div>';
   };
 
-  /* o = { list: R.interiors.list(), nCaps, priceText (цена сборки капсулы словами — честная, как на кнопке окна выбора), ownPrice, levels: {base, premium} }.
-     Строки — общий вид вопросов (q-style .qs-opt); имена интерьеров без кодов капсул; «Капсула SOVEAPP» открывает общее окно выбора (data-new-capsule),
-     «Свой рендер» — выбор картинки (data-new-own) */
   UI.changeInteriorSheet = function (o) {
-    var F = window.SOVE.fmt, esc = F.esc, list = o.list || [], LV = o.levels || { base: 'База', premium: 'Премиум' };
+    var esc = window.SOVE.fmt.esc, list = o.list || [];
     var pl = function (n, a, b, c) { var m = n % 100, k = n % 10; return m > 10 && m < 20 ? c : k === 1 ? a : k >= 2 && k <= 4 ? b : c; };
     /* несколько интерьеров у объекта (созвон 28.10): сверху — свои интерьеры с «текущий» / «Переключиться», ниже — «Новый интерьер» (круг заново) */
-    var mine = list.length > 1 ? '<small class="bs-l">МОИ ИНТЕРЬЕРЫ · ' + list.length + '</small><div class="qs-list ci-list">' + list.map(function (it) {
-      var sub = it.light ? [LV[it.level] || '', 'материалы ещё не собраны'] : [LV[it.level] || '', it.rooms + ' ' + UI.roomsWord(it.rooms), it.renders + ' ' + pl(it.renders, 'визуализация', 'визуализации', 'визуализаций')];
-      return '<button type="button" class="qs-opt' + (it.current ? ' is-on' : '') + '" data-switch="' + esc(it.id) + '" aria-pressed="' + !!it.current + '"' + (it.current ? ' aria-current="true"' : '') + ' aria-label="' + esc(it.name) + (it.current ? ' — текущий' : ' — переключиться') + '">' +
-        '<span class="qs-opt__pic"' + (it.img ? ' style="background-image:url(' + esc(it.img) + ')"' : '') + '></span>' +
-        '<span class="qs-opt__t"><b>' + esc(it.name) + '</b><small>' + esc(sub.filter(Boolean).join(' · ')) + '</small></span>' +
-        '<span class="qs-opt__aside">' + (it.current ? 'текущий' : 'Переключиться ›') + '</span></button>';
+    var mine = list.length > 1 ? '<small class="bs-l">МОИ ИНТЕРЬЕРЫ · ' + list.length + '</small><div class="ci-list">' + list.map(function (it) {
+      return '<button type="button" class="ci-it' + (it.current ? ' is-on' : '') + '" data-switch="' + esc(it.id) + '"' + (it.current ? ' aria-current="true"' : '') + ' aria-label="' + esc(it.title) + (it.current ? ' — текущий' : ' — переключиться') + '">' +
+        '<span class="ci-it__pic"' + (it.img ? ' style="background-image:url(' + esc(it.img) + ')"' : '') + '></span>' +
+        '<span class="ci-it__t"><b>' + esc(it.title) + '</b><small>' + it.rooms + ' ' + UI.roomsWord(it.rooms) + ' · ' + it.renders + ' ' + pl(it.renders, 'визуализация', 'визуализации', 'визуализаций') + '</small></span>' +
+        '<span class="ci-it__a">' + (it.current ? 'текущий' : 'Переключиться ›') + '</span></button>';
     }).join('') + '</div>' : '';
     return '<i class="ss-grip"></i><div class="sw-head"><span><b class="sw-t">Сменить интерьер</b><span class="sw-sub">новый интерьер — круг заново: материалы и визуализации соберём под него · прежний сохранится, переключиться можно в любой момент</span></span>' +
         '<button type="button" class="sw-x" data-sw-close aria-label="Закрыть">✕</button></div>' + mine +
-      '<small class="bs-l">НОВЫЙ ИНТЕРЬЕР</small><div class="qs-list">' +
-        '<button type="button" class="qs-opt" data-new-capsule aria-haspopup="dialog"><span class="qs-opt__ic" aria-hidden="true">✦</span><span class="qs-opt__t"><b>Капсула SOVEAPP</b><small>выбрать из ' + (o.nCaps || 7) + '</small></span><span class="qs-opt__go" aria-hidden="true">›</span></button>' +
-        '<button type="button" class="qs-opt" data-new-own><span class="qs-opt__ic" aria-hidden="true">⇪</span><span class="qs-opt__t"><b>Свой рендер, фото, Pinterest</b><small>разберём ДНК и соберём материалы</small></span><span class="qs-opt__go" aria-hidden="true">›</span></button>' +
-      '</div>' +
+      '<small class="bs-l">' + (list.length ? 'НОВЫЙ ИНТЕРЬЕР · ' : '') + 'КАПСУЛЫ SOVEAPP · БЕСПЛАТНО</small>' + UI.capsuleStrip(o.caps, { current: o.currentId }) +
+      '<label class="up up--line"><input type="file" accept="image/jpeg,image/png,image/webp,image/heic,.heic" hidden data-up><span class="up__ic">⇪</span><span class="up__t"><b>Свой рендер, фото, Pinterest</b><small>разберём ДНК и соберём материалы · от ' + UI.fmtTokens(o.ownPrice) + '</small></span><span class="up__a">›</span></label>' +
       '<button type="button" class="mt-btn2" data-sw-close>Отмена</button>';
   };
 })();

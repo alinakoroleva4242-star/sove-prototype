@@ -8,10 +8,11 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap">
-<link rel="stylesheet" href="assets/css/site.css?v=20261104150800">
-<link rel="stylesheet" href="assets/css/app-theme.css?v=20261104150800">
-<link rel="stylesheet" href="assets/css/adept-banner.css?v=20261104150800">
-<link rel="stylesheet" href="assets/css/pages/adept-ideas.css?v=20261104150800">
+<link rel="stylesheet" href="assets/css/site.css?v=20261112172140">
+<link rel="stylesheet" href="assets/css/cap-card.css?v=20261112172140">
+<link rel="stylesheet" href="assets/css/app-theme.css?v=20261112172140">
+<link rel="stylesheet" href="assets/css/adept-banner.css?v=20261112172140">
+<link rel="stylesheet" href="assets/css/pages/adept-ideas.css?v=20261112172140">
 </head>
 <body data-page="home" data-title="Идеи: баннер Адепта">
 <a class="skip" href="#main">К содержанию</a>
@@ -45,7 +46,7 @@
           <image href="assets/img/capsules/k1-living.jpg" x="0" y="0" width="390" height="300" preserveAspectRatio="xMidYMid slice" clip-path="url(#flat-cut)"/>
           <path class="fc-edge" d="M28 64h150V28h184v168H250v76H28z"/>
           <path class="fc-wall" d="M178 64v40M178 138v58M28 196h64M136 196h226M250 196v76"/>
-          <text class="fc-d" x="28" y="292">65 м² · 2 комнаты · капсула К1</text>
+          <text class="fc-d" x="28" y="292">65 м² · 2 комнаты · «Бургундский камень»</text>
         </svg>
         <span class="ad6__tag" style="--x:9%;--y:34%">гостиная</span>
         <span class="ad6__tag" style="--x:52%;--y:22%">спальня</span>
@@ -66,7 +67,7 @@
     <div class="ad10" id="ad10">
       <div class="ad10__stage">
         <img class="ad10__l" id="ad10-gray" src="assets/img/capsules/k1-living.jpg" alt="">
-        <img class="ad10__l" id="ad10-color" src="assets/img/capsules/k1-living.jpg" alt="Гостиная капсулы К1">
+        <img class="ad10__l" id="ad10-color" src="assets/img/capsules/k1-living.jpg" alt="Гостиная капсулы «Бургундский камень в арт‑классике»">
         <svg class="ad10__l ad10__svg" id="ad10-plan" viewBox="0 0 320 400" aria-hidden="true">
           <rect class="pl-floor" x="28" y="44" width="264" height="256"/>
           <path class="pl-solid" fill-rule="evenodd" d="M20 36h280v272H20zM28 44v256h264V44z"/>
@@ -111,7 +112,7 @@
     <p class="ideas__d">Видно, что покупают не картинку, а решения: высоты, проходы, размеры — и цену вещи по METOD.</p>
     <div class="ad9">
       <div class="ad9__stage">
-        <img src="assets/img/capsules/k1-living.jpg" alt="Гостиная капсулы К1 с пометками дизайнера">
+        <img src="assets/img/capsules/k1-living.jpg" alt="Гостиная капсулы «Бургундский камень в арт‑классике» с пометками дизайнера">
         <span class="ad9__note" style="--x:62%;--y:26%"><b>Люстра на 2,2 м</b><i>не над проходом · <em id="ad9-p1"></em></i></span>
         <span class="ad9__note ad9__note--down" style="--x:30%;--y:62%"><b>Проход 90 см</b><i>между диваном и столом</i></span>
         <span class="ad9__note" style="--x:78%;--y:78%"><b>Кресло у окна</b><i>розетка рядом · <em id="ad9-p2"></em></i></span>
@@ -222,9 +223,10 @@
 
 </main>
 <div id="site-footer"></div>
-<script src="assets/js/data.js?v=20261104150800"></script>
-<script src="assets/js/site.js?v=20261104150800"></script>
-<script src="assets/js/adept-banner.js?v=20261104150800"></script>
+<script src="assets/js/data.js?v=20261112172140"></script>
+<script src="assets/js/site.js?v=20261112172140"></script>
+<script src="assets/js/cap-card.js?v=20261112172140"></script>
+<script src="assets/js/adept-banner.js?v=20261112172140"></script>
 <script>
 (function () {
   var D = SOVE.data, F = SOVE.fmt, PK = D.adept.packages;
@@ -286,7 +288,7 @@
     var slot = document.getElementById('ad8-slot'), done = document.getElementById('ad8-done');
     var p = PK[0];
     document.getElementById('ad8-img').src = prod.img;
-    document.getElementById('ad8-name').textContent = 'диван из капсулы К1';
+    document.getElementById('ad8-name').textContent = 'диван из капсулы «Бургундский камень»';
     document.getElementById('ad8-done-d').textContent = prod.name.split(',')[0] + ' · ' + F.rub(prod.metod) + ' по METOD';
     document.getElementById('ad8-rate').textContent = 'от ' + F.rub(p.rate) + '/м²';
     document.getElementById('ad8-term').textContent = '«' + p.name + '» · ' + p.term;
@@ -418,9 +420,9 @@
   /* 5. одна комната в трёх капсулах */
   var PICK = D.capsules.filter(function (c) { return !c.soon && c.cover; }).slice(0, 3);
   var a5 = document.getElementById('ad5-a'), b5 = document.getElementById('ad5-b'), on = 0, top = false;
-  a5.src = PICK[0].cover; document.getElementById('ad5-cap').textContent = PICK[0].code + ' · ' + PICK[0].name;
+  a5.src = PICK[0].cover; document.getElementById('ad5-cap').textContent = PICK[0].name;
   function pick5() {
-    document.getElementById('ad5-pick').innerHTML = PICK.map(function (c, i) { return '<button type="button" data-i="' + i + '"' + (i === on ? ' class="is-on"' : '') + '>' + c.code + '</button>'; }).join('');
+    document.getElementById('ad5-pick').innerHTML = PICK.map(function (c, i) { return '<button type="button" data-i="' + i + '"' + (i === on ? ' class="is-on"' : '') + '>' + c.name + '</button>'; }).join('');
   }
   pick5();
   document.getElementById('ad5-pick').addEventListener('click', function (e) {
@@ -428,7 +430,7 @@
     on = Number(b.getAttribute('data-i')); pick5();
     var next = top ? a5 : b5, prev = top ? b5 : a5;
     next.src = PICK[on].cover; next.style.opacity = '1'; prev.style.opacity = '0'; top = !top;
-    document.getElementById('ad5-cap').textContent = PICK[on].code + ' · ' + PICK[on].name;
+    document.getElementById('ad5-cap').textContent = PICK[on].name;
   });
 })();
 </script>

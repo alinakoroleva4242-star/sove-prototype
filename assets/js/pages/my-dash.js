@@ -32,7 +32,7 @@
       if (el.closest('[data-my="pros"]')) return;                       /* дизайнер / стройка — свои ссылки */
       if (/^Подключить дизайнера/.test(t)) h = 'adept.html';
       else if (/^Подключить строительную/.test(t)) h = 'track.html';
-      else if (/^Загрузить план$/.test(t)) { if (el.tagName === 'A') el.setAttribute('href', 'my.html?v=object'); el.addEventListener('click', function (e) { e.preventDefault(); openUpload(); }); return; }
+      else if (/^Загрузить план$/.test(t)) { el.addEventListener('click', function (e) { e.preventDefault(); openUpload(); }); return; }
       if (h) { el.setAttribute('href', h); return; }
       if (/^＋ Создать/.test(t)) { el.addEventListener('click', function (e) { e.preventDefault(); if (window.SOVE_AI_CREATE) SOVE_AI_CREATE.open(); }); return; }
       if (/^Моя квартира/.test(t) && el.tagName !== 'A') return;
@@ -45,8 +45,8 @@
       else if (/Загрузить/.test(t)) h = L.upload;
       if (h) { if (el.tagName === 'A') el.setAttribute('href', h); el.addEventListener('click', go(h)); }
     });
-    /* цены — словами через fmtTokens: «+10 токенов» */
-    root.querySelectorAll('.myv-page span, .myv-page small').forEach(function (s) { var m = !s.children.length && /^\+(\d+) токен/.exec(txt(s)); if (m) s.textContent = S.fmt.fmtTokens(+m[1]); });
+    /* цены — словами через fmtTokens: «+10 генераций» */
+    root.querySelectorAll('.myv-page span, .myv-page small').forEach(function (s) { var m = !s.children.length && /^\+(\d+) генерация/.exec(txt(s)); if (m) s.textContent = S.fmt.fmtTokens(+m[1]); });
     /* метки комнат на проявке: ✦ — сгенерировать эту комнату */
     root.querySelectorAll('.myv-page span').forEach(function (s) { if (/^✦ /.test(txt(s)) && !s.children.length) { s.style.cursor = 'pointer'; s.setAttribute('role', 'button'); s.addEventListener('click', go(L.generate)); } });
     /* «Моя квартира ▾» — переключатель квартир + «+ Добавить квартиру» */
@@ -63,7 +63,7 @@
     var sc = S.scout.requests().filter(function (r) { return r.result && r.result.total; }).map(function (r) {
       var p = r.params || {}, c = S.data.capsule(p.capsuleId);
       return { id: r.id, block: 'Бюджет', t: 'Расчёт бюджета' + (c ? ' · ' + c.name : ''), ts: r.ts, src: c && c.cover, sum: r.result.total, kind: 'budget',
-        data: { type: p.level === 'premium' ? 'premium' : 'base', area: r.result.area || p.area, works: r.result.works, kitMetod: r.result.kitMetod, kitRetail: r.result.kitRetail, total: r.result.total } };
+        data: { type: p.level === 'premium' ? 'premium' : 'base', capsuleId: p.capsuleId === 'visuals' ? null : p.capsuleId || null, stateId: p.stateId || null, area: r.result.area || p.area, works: r.result.works, kitMetod: r.result.kitMetod, kitRetail: r.result.kitRetail, rough: r.result.rough, roughMode: r.result.roughMode, total: r.result.total } };
     });
     return g.concat(sc).sort(function (a, b) { return b.ts - a.ts; });
   }
@@ -141,8 +141,6 @@
   }
 
   function openUpload(preset) {
-    /* общее окно «Основа квартиры» (plan-upload.js, вход 'my' — все четыре карточки, возврат со скана сюда); своя шторка — только без модуля */
-    if (S.planUpload && S.planUpload.open) return S.planUpload.open({ entry: 'my', level: preset || null, returnTo: 'my.html?variants=1' });
     var cur = R ? R.level() : 'none';
     var el = document.createElement('div'); el.className = 'myup';
     el.innerHTML = '<div class="myup__back" data-x></div><div class="myup__sheet" role="dialog" aria-modal="true" aria-labelledby="myup-t"><span class="myup__grip"></span>' +
@@ -203,10 +201,5 @@
     if (v === 'D') liveHead(root.querySelector('.myv-page')); else uploadBar(root.querySelector('.myv-page'));   /* в D кнопка «Загрузить план» — в карточке плана */
     baseBlock(root.querySelector('.myv-page'), v === 'D');
   }
-  window.SOVE_MY_HOME = function (root) {
-    render(root); window.addEventListener('sove:repair', function () { if (document.body.contains(root)) render(root); });
-    /* в эталонах вариантов B–E есть ссылки-заглушки href="#": общий обработчик якорей (site.js) искал элемент по «#» и падал с ошибкой —
-       клик по заглушке дальше страницы не уходит (свои обработчики кнопок уже отработали на самом элементе) */
-    root.addEventListener('click', function (e) { var a = e.target.closest && e.target.closest('a[href="#"]'); if (a && root.contains(a)) { e.preventDefault(); e.stopPropagation(); } });
-  };
+  window.SOVE_MY_HOME = function (root) { render(root); window.addEventListener('sove:repair', function () { if (document.body.contains(root)) render(root); }); };
 })();

@@ -2,7 +2,8 @@
    zoneChips(zones, active, {todo, stale}) — главный переключатель B «ЧТО СМОТРЮ» (ТЗ chips-budget, 1): «Вся квартира · 12 материалов», затем зоны плана с числом материалов;
      не проработанные (todo — доска собрана не на них) — пунктиром «＋ Санузел»; устаревший рендер — точка.
    dnaRow(dna) — 7 плиток 40px с подписями, порядок как на эталоне: орех, изумруд, олива, латунь, молочный, тауп, графит.
-   capsuleStrip(caps) — лента карточек 120×150 (обложка, полоса ДНК, название, «12 материалов · 5 комнат»). */
+   capsuleStrip(caps) — лента капсул: единая карточка интерьера SOVE.ui.capCard (cap-card.js, Вика 03.11), размер s, лента .ucap-lane;
+     название и «12 материалов · 5 комнат» — как были, фото, стиль, палитра и цена — из data.js. */
 (function () {
   var UI = window.SOVE_MATUI = window.SOVE_MATUI || {};
 
@@ -28,14 +29,14 @@
     }).join('') + '</div>';
   };
 
+  /* тап — data-capsule (обработчик страницы и шторки «Сменить интерьер»); o.current — aria-current у текущей капсулы */
   UI.capsuleStrip = function (caps, o) {
     o = o || {};
-    var esc = window.SOVE.fmt.esc;
-    return '<div class="cc-strip cc-strip--s">' + caps.map(function (c) {
-      return '<button type="button" class="cc" data-capsule="' + c.id + '"' + (o.current === c.id ? ' aria-current="true"' : '') + ' aria-label="Капсула ' + esc(c.name) + '">' +
-        '<span class="cc__pic" style="background-image:url(' + c.cover + ')"></span>' +
-        '<span class="cc__dna">' + c.dna.map(function (x) { return '<i style="background:' + x.hex + '"></i>'; }).join('') + '</span>' +
-        '<span class="cc__t"><b>' + esc(c.name) + '</b><small>12 материалов · ' + c.rooms.length + ' ' + UI.roomsWord(c.rooms.length) + '</small></span></button>';
+    var S = window.SOVE;
+    return '<div class="ucap-lane">' + caps.map(function (c) {
+      return S.ui.capCard(Object.assign({}, S.data.capsule(c.id) || c, { name: c.name }), { tag: 'button', size: 's', on: o.current === c.id, label: 'Капсула ' + c.name,
+        attrs: { 'data-capsule': c.id, 'aria-current': o.current === c.id ? 'true' : null },
+        meta: '12 материалов · ' + c.rooms.length + ' ' + UI.roomsWord(c.rooms.length) });
     }).join('') + '</div>';
   };
 })();

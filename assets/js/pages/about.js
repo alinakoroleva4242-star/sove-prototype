@@ -20,7 +20,7 @@
   set('cost-photo', F.tokens(D.costs.photo));
   set('cost-render', F.tokens(D.costs.render));
   set('demo', D.demoLimit + ' ' + plural(D.demoLimit, 'пробный запуск', 'пробных запуска', 'пробных запусков'));
-  set('gift', F.tokens(D.gift.tokens) + ' на ' + D.gift.days + ' ' + plural(D.gift.days, 'день', 'дня', 'дней'));
+  set('gift', F.gens(D.gen.gift.newUser) + ' в подарок');
 
   var discs = D.products.map(function (p) { return p.discount; });
   set('discounts', Math.min.apply(null, discs) + '–' + Math.max.apply(null, discs) + ' %');

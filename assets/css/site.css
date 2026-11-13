@@ -28,7 +28,7 @@
   --hatch: repeating-linear-gradient(135deg, #ececea 0 10px, #e2e1de 10px 11px);
 
   --font: Manrope, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  /* имена токенов хендоффа (sove_supplier_design_tokens.json) — для всех страниц */
+  /* имена генераций хендоффа (sove_supplier_design_tokens.json) — для всех страниц */
   --font-ui: var(--font); --font-display: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
   --bg: #f8f6f3; --surface: #ffffff; --surface-warm: #f1eae4; --border: #e9e2dc; --muted: #817b76;
   --brand: #8f452f; --brand-600: #a4553b; --brand-100: #f4e8e1; --ok: #25844f;
@@ -284,7 +284,7 @@ ul, ol { padding: 0; list-style: none; }
 .modal__actions { display: flex; flex-direction: column; gap: var(--s3); }
 @media (max-width: 639px) { .modal-back { align-items: flex-end; padding: 0; } .modal { max-width: none; padding: var(--s6) var(--s4) calc(var(--s6) + env(safe-area-inset-bottom)); } }
 .toasts { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(var(--s6)); z-index: 120; display: flex; flex-direction: column; gap: 8px; width: min(440px, calc(100vw - 32px)); }
-.toast { background: var(--ink); color: var(--white); padding: 14px 18px; font-size: 14px; line-height: 1.4; border-radius: 12px; animation: rise .2s ease-out; }
+.toast { background: var(--ink); color: var(--white); padding: 14px 18px; font-size: 14px; line-height: 1.4; animation: rise .2s ease-out; }
 .toast--ok { background: var(--green); } .toast--error { background: var(--danger); }
 @keyframes rise { from { opacity: 0; transform: translateY(8px); } }
 @media (max-width: 959px) { .toasts { bottom: calc(var(--tabbar-h) + var(--s4)); } }
@@ -399,7 +399,7 @@ ul, ol { padding: 0; list-style: none; }
 .pc .price { gap: 2px 8px; margin-top: 2px; }
 .pc .price__metod { font-size: 18px; }
 .pc .price__retail { font-size: 13px; }
-.pc__meta { font-size: 12px; color: var(--graphite); }
+.pc__meta { font-size: 12px; color: var(--graphite); overflow-wrap: anywhere; }
 .pc__add { position: relative; z-index: 1; margin-top: 10px; min-height: 44px; border: 1px solid var(--stone); background: transparent; font-size: 13px; font-weight: 600; text-align: center; transition: background .15s, color .15s, border-color .15s; }
 .pc__add:hover { border-color: var(--ink); background: var(--ink); color: var(--white); }
 .pc__add.is-on { background: var(--green-soft); border-color: var(--green-soft); color: var(--green); }
@@ -493,12 +493,8 @@ body { padding-bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom)); }
 .acc__body .section, .acc__body .section--tight { padding-block: var(--s2) var(--s4); }
 .acc__body h2.h2 { display: none; }
 
-/* баланс токенов в шапке (решения 21.10) */
+/* баланс генераций в шапке (решения 21.10) */
 .tok-chip { flex: none; display: inline-flex; align-items: center; height: 32px; padding: 0 12px; border-radius: 999px; background: var(--white); border: 1px solid var(--line); color: var(--ink); font-size: 13px; font-weight: 600; white-space: nowrap; text-decoration: none; font-variant-numeric: tabular-nums; }
 .tok-chip[hidden] { display: none; }
 .appbar .logo + .tok-chip { margin-left: auto; }
 .appbar .tok-chip + .appbar__user { margin-left: 4px; }
-/* шторка «Не хватает генераций / замен»: тариф или докупка строкой, подходящий подсвечен (тарифы генераций, 03.11) */
-.nb-opt { display: flex; flex-direction: row; align-items: center; gap: 12px; text-decoration: none; color: var(--ink); }
-.nb-opt__m { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
-.nb-opt__p { flex: none; font-variant-numeric: tabular-nums; }

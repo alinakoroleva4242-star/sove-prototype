@@ -33,7 +33,7 @@
   function notFound() {
     document.title = 'Проект не найден — SOVEAPP';
     root.innerHTML = '<section class="wrap wrap--narrow section stack stack--6"><div class="page-head"><span class="eyebrow">Проект</span><h1 class="h1">Проект не найден</h1></div>' +
-      '<p class="lead">Возможно, проект удалён или ссылка открыта в другом браузере: в прототипе проекты хранятся только там, где их создали. Генерации на месте.</p>' +
+      '<p class="lead">Возможно, проект удалён или ссылка открыта в другом браузере: в прототипе проекты хранятся только там, где их создали. Генерации и генерации на месте.</p>' +
       '<div class="row"><a class="btn btn--ghost" href="account.html#projects">К моим проектам</a><a class="btn btn--link" href="scout.html">Рассчитать ремонт заново</a></div></section>';
   }
 
@@ -66,7 +66,8 @@
         '<a class="btn btn--primary" href="' + scoutHref + '">Посчитать ремонт</a></div></section>';
     }
     var st = D.scout.states.filter(function (x) { return x.id === s.stateId; })[0];
-    var gain = (s.kitRetail || 0) - (s.kitMetod || 0);
+    /* новые расчёты: материалы и черновые отдельно; старые — комплектация целиком, как сохранено */
+    var kitSum = typeof s.kit === 'number' ? s.kit : s.kitMetod, kitMk = typeof s.kitMarket === 'number' ? s.kitMarket : s.kitRetail, gain = (kitMk || 0) - (kitSum || 0);
     var meta = [st ? st.name.toLowerCase() : null, LEVEL[s.level] || null, area ? F.area(area) : null].filter(Boolean).join(' · ');
     var max = Math.max.apply(null, D.scout.stages.map(function (x) { return x[1]; }));
     var stages = s.works ? '<div class="est__stages"><span class="eyebrow">Работы по этапам</span><ul>' + D.scout.stages.map(function (x) {
@@ -77,8 +78,9 @@
       '<div class="est__total"><span class="eyebrow">Бюджет ремонта</span><span class="big-num">' + F.rub(s.total || 0) + '</span>' + (area && s.total ? '<span class="small muted num">' + F.rub(s.total / area) + ' за м² · работы и комплектация</span>' : '') + '</div>' +
       '<ul class="rows">' +
       (s.works ? '<li><span>Работы' + (st ? ' · <span class="num">' + F.rub(st.rate) + '/м²</span>' : '') + '</span><span class="num">' + F.rub(s.works) + '</span></li>' : '') +
-      (s.kitMetod ? '<li><span>Комплектация по ценам METOD</span><span class="num green">' + F.rub(s.kitMetod) + '</span></li>' : '') +
-      (s.kitRetail ? '<li><span>Та же комплектация в рознице</span><span class="num strike muted">' + F.rub(s.kitRetail) + '</span></li>' : '') +
+      (s.rough ? '<li><span>Черновые материалы</span><span class="num">' + F.rub(s.rough) + '</span></li>' : '') +
+      (kitSum ? '<li><span>Комплектация по ценам METOD</span><span class="num green">' + F.rub(kitSum) + '</span></li>' : '') +
+      (kitMk ? '<li><span>Та же комплектация в рознице</span><span class="num strike muted">' + F.rub(kitMk) + '</span></li>' : '') +
       (gain > 0 ? '<li><span>Экономия с METOD</span><span class="num green"><b>' + F.rub(gain) + '</b></span></li>' : '') +
       '</ul>' +
       (S.metod.active() ? '' : '<p class="small muted">Цены METOD действуют с подпиской. <a class="link" href="metod.html?returnTo=' + encodeURIComponent('project.html?id=' + pr.id) + '">Выбрать тариф</a></p>') +
@@ -88,7 +90,7 @@
 
   /* ---------- товары ---------- */
   function productsHtml(pr) {
-    var marketHref = 'market.html' + (pr.capsuleId ? '?capsule=' + encodeURIComponent(pr.capsuleId) : '');
+    var marketHref = pr.capsuleId ? 'capsule.html?id=' + encodeURIComponent(pr.capsuleId) + '#cap-goods' : 'market.html';
     var list = (pr.productIds || []).map(function (pid) { return D.product(pid); }).filter(Boolean);
     var body;
     if (!list.length) {
@@ -111,7 +113,7 @@
   /* ---------- генерации ---------- */
   function genCard(g) {
     var st = STATUS[g.status] || STATUS.done;
-    var note = !g.cost ? '' : g.status === 'done' ? 'списано ' + F.tokens(g.cost) : g.status === 'running' ? 'в резерве ' + F.tokens(g.cost) : 'генерация вернулась на баланс';
+    var note = !g.cost ? '' : g.status === 'done' ? 'списано ' + F.tokens(g.cost) : g.status === 'running' ? 'в резерве ' + F.tokens(g.cost) : 'генерации возвращены';
     return '<a class="gen-card" href="generation.html?id=' + encodeURIComponent(g.id) + '">' +
       '<div class="gen-card__pic">' + (g.src ? '<img src="' + esc(g.src) + '" alt="' + esc(g.title || '') + '" loading="lazy">' : '') + '</div>' +
       '<div class="gen-card__body"><div class="gen-card__top"><span class="eyebrow">' + (KIND[g.kind] || 'Генерация') + '</span><span class="badge ' + st[1] + '">' + st[0] + '</span></div>' +
@@ -154,23 +156,29 @@
     input.addEventListener('input', function () { input.closest('.field').classList.remove('is-error'); m.el.querySelector('#rn-error').hidden = true; });
     input.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); m.el.querySelector('.modal__actions .btn').click(); } });
   }
+  /* варианты — единые карточки SOVE.ui.capCard (cap-card.js, Вика 03.11) в теге label с прежней радиокнопкой внутри;
+     свой класс cap-pick__card вместо cap-pick__item: стили account.css для cap-pick__item перебивают вид карточки */
   function pickCapsule(pr) {
     var caps = D.capsules.filter(function (c) { return !c.soon; });
-    var html = '<fieldset class="cap-pick"><legend>Капсула проекта</legend><div class="cap-pick__grid">' +
-      caps.map(function (c) { var on = c.id === pr.capsuleId; return '<label class="cap-pick__item' + (on ? ' is-active' : '') + '"><input type="radio" name="pc-capsule" value="' + c.id + '"' + (on ? ' checked' : '') + '><img src="' + c.cover + '" alt=""><span>' + c.name + '<small>' + esc(c.style) + '</small></span></label>'; }).join('') +
+    var html = '<fieldset class="cap-pick"><legend>Капсула проекта</legend><div class="ucap-grid">' +
+      caps.map(function (c) {
+        var on = c.id === pr.capsuleId;
+        return S.ui.capCard(c, { tag: 'label', size: 's', on: on, cls: 'cap-pick__card' })
+          .replace('>', '><input type="radio" name="pc-capsule" value="' + c.id + '"' + (on ? ' checked' : '') + '>');
+      }).join('') +
       '</div></fieldset><p class="small muted">Капсулу можно поменять, пока нет сметы. После расчёта она меняется через «Пересчитать».</p>';
     var m = S.ui.modal({ eyebrow: 'Проект', title: 'Выберите капсулу', html: html, actions: [
       { label: 'Сохранить', kind: 'primary', close: false, onClick: function (ev, api) {
         var picked = api.el.querySelector('input[name="pc-capsule"]:checked');
         if (!picked) { S.ui.toast('Выберите одну из капсул', 'error'); return; }
-        api.close(); S.projects.update(pr.id, { capsuleId: picked.value }); S.ui.toast('Капсула ' + D.capsule(picked.value).code + ' сохранена в проекте', 'ok');
+        api.close(); S.projects.update(pr.id, { capsuleId: picked.value }); S.ui.toast('Капсула «' + D.capsule(picked.value).name + '» сохранена в проекте', 'ok');
       } }, { label: 'Отмена', kind: 'ghost' } ] });
     m.el.querySelectorAll('input[name="pc-capsule"]').forEach(function (r) {
-      r.addEventListener('change', function () { m.el.querySelectorAll('.cap-pick__item').forEach(function (l) { l.classList.toggle('is-active', l.contains(r) && r.checked); }); });
+      r.addEventListener('change', function () { m.el.querySelectorAll('.cap-pick__card').forEach(function (l) { l.classList.toggle('is-active', l.contains(r) && r.checked); }); });
     });
   }
   function removeProject(pr) {
-    S.ui.confirm({ title: 'Удалить проект «' + pr.name + '»?', text: 'Смета и список товаров проекта удалятся. Генерации останутся в общей ленте, баланс не меняется. Вернуть проект будет нельзя.', ok: 'Удалить проект',
+    S.ui.confirm({ title: 'Удалить проект «' + pr.name + '»?', text: 'Смета и список товаров проекта удалятся. Генерации останутся в общей ленте, генерации не меняются. Вернуть проект будет нельзя.', ok: 'Удалить проект',
       onOk: function () {
         leaving = true;
         S.gens.list().forEach(function (g) { if (g.projectId === pr.id) S.gens.update(g.id, { projectId: null }); });
@@ -191,7 +199,7 @@
         '<section class="wrap cab-section"><div class="pr-danger rule-top"><span class="small muted">Проект хранит смету, товары и генерации одной квартиры.</span><button class="btn btn--link" type="button" data-delete>Удалить проект</button></div></section>';
     } catch (e) {
       console.error(e);
-      root.innerHTML = '<section class="wrap wrap--narrow section"><div class="error-screen"><h1 class="h3">Не удалось открыть проект</h1><p class="text">Данные проекта на месте, генерация не списывалась. Обновите страницу или вернитесь в кабинет.</p><div class="row"><button class="btn btn--ghost" type="button" onclick="location.reload()">Обновить страницу</button><a class="btn btn--link" href="account.html#projects">В кабинет</a></div></div></section>';
+      root.innerHTML = '<section class="wrap wrap--narrow section"><div class="error-screen"><h1 class="h3">Не удалось открыть проект</h1><p class="text">Данные проекта на месте, генерации не списывались. Обновите страницу или вернитесь в кабинет.</p><div class="row"><button class="btn btn--ghost" type="button" onclick="location.reload()">Обновить страницу</button><a class="btn btn--link" href="account.html#projects">В кабинет</a></div></div></section>';
       return;
     }
     root.querySelector('[data-rename]').addEventListener('click', function () { rename(pr); });

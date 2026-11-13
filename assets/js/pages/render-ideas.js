@@ -8,8 +8,6 @@
   function retail(o) { var p = D.product(o.items[0].id); return p ? p.retail : 0; }
   var sumMetod = OBJ.reduce(function (s, o) { return s + price(o); }, 0);
   var sumRetail = OBJ.reduce(function (s, o) { return s + retail(o); }, 0);
-  /* подпись капсулы — короткое имя (SOVE_KB), иначе из data.js; коды К1–К7 в интерфейсе не показываем */
-  function capLabel(c) { var k = window.SOVE_KB && window.SOVE_KB.capsule && window.SOVE_KB.capsule(c.id); return (k && k.name) || c.name || ''; }
   var mln = function (n) { return (Math.round(n / 100000) / 10).toFixed(1).replace('.', ',') + ' млн'; };
 
   function wrap(n, title, note, html) {
@@ -131,7 +129,7 @@
     var caps = D.capsules.filter(function (c) { return !c.soon && c.slides && c.slides.length; }).slice(0, 3);
     return '<div class="rc"><div class="rc__body"><b class="rc__t">Выберите кадр — соберём смету</b></div>' +
       '<div class="rlane"><label class="rlane__own"><input type="file" accept="image/*" hidden><b>Из моей галереи</b><span>фото или рендер</span></label>' +
-      caps.map(function (c) { return '<a class="rlane__i" href="ai.html?mode=render"><img src="' + c.slides[0].src + '" alt=""><span>' + esc(capLabel(c)) + '</span></a>'; }).join('') +
+      caps.map(function (c) { return '<a class="rlane__i" href="ai.html?mode=render"><img src="' + c.slides[0].src + '" alt=""><span>' + esc(c.name) + '</span></a>'; }).join('') +
       '</div></div>';
   }
 
@@ -177,7 +175,7 @@
       '<div class="rc__stage rc__stage--mix"><img src="' + R.src + '" alt="">' + outline(OBJ.slice(0, 3), true) +
       '<span class="rc__count">' + OBJ.length + ' предмета · ' + F.rub(sumMetod) + ' с METOD</span></div>' +
       '<div class="rlane"><label class="rlane__own"><input type="file" accept="image/*" hidden><b>Мой рендер</b><span>из галереи или камерой</span></label>' +
-      caps.map(function (c) { return '<a class="rlane__i" href="ai.html?mode=render"><img src="' + c.slides[0].src + '" alt=""><span>' + esc(capLabel(c)) + '</span></a>'; }).join('') +
+      caps.map(function (c) { return '<a class="rlane__i" href="ai.html?mode=render"><img src="' + c.slides[0].src + '" alt=""><span>' + esc(c.name) + '</span></a>'; }).join('') +
       '</div>' +
       '<div class="rc__body"><a class="btn btn--primary btn--block" href="ai.html?mode=render">Проверить смету</a></div></div>';
   }

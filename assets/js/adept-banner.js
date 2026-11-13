@@ -53,7 +53,7 @@
         '<div class="adb__head"><span class="adb__k">Дизайн-проект</span>' +
         '<b class="adb__t">' + F.esc(opts.title || 'Ваша квартира — в интерьере капсулы') + '</b></div>') +
       '<div class="adb__stage" id="' + id + '-stage">' +
-        '<img class="adb__photo" src="' + cap.cover + '" alt="Гостиная в интерьере капсулы ' + F.esc(cap.code) + '">' +
+        '<img class="adb__photo" src="' + cap.cover + '" alt="Гостиная в интерьере капсулы «' + F.esc(cap.name) + '»">' +
         '<img class="adb__photo adb__photo--b" alt="" aria-hidden="true">' +
         '<div class="adb__plan" id="' + id + '-plan">' + planSVG(id + '-plan-t', compact) + '</div>' +
         '<input class="adb__input" id="' + id + '-range" type="range" min="8" max="92" step="1" value="88" aria-label="Сдвинуть лист с планом" aria-valuetext="виден план">' +
@@ -79,9 +79,8 @@
         '<div class="adb__lanebox"><div class="adb__lane" role="group" aria-label="Интерьеры капсул">' +
           D.capsules.filter(function (c) { return !c.soon; }).slice(0, 6).map(function (c) {
             var pic = (c.slides && c.slides[0] && c.slides[0].src) || c.cover;   /* тот же кадр, что откроется в баннере */
-            return '<button class="adb__pic" type="button" data-cap="' + c.id + '" aria-pressed="' + (c.id === cap.id ? 'true' : 'false') + '">' +
-              '<img src="' + pic + '" alt="" loading="lazy"><b>' + F.esc(c.name) + '</b>' +
-              (c.pricePerM2 ? '<span>от ' + F.rub(c.pricePerM2) + '/м²</span>' : '') + '</button>';
+            /* единая карточка SOVE.ui.capCard (cap-card.js, Вика 03.11), мелкая — лента; выбранная — обводка и галочка */
+            return S.ui.capCard(c, { size: 's', on: c.id === cap.id, img: pic, attrs: { 'data-cap': c.id } });
           }).join('') +
         '</div></div>' +
       '</div>' : '') +
@@ -289,7 +288,7 @@
     if (lane) lane.scrollLeft = 0;                    /* scroll-snap иначе съедает левое поле */
     if (lane) lane.addEventListener('click', function (e) {
       var b = e.target.closest('[data-cap]'); if (!b) return;
-      lane.querySelectorAll('[data-cap]').forEach(function (x) { x.setAttribute('aria-pressed', x === b ? 'true' : 'false'); });
+      lane.querySelectorAll('[data-cap]').forEach(function (x) { x.setAttribute('aria-pressed', x === b ? 'true' : 'false'); x.classList.toggle('is-active', x === b); });
       api.setCapsule(b.getAttribute('data-cap'));
     });
 

@@ -75,8 +75,13 @@
   /* вариант — из адреса; без ?plan — тот, что сохранён */
   var planQ = S.ui.qs('plan');
   var planIdx = Math.max(0, Math.min(PLANS.length - 1, (planQ !== null && planQ !== '' ? parseInt(planQ, 10) : SAVED ? SAVED.plan : 0) || 0));
+  /* «Больше хранения» убран (05.11): старая ссылка или сохранённый выбор с ним — на «Рекомендовано» */
+  function hiddenPlan(pl) { return /хранен/i.test((pl && pl.name) || ''); }
+  if (hiddenPlan(PLANS[planIdx])) planIdx = 0;
   var FLOW = window.SOVE_FLOW || null;                    /* шапка блока и состояние сценария */
   var FL = FLOW ? FLOW.load() : {};
+  /* расстановка в сценарии: план ещё не сохранён в объект — шапка объекта уже про него */
+  if (S.ui.qs('flow') && FL.rooms && FL.rooms.length && S.objectBar && S.objectBar.previewPlan) S.objectBar.previewPlan({ rooms: FL.rooms, jk: LIVE || FL.typical ? '' : 'PRIDE' });
   var INT = FL.interior || null;                           /* выбранный интерьер: нет — A5а «Мебель по размерам», есть — A5б «Твоя квартира в 3D» */
   function itemsOf(i) {
     return (PLANS[i].furniture || []).map(function (f, n) {
@@ -699,13 +704,15 @@
       }).join('') + '</div>';
   }
 
-  /* чипы расстановки (A5б): «Рекомендовано» / «Больше хранения» / «С рабочим местом» (Алина 24.10: не «Как советует SOVEAPP») */
+  /* чипы расстановки (A5б): «Рекомендовано» / «С рабочим местом» (Алина 24.10: не «Как советует SOVEAPP»).
+     «Больше хранения» скрыт (Вика и Алина 05.11: ставил мебель криво); номер варианта в данных прежний */
   function planName(n) { return /^Как советует/.test(n) ? 'Рекомендовано' : n; }
   function plansBlock() {
-    if (PLANS.length < 2 || !INT) return '';
-    return '<div class="pz-chips">' + PLANS.map(function (pl, i) {
-      return '<button type="button" class="pz-chip' + (i === planIdx ? ' is-on' : '') +
-        '" data-plan="' + i + '">' + esc(planName(pl.name)) + '</button>';
+    var shown = PLANS.map(function (pl, i) { return { pl: pl, i: i }; }).filter(function (x) { return !hiddenPlan(x.pl); });
+    if (shown.length < 2 || !INT) return '';
+    return '<div class="pz-chips">' + shown.map(function (x) {
+      return '<button type="button" class="pz-chip' + (x.i === planIdx ? ' is-on' : '') +
+        '" data-plan="' + x.i + '">' + esc(planName(x.pl.name)) + '</button>';
     }).join('') + '</div>';
   }
 
@@ -723,6 +730,9 @@
   function verdict() {
     /* замечания — одним списком под планом; на плашке только число (она живая — меняется, пока двигаешь) */
     if (st.problems.length) return '<span class="pz-verdict is-bad">! Замечаний: ' + st.problems.map(function (p) { return p.note; }).filter(function (n, i, a) { return a.indexOf(n) === i; }).length + ' · список ниже</span>';
+    /* что не встало, то не «всё влезло»: на чужих планах сервер может не поставить предмет (п.2 списка Вики 05.11) — плашка не должна спорить со списком под планом */
+    var miss = (PLANS[planIdx] && PLANS[planIdx].not_placed) || [];
+    if (miss.length) return '<span class="pz-verdict is-bad">! Не вошло: ' + miss.length + ' · список ниже</span>';
     return '<span class="pz-verdict">' + (INT ? '✓ Замечаний нет · проходы и двери свободны' : '✓ Всё влезло · проходы свободны') + '</span>';
   }
 
@@ -1039,9 +1049,7 @@
 
   function render() {
     st.problems = validate(st.items);
-    /* мебель и бюджет считаются по этой расстановке: изменились товары или сумма мебели (сменили интерьер — окно уже перерисовало
-       полосу по прежним товарам) — полоса «Бюджет» над меню перерисовывается, цифра та же, что в карточке бюджета (одна цифра итого) */
-    if (collectLite() && S.repair && S.repair.renderStrip) S.repair.renderStrip();
+    collectLite();
     /* лента «Выбери интерьер»: варианты стен и A5а — пока интерьер не выбран (раздел 14) */
     FLOW.interiorStrip({ chosen: !!INT, onPick: function (it) { if (st.walls) { INT = it; FL = FLOW.load(); shots = {}; wallShots(render); } else setInterior(it); } });
     if (st.walls) { root.innerHTML = viewWalls(); bind(); return; }
@@ -1070,20 +1078,16 @@
   function kitchenLenNow() {
     return Math.round(st.items.filter(function (it) { return KITCHEN.test(it.label); }).reduce(function (a, it) { return a + Math.max(w_m(it.box), d_m(it.box)); }, 0) * 10) / 10;
   }
-  /* лёгкая запись без картинки — чтобы мебель и бюджет на экране считались по текущей расстановке.
-     true — товары или сумма мебели изменились (полосе «Бюджет» пора перерисоваться) */
+  /* лёгкая запись без картинки — чтобы мебель и бюджет на экране считались по текущей расстановке */
   function collectLite() {
     var prev = FLOW.load().toSave || {}, g = goods(), kl = kitchenLenNow();
-    var next = Object.assign({}, prev, { flat: SRC.flat, live: !!LIVE, arrangement: planName(PLANS[planIdx].name || ''),
+    FLOW.save({ toSave: Object.assign({}, prev, { flat: SRC.flat, live: !!LIVE, arrangement: planName(PLANS[planIdx].name || ''),
       items: st.items.map(function (it) { return { label: it.label, box: it.box }; }), count: st.items.length, furniture: goodsSum(),
       kitchenLen: kl,
       goods: g.filter(function (x) { return x.p; }).map(function (x) { return { label: x.it.label, room: x.room, id: x.p.id, metod: x.p.metod }; }),
       variant: VAR ? { id: VAR.id, letter: VLET[VAR.id], name: VAR.name, text: VAR.text, approval: VAR.approval, partitions: VAR.partitions } : null,
       geo: savedGeo(),
-      volumes: volumesOut(kl) });
-    FLOW.save({ toSave: next });
-    /* сменились товары, сумма мебели или длина кухни (от неё объёмы работ по плану) — бюджет другой, полосе пора перерисоваться */
-    return prev.furniture !== next.furniture || prev.kitchenLen !== next.kitchenLen || JSON.stringify(prev.goods || null) !== JSON.stringify(next.goods || null);
+      volumes: volumesOut(kl) }) });
   }
   /* объёмы работ по плану (plan-volumes.js) — бюджет считается по планировке, а не ставкой × м² (Алина 02.11: «с ИИ бюджет
      нужно считать по планировке, всё остальное фигня» — сверка Scout 684: 4 комнаты вместо 2, 50 м² вместо 52,3).
@@ -1122,7 +1126,7 @@
     /* после «Сохранить» остаёмся здесь: тост «Сохранено в Мой ремонт · Открыть · Дальше: визуализации» (отдельный экран A6 убран) */
     /* Алина: в «Ещё ⋯» — перепланировка («Хочешь отдельную комнату? Поменять стены» при подсказке из анкеты),
        пока вариант стен не выбран; ведёт через то же окно списания на «Варианты стен». Для своего плана стен нет */
-    var more = FL.wallVariant || !WALLS.length ? [] : [{ label: ((FL.layoutHints || {}).roomHint ? 'Хочешь отдельную комнату? Поменять стены' : 'Перепланировка'), onClick: replanSheet }];
+    var more = FL.wallVariant || !WALLS.length ? [] : [{ label: ((FL.layoutHints || {}).roomHint ? 'Хочешь отдельную комнату? Поменять стены · ' + FLOW.priceTxt() : 'Перепланировка · ' + FLOW.priceTxt(true)), onClick: replanSheet }];
     return FLOW.planFinish({ before: collect, more: more, after: function () { render(); },
       getImg: function () { return photoNow() && !VAR ? PHOTO.src : (view3d ? view3d.snapshot() : null); } });
   }
@@ -1134,9 +1138,7 @@
   /* «Хочешь поменять стены?» на A5: включает переключатель и ведёт на «Варианты стен» через то же окно списания */
   function replanSheet() { FLOW.replanSheet(function () { FLOW.setReplan(true); openWalls(); }); }
   function openWalls() { st.walls = true; st.picked = null; wallShots(function () { render(); window.scrollTo(0, 0); }); }
-  /* смена интерьера: в объект — через общее окно выбора капсулы (FLOW.useInterior: то же второй раз не пишет), потом экран */
   function setInterior(it) {
-    if (it && FLOW.useInterior) FLOW.useInterior(it);
     INT = it; FL = FLOW.save({ interior: it }); st.picked = null; st.swap = null; render(); window.scrollTo(0, 0);
   }
 
@@ -1320,8 +1322,6 @@
       var ids = goods().filter(function (g) { return g.p; }).map(function (g) { return g.p.id; });
       S.repair.cart.addMany(ids.filter(function (v, i) { return ids.indexOf(v) === i; }), 'market'); render();
     }
-    /* «сменить интерьер» — общее окно выбора капсулы (все капсулы, «База | Премиум», «＋ Свой»); без него — прежняя сетка */
-    if (a === 'change-int' && FLOW.openPicker) { FLOW.openPicker({ current: INT && INT.type === 'capsule' ? INT.id : undefined, onPick: setInterior }); return; }
     if (a === 'change-int') {
       var m = S.ui.modal({ eyebrow: 'Интерьер', title: 'Сменить интерьер', html: FLOW.interiorTiles(INT), actions: [{ label: 'Отмена', kind: 'link' }] });
       m.el.querySelectorAll('[data-cap]').forEach(function (b) { b.addEventListener('click', function () { m.close(); setInterior(FLOW.capsuleInterior(b.dataset.cap)); }); });

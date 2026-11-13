@@ -1,7 +1,7 @@
 /* scopeSheet({img, dna, room, scope, balance, prices, scratch}) — окно 1б «Для чего собираем?» (ТЗ v2, раздел 4; эталон etalon-v2-V1b).
    Превью картинки · «✓ картинка загружена · на ней <комната>» · «ДНК разберём бесплатно»; два варианта-радио:
-   «Вся квартира» (по умолчанию) и «Только эта комната»; кнопка «Собрать доску · N токенов» — это и есть списание.
-   Не хватает токенов — «Пополнить». Разметка шторки; затемнение и закрытие — у экрана. */
+   «Вся квартира» (по умолчанию) и «Только эта комната»; кнопка «Собрать доску · N генераций» — это и есть списание.
+   Не хватает генераций — «Пополнить». Разметка шторки; затемнение и закрытие — у экрана. */
 (function () {
   var UI = window.SOVE_MATUI = window.SOVE_MATUI || {};
   UI.scopeSheet = function (o) {
@@ -19,7 +19,7 @@
       '<b class="ss-t" id="ss-t">Для чего собираем?</b>' +
       opt('flat', 'Вся квартира', 'все 12 материалов отделки · полный бюджет') +
       opt('room', 'Только эта комната', o.room + ' · можно достроить потом') +
-      (enough ? '<button type="button" class="mt-btn" data-build>Собрать доску</button>'
+      (enough ? '<button type="button" class="mt-btn" data-build>Собрать доску · ' + UI.fmtTokens(cost) + '</button>'
         : '<a class="mt-btn" href="tokens.html?returnTo=' + encodeURIComponent('interior.html') + '">Пополнить</a>') +
       '<small class="ss-note">у тебя ' + window.SOVE.fmt.tokens(o.balance) + ' · ' + (enough ? 'готово за 10 секунд' : 'не хватает ' + window.SOVE.fmt.tokens((cost - o.balance)) + '') + '</small>';
   };

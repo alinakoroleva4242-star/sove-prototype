@@ -9,14 +9,15 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap">
-<link rel="stylesheet" href="assets/css/site.css?v=20261104150800">
-<link rel="stylesheet" href="assets/css/app-theme.css?v=20261104150800">
-<link rel="stylesheet" href="assets/css/pages/object-bar.css?v=20261104150800">
-<link rel="stylesheet" href="assets/css/pages/my-repair.css?v=20261104150800">
-<link rel="stylesheet" href="assets/css/pages/market.css?v=20261104150800">
-<link rel="stylesheet" href="assets/css/pages/extra.css?v=20261104150800">
+<link rel="stylesheet" href="assets/css/site.css?v=20261112172140">
+<link rel="stylesheet" href="assets/css/cap-card.css?v=20261112172140">
+<link rel="stylesheet" href="assets/css/app-theme.css?v=20261112172140">
+<link rel="stylesheet" href="assets/css/pages/object-bar.css?v=20261112172140">
+<link rel="stylesheet" href="assets/css/pages/my-repair.css?v=20261112172140">
+<link rel="stylesheet" href="assets/css/pages/market.css?v=20261112172140">
+<link rel="stylesheet" href="assets/css/pages/extra.css?v=20261112172140">
 </head>
-<body data-page="market" data-nav="market" data-title="Каталог" data-repair-strip>
+<body data-page="market" data-nav="market" data-title="Каталог">
 <a class="skip" href="#main">К содержанию</a>
 <div id="site-header"></div>
 
@@ -81,25 +82,29 @@
 
   <section class="wrap section--tight stack stack--4" aria-labelledby="mk-co-title">
     <div class="stack stack--2"><h2 class="h2" id="mk-co-title">Не нашли готовое?</h2>
-    <p class="text">Кухни, двери и мебель из металла партнёры делают под ваш объект — таких позиций в общем каталоге нет.</p></div>
+    <p class="text">Кухни и мебель, двери и мебель из металла партнёры делают под ваш объект — таких позиций в общем каталоге нет.</p></div>
     <a class="btn btn--dark btn--block" href="custom-order.html">Партнёры «на заказ»</a>
   </section>
 
 </main>
 
 <div id="site-footer"></div>
-<script src="assets/js/data.js?v=20261104150800"></script>
-<script src="assets/js/site.js?v=20261104150800"></script>
-<script src="assets/js/tier-map.js?v=20261104150800"></script>
-<script src="assets/js/kb/finish-slots.js?v=20261104150800"></script>
-<script src="assets/js/kb/capsules.js?v=20261104150800"></script>
-<script src="assets/js/kb/rules.js?v=20261104150800"></script>
-<script src="assets/js/repair.js?v=20261104150800"></script>
-<script src="assets/js/object-bar.js?v=20261104150800"></script>
-<script src="assets/js/partner-cats.js?v=20261104150800"></script>
-<script src="assets/js/sellers.js?v=20261104150800"></script>
-<script src="assets/js/catalog-api.js?v=20261104150800"></script>
-<script src="assets/js/partner-extra.js?v=20261104150800"></script>
-<script src="assets/js/pages/market.js?v=20261104150800"></script>
+<script src="assets/js/data.js?v=20261112172140"></script>
+<script src="assets/js/site.js?v=20261112172140"></script>
+<script src="assets/js/cap-card.js?v=20261112172140"></script>
+<script src="assets/js/tier-map.js?v=20261112172140"></script>
+<script src="assets/js/kb/finish-slots.js?v=20261112172140"></script>
+<script src="assets/js/kb/capsules.js?v=20261112172140"></script>
+<script src="assets/js/kb/rules.js?v=20261112172140"></script>
+<script src="assets/js/repair.js?v=20261112172140"></script>
+<script src="assets/js/object-bar.js?v=20261112172140"></script>
+<script src="assets/js/partner-cats.js?v=20261112172140"></script>
+<script src="assets/js/sellers.js?v=20261112172140"></script>
+<script>/* срез каталога — только локально, на стенде живой каталог */
+if (!location.hostname || /^(localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\])$/.test(location.hostname))
+  document.write('<script src="assets/js/market-snapshot.js?v=20261112172140"><\/script>');</script>
+<script src="assets/js/catalog-api.js?v=20261112172140"></script>
+<script src="assets/js/partner-extra.js?v=20261112172140"></script>
+<script src="assets/js/pages/market.js?v=20261112172140"></script>
 </body>
 </html>

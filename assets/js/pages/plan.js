@@ -6,7 +6,7 @@
   var root = document.getElementById('pl-root'); if (!root) return;
 
   var FORMATS = 'PNG, JPG, WEBP, HEIC, TIFF, PDF · до 20 МБ';
-  var caps = D.capsules.filter(function (c) { return !c.soon; });
+  var caps = D.capsules.filter(function (c) { return !c.soon && !c.auto; });
   var st = {
     view: 'idle',            /* idle → reading → rooms → render */
     fileName: null, src: null,
@@ -72,7 +72,7 @@
     var c = capsule();
     var shot = (c.slides && c.slides.length ? c.slides[0].src : D.ai.renderSample.src);
     return head() +
-      '<figure class="pl-shot"><img src="' + shot + '" alt="Планировка в интерьере капсулы ' + esc(c.code) + '">' +
+      '<figure class="pl-shot"><img src="' + shot + '" alt="Планировка в интерьере капсулы «' + esc(c.name) + '»">' +
       '<figcaption>' + esc(c.name) + ' · ' + F.area(totalArea()) + '</figcaption></figure>' +
       '<div class="pb-list">' + st.rooms.map(function (r) {
         return '<div class="pb-item"><b>' + esc(r.name) + '</b><span>' + F.area(r.area) + ' · ' + F.rub(Math.round(c.pricePerM2 * r.area)) + '</span></div>';

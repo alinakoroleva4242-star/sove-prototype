@@ -4,15 +4,19 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>METOD — подписка SOVEAPP</title>
-<meta name="description" content="Подписка METOD: контакты всех поставщиков на платформе, закрытый клуб в Telegram и генерации в подарок при оплате на 6 месяцев.">
+<script>/* METOD = лента «Метод ремонта»: уходим в feed.html до отрисовки, иначе на телефоне мелькает старая страница (Валерия 11.11); то же в metod.js на случай отключённых inline-скриптов */
+(function () { var q = new URLSearchParams(location.search), b = q.get('buy') || q.get('plan'), r = q.get('returnTo');
+  location.replace('feed.html' + (b || r ? '?' + [b ? 'buy=' + encodeURIComponent(b) : '', r ? 'returnTo=' + encodeURIComponent(r) : ''].filter(Boolean).join('&') : '')); })();</script>
+<meta name="description" content="Подписка METOD: контакты всех поставщиков на платформе, закрытый клуб в Telegram, а на 6 месяцев и «Навсегда» — 25 генераций в подарок.">
 <link rel="icon" href="assets/img/logo-sg.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap">
-<link rel="stylesheet" href="assets/css/site.css?v=20261104150800">
-<link rel="stylesheet" href="assets/css/app-theme.css?v=20261104150800">
-<link rel="stylesheet" href="assets/css/pages/metod.css?v=20261104150800">
-<link rel="stylesheet" href="assets/css/pages/extra.css?v=20261104150800">
+<link rel="stylesheet" href="assets/css/site.css?v=20261112172140">
+<link rel="stylesheet" href="assets/css/cap-card.css?v=20261112172140">
+<link rel="stylesheet" href="assets/css/app-theme.css?v=20261112172140">
+<link rel="stylesheet" href="assets/css/pages/metod.css?v=20261112172140">
+<link rel="stylesheet" href="assets/css/pages/extra.css?v=20261112172140">
 </head>
 <body data-page="metod" data-nav="metod" data-title="METOD" data-funnel-cta="Оформить подписку" data-funnel-target="#plans" data-funnel-price="от 4 400 ₽ в месяц">
 <a class="skip" href="#main">К содержанию</a>
@@ -58,8 +62,8 @@
       </article>
       <article class="rule-top mt-pillar">
         <span class="mt-pillar__n num">03</span>
-        <h3 class="h4">«Твоя квартира» в подарок</h3>
-        <p class="small muted grow" id="mt-ai-text">При оплате на 6 месяцев — тариф «Твоя квартира» в подарок: 16 генераций и 8 замен.</p>
+        <h3 class="h4">Генерации в подарок</h3>
+        <p class="small muted grow" id="mt-ai-text">METOD на 6 месяцев и «Навсегда» дарит тариф «Твоя квартира» — 25 генераций. На 1 и 3 месяца подарка нет.</p>
         <a class="arrow-link" href="interior.html">Открыть Интерьер</a>
       </article>
     </div>
@@ -90,7 +94,7 @@
     <div class="tm-nums">
       <div class="tm-num"><b>3000+</b><span>участников в закрытом клубе</span></div>
       <div class="tm-num"><b>−20 %</b><span>средняя экономия подписчика</span></div>
-      <div class="tm-num"><b>16 ✦</b><span>генераций в подарок · на 6 месяцев</span></div>
+      <div class="tm-num"><b>1</b><span>интерьер в подарок · все комнаты</span></div>
     </div>
     <a class="btn btn--ghost btn--block" href="reviews.html">Все отзывы</a>
   </section></div></details>
@@ -98,17 +102,17 @@
   <details class="acc" id="acc-doors"><summary><span>Одна подписка = 3 двери</span></summary><div class="acc__body"><section class="wrap section--tight stack stack--6" aria-labelledby="mt-doors-title">
     <div class="stack stack--3"><span class="eyebrow">Как войти</span><h2 class="h2" id="mt-doors-title">Одна подписка = 3 двери</h2></div>
     <div id="mt-doors"></div>
-    <p class="small muted">«Твоя квартира» в подарок (16 генераций и 8 замен) начисляется сразу после подтверждённой оплаты на 6 месяцев, один раз за оплату. На 1 и 3 месяца подарка генераций нет.</p>
+    <p class="small muted">Подарок зачисляется сразу после подтверждённой оплаты: 25 генераций на балансе, тратятся на любые действия и не сгорают.</p>
   </section></div></details>
 
   <details class="acc" id="acc-3" open><summary><span>Один состав, разный срок</span></summary><div class="acc__body"><section class="wrap section stack stack--8 mt-plans" id="plans" data-funnel-twin aria-labelledby="mt-plans-title">
     <div class="stack stack--3">
       <span class="eyebrow">Тарифы</span>
       <h2 class="h2" id="mt-plans-title">Один состав, разный срок</h2>
-      <p class="text">Во всех тарифах одно и то же: контакты поставщиков и клуб. Отличается срок; при оплате на 6 месяцев — «Твоя квартира» в подарок (16 генераций и 8 замен). Оплата разовая, за весь срок сразу.</p>
+      <p class="text">Во всех тарифах одно и то же: контакты поставщиков и клуб. Отличается срок, а на 6 месяцев и «Навсегда» — ещё 25 генераций в подарок. Оплата разовая, за весь срок сразу.</p>
     </div>
     <div class="grid grid--3" id="mt-plan-cards"></div>
-    <p class="small muted">Генерации без подписки — <a class="link" id="mt-pack-link" href="account.html?v=tokens">тарифы и докупка</a>; генерации и замены не сгорают.</p>
+    <p class="small muted">Нужны генерации без подписки — <a class="link" id="mt-pack-link" href="tokens.html">три тарифа и докупка</a>; купленное не сгорает.</p>
   </section></div></details>
 
   <details class="acc" id="acc-4"><summary><span>Что будет, когда срок закончится</span></summary><div class="acc__body"><section class="wrap section--tight stack stack--8" aria-labelledby="mt-after-title">
@@ -119,7 +123,7 @@
       </div>
       <div class="rule-top stack stack--3">
         <h3 class="h4">Останется</h3>
-        <ul class="mt-list small muted"><li>Генерации и замены — они не сгорают.</li><li>Контакты, которые вы открыли разово.</li><li>Проекты, расчёты, избранное и генерации в кабинете.</li></ul>
+        <ul class="mt-list small muted"><li>Купленные и подарочные генерации — они не сгорают.</li><li>Контакты, которые вы открыли разово.</li><li>Проекты, расчёты, избранное и генерации в кабинете.</li></ul>
       </div>
       <div class="rule-top stack stack--3">
         <h3 class="h4">Уточняется</h3>
@@ -140,9 +144,10 @@
 </main>
 
 <div id="site-footer"></div>
-<script src="assets/js/data.js?v=20261104150800"></script>
-<script src="assets/js/site.js?v=20261104150800"></script>
-<script src="assets/js/tier-map.js?v=20261104150800"></script>
-<script src="assets/js/pages/metod.js?v=20261104150800"></script>
+<script src="assets/js/data.js?v=20261112172140"></script>
+<script src="assets/js/site.js?v=20261112172140"></script>
+<script src="assets/js/cap-card.js?v=20261112172140"></script>
+<script src="assets/js/tier-map.js?v=20261112172140"></script>
+<script src="assets/js/pages/metod.js?v=20261112172140"></script>
 </body>
 </html>

@@ -26,7 +26,7 @@
       var s = KB.slot(key), e = slots[key], it = e && KB.item(e.sku); if (!it) return '';
       var t = UI.sampleTile(it, p[2], p[3], { rot: p[4], thickness: 5, num: num, flag: e.ok === false, selected: o.selected === key });
       /* data-tip — подпись при наведении: «Пол · заменить» */
-      return '<button type="button" class="mb-tile" data-slot="' + key + '" data-tip="' + esc((UI.slotShort ? UI.slotShort(key) : s.name) + ' · заменить ⇄') + '" style="left:' + p[0] + 'px;top:' + p[1] + 'px" aria-label="' +
+      return '<button type="button" class="mb-tile" data-slot="' + key + '" data-tip="' + esc((UI.slotShort ? UI.slotShort(key) : s.name) + ' · заменить ›') + '" style="left:' + p[0] + 'px;top:' + p[1] + 'px" aria-label="' +
         esc((num ? num + '. ' : '') + s.name + ' — ' + it.name + (e.ok === false ? ', выбивается: ' + e.reason : '') + '. Заменить') + '">' + t + '</button>';
     }
     var html = big.map(function (k, i) { return tile(k, PL[i], f4 ? null : i + 1); }).join('') + small.map(function (k, i) { return tile(k, SMALL[i], null); }).join('');

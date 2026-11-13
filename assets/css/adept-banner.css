@@ -91,6 +91,8 @@
 .adb__pic[aria-pressed="true"] img { box-shadow: 0 0 0 2px var(--white), 0 0 0 4px var(--accent); }
 .adb__pic[aria-pressed="true"] b { color: var(--accent); }
 .adb__pickhead .btn--link { font-size: 13px; }
+/* карточки ленты — единые (cap-card.css, .ucap--s), ширина прежняя */
+.adb__lane > .ucap { flex: 0 0 146px; scroll-snap-align: start; }
 .adb__pic[aria-pressed="true"]::after { content: ''; position: absolute; z-index: 2; right: 6px; top: 6px; width: 18px; height: 18px; border-radius: var(--pill); background: var(--accent) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 13l4 4L19 7'/%3E%3C/svg%3E") center / 11px no-repeat; }
 .adb__more { align-self: center; margin-top: 10px; }
 .adb__cta .btn--primary { width: 100%; }

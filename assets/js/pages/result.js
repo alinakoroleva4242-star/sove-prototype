@@ -23,8 +23,8 @@
   var STEPS = ['Капсула', 'Комнаты', 'Интерьер', 'Сохранить'];
 
   /* ---------- данные ---------- */
-  function capsules() { return D.capsules.filter(function (c) { return !c.soon; }); }
-  function capName(c) { return c.code + ' · ' + c.name; }
+  function capsules() { return D.capsules.filter(function (c) { return !c.soon && !c.auto; }); }
+  function capName(c) { return c.name; }
   /* комнаты — из «Планировки» (или из плана в Моём ремонте); плана нет — четыре типовые, «примерно по площади» */
   var HAS_PLAN = !!(flow.rooms && flow.rooms.length) || (R && R.level && R.level() !== 'none');
   function planRooms() {
@@ -89,6 +89,7 @@
 
   /* ---------- состояние сценария ---------- */
   var qCap = S.ui.qs('capsule'), fromPlan = S.ui.qs('from') === 'plan';
+  if (qCap && !capsules().some(function (c) { return c.id === qCap; })) qCap = null;   /* капсула без визуализаций (auto, soon) — обычный выбор, а не пустой шаг */
   var flowCap = flow.interior && flow.interior.type === 'capsule' ? flow.interior.id : null;
   var saved = flow.tryon || null;
   var st = { view: 'capsule', cap: qCap || flowCap || null, sel: {}, busy: {}, ver: {}, cmd: {}, fixed: {}, open: {}, savedAll: false, entry: null };
@@ -107,7 +108,7 @@
   function chosen() { return ROOMS.filter(function (r) { return st.sel[r.id]; }); }
   function payKey() { return st.cap + ':' + chosen().map(function (r) { return r.id; }).join(','); }
 
-  /* ---------- шапка блока: «← Назад», токены, «Визуализации», полоса шагов ---------- */
+  /* ---------- шапка блока: «← Назад», генерации, «Визуализации», полоса шагов ---------- */
   function head(step, done) {
     var bars = '';
     for (var i = 1; i <= STEPS.length; i++) bars += '<span class="pz-bar__i' + (i < step || done ? ' is-done' : i === step ? ' is-now' : '') + '"></span>';
@@ -122,16 +123,13 @@
   function title(t, sub) { return '<div class="pz-title"><h2>' + esc(t) + '</h2>' + (sub ? '<span>' + esc(sub) + '</span>' : '') + '</div>'; }
   function dots(c) { return '<span class="tr-dots">' + (c.palette || []).slice(0, 5).map(function (h) { return '<i style="background:' + esc(h) + '"></i>'; }).join('') + '</span>'; }
 
-  /* ---------- 1. Капсула: сеткой, без прокрутки вбок ---------- */
+  /* ---------- 1. Капсула: сеткой, без прокрутки вбок; карточка — единая карточка интерьера (SOVE.ui.capCard, cap-card.js; Вика 03.11):
+     подпись и материалы — как были, выбор — обводка с галочкой и aria-pressed, тап — data-cap ---------- */
   function viewCapsule() {
     return head(1) + title('Какую капсулу примерить?', 'покажем твои комнаты в её интерьере') +
       '<div class="tr-caps">' + capsules().map(function (c) {
-        var on = st.cap === c.id, sw = swatches(c);
-        return '<button type="button" class="tr-cap' + (on ? ' is-on' : '') + '" data-cap="' + c.id + '" aria-pressed="' + on + '">' +
-          '<span class="tr-cap__pic"><img src="' + esc(c.wide || c.cover) + '" alt="" loading="lazy"></span>' +
-          '<span class="tr-cap__b"><b>' + esc(c.code) + ' · ' + esc(c.name) + '</b>' +
-            (sw.length ? '<span class="tr-mini">' + sw.map(function (s) { return '<img src="' + esc(s) + '" alt="" loading="lazy">'; }).join('') + '</span>' : dots(c)) +
-            '<small>' + esc((c.materials || []).slice(0, 3).join(' · ')) + '</small></span></button>';
+        return S.ui.capCard(c, { tag: 'button', on: st.cap === c.id, attrs: { 'data-cap': c.id },
+          alt: 'Капсула «' + c.name + '»' + (c.style ? ': ' + String(c.style).toLowerCase() : ''), meta: esc((c.materials || []).slice(0, 3).join(' · ')) });
       }).join('') + '</div>' +
       '<button type="button" class="pz-btn' + (st.cap ? '' : ' is-wait') + '" data-act="to-rooms"' + (st.cap ? '' : ' aria-disabled="true"') + '>Дальше — комнаты</button>';
   }
@@ -151,7 +149,7 @@
       '<section class="pz-card tr-price"><div><b>' + n + ' ' + plural(n, 'кадр', 'кадра', 'кадров') + ' комнат</b><small>' + F.tokens(COST) + ' за кадр · 20–25 секунд каждый</small></div>' +
         '<b>' + (paid ? 'уже оплачено' : F.tokens(COST * n)) + '</b></section>' +
       '<button type="button" class="pz-btn' + (n ? '' : ' is-wait') + '" data-act="pay"' + (n ? '' : ' aria-disabled="true"') + '>' + (paid ? 'Показать интерьер' : 'Примерить · ' + F.tokens(COST * n)) + '</button>' +
-      '<small class="pz-note pz-c">не получится — генерация вернётся на баланс</small>';
+      '<small class="pz-note pz-c">не получится — генерации вернём</small>';
   }
   function plural(n, a, b, c) { var x = n % 100, y = n % 10; return x > 10 && x < 20 ? c : y === 1 ? a : y >= 2 && y <= 4 ? b : c; }
 
@@ -166,11 +164,11 @@
       '<b class="pz-sheet__t" id="tr-sheet-t">Примерка капсулы</b><small class="pz-sheet__s">' + esc(capName(cap())) + ' · ' + n + ' ' + plural(n, 'кадр', 'кадра', 'кадров') + ' комнат</small>' +
       '<div class="pz-sheet__row"><span>Стоимость</span><b>' + F.tokens(cost) + '</b></div>' +
       '<div class="pz-sheet__row pz-sheet__row--plain"><span>У тебя</span><b>' + esc(F.tokens(bal)) + (inn ? '' : ' 🎁') + '</b></div>' +
-      (!inn ? '<small class="pz-note">генерация в подарок — после входа по номеру телефона</small>' : '') +
+      (!inn ? '<small class="pz-note">50 подарочных генераций — после входа по номеру телефона</small>' : '') +
       (enough ? '<button type="button" class="pz-btn" data-sheet="gen">' + (inn ? 'Сгенерировать · ' : 'Войти и сгенерировать · ') + F.tokens(cost) + '</button>'
         : '<a class="pz-btn" href="tokens.html?returnTo=' + rt + '">Пополнить</a>') +
       '<button type="button" class="pz-link" data-sheet="close"><u>Отмена</u></button>' +
-      '<small class="pz-note pz-c">не получится — генерация вернётся на баланс</small></div>';
+      '<small class="pz-note pz-c">не получится — генерации вернём</small></div>';
     function close() { back.remove(); document.body.style.overflow = ''; }
     back.addEventListener('click', function (e) {
       if (e.target === back) return close();
@@ -178,7 +176,7 @@
       close();
       if (b.dataset.sheet !== 'gen') return;
       if (!inn) { location.href = 'auth.html?returnTo=' + rt; return; }
-      var op = S.tokens.reserve(cost, 'Визуализации · примерка ' + cap().code, 'tryon'); if (!op) { S.ui.toast('Не хватает генераций'); return; }
+      var op = S.tokens.reserve(cost, 'Визуализации · примерка «' + cap().name + '»', 'tryon'); if (!op) { S.ui.toast('Не хватает генераций'); return; }
       S.tokens.commit(op);
       generate(true);
     });
@@ -211,7 +209,7 @@
   function toHistory(c, list) {
     var all = {}; try { all = JSON.parse(localStorage.getItem('sove.gen.history') || '{}') || {}; } catch (e) {}
     var box = all.none = all.none || {};
-    (box.visual = box.visual || []).unshift({ title: 'Примерка · ' + c.code + ' ' + c.name, src: frame(c, list[0]), href: 'result.html?gen=g4&capsule=' + c.id + '&step=result', ts: Date.now() });
+    (box.visual = box.visual || []).unshift({ title: 'Примерка · ' + c.name, src: frame(c, list[0]), href: 'result.html?gen=g4&capsule=' + c.id + '&step=result', ts: Date.now() });
     try { localStorage.setItem('sove.gen.history', JSON.stringify(all)); } catch (e) {}
   }
 
@@ -319,20 +317,25 @@
       var card = document.getElementById('rc-' + id); if (card) card.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
     }, 1200);
   }
-  /* перегенерация и правка командой — по кадру, списываем как в бою (10 токенов) */
+  /* перегенерация и правка командой — по кадру, списываем как в бою (10 генераций) */
   function spend(why) {
     if (!S.auth.isIn()) { S.auth.require(); return false; }
     var op = S.tokens.reserve(COST, why, 'tryon'); if (!op) { S.ui.toast('Не хватает генераций — пополни баланс'); return false; }
     S.tokens.commit(op); return true;
   }
 
+  /* «← Назад» и «<» в шапке — на предыдущий шаг сценария; с первого шага и при входе сразу на комнаты — назад по истории */
+  function stepBack() {
+    var to = st.view === 'result' ? 'rooms' : st.view === 'rooms' && st.entry !== 'rooms' ? 'capsule' : null;
+    if (!to || LIVE || GEN !== 'g4') return false;
+    st.view = to; render(); window.scrollTo(0, 0); return true;
+  }
+  window.SOVE.backStep = stepBack;
   root.addEventListener('click', function (e) {
     var x;
     if ((x = e.target.closest('[data-pz-back]'))) {
-      /* «← Назад» — на предыдущий шаг сценария; с первого шага и при входе сразу на комнаты — назад по истории */
-      var to = st.view === 'result' ? 'rooms' : st.view === 'rooms' && st.entry !== 'rooms' ? 'capsule' : null;
-      if (!to || LIVE || GEN !== 'g4') return;
-      e.stopPropagation(); st.view = to; render(); window.scrollTo(0, 0); return;
+      if (!stepBack()) return;
+      e.stopPropagation(); return;
     }
     if ((x = e.target.closest('[data-cap]'))) { st.cap = x.dataset.cap; render(); return; }
     if ((x = e.target.closest('[data-room]'))) { st.sel[x.dataset.room] = !st.sel[x.dataset.room]; render(); return; }

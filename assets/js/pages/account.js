@@ -7,7 +7,7 @@
   /* гость → вход, после кода вернём сюда */
   if (!S.auth.require('account.html' + location.search)) { $('acc').hidden = true; $('acc-guest').hidden = false; return; }
 
-  var VIEW = ({ settings: 'settings', tokens: 'tokens' })[new URLSearchParams(location.search).get('v')] || 'home';
+  var VIEW = ({ settings: 'settings', tokens: 'history', history: 'history', balance: 'balance' })[new URLSearchParams(location.search).get('v')] || 'home';
 
   /* настройки — своё маленькое хранилище прототипа */
   var KEY = 'sove.proto.profile.v1';
@@ -23,7 +23,7 @@
 
   /* ---------- данные макетов (как в <script> файлов design/profile) ---------- */
   var G = '#2E6B4E', M = '#6B655F', I = '#1E1C1A', T = '#A24E32';
-  var L = { metod: 'feed.html', topup: 'account.html?v=tokens', my: 'my.html', add: 'my.html?v=new', seen: 'market.html', gear: 'account.html?v=settings' };
+  var L = { metod: 'metod.html?returnTo=account.html', topup: 'tokens.html?returnTo=account.html', my: 'my.html', add: 'my.html?v=new', seen: 'market.html', gear: 'account.html?v=settings' };
   var SEEN = [ { name: 'Торшер латунный', tone: '#C9A48E' }, { name: 'Комод, орех', tone: '#9E8775' }, { name: 'Смеситель', tone: '#A7A196' }, { name: 'Кровать 160', tone: '#C9B8A6' } ];
   /* шестерёнка настроек — обычная, вместо «солнышка» из макетов (просьба Алины 21.10) */
   var GEAR = function (stroke, w) { return '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="' + stroke + '" stroke-width="' + (w || 1.8) + '" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>'; };
@@ -43,9 +43,9 @@
   }
   function noBudget(r) { return r.k !== 'Бюджет'; }
 
-  /* шапка A и D: «Профиль», справа токены и ⚙ */
+  /* шапка A и D: «Профиль», справа генерации и ⚙ */
   function headWhite() {
-    return '<div class="pa-head"><div class="pa-head__t">Профиль</div><div class="pa-head__r"><a class="pa-chip" href="account.html?v=tokens">✦ ' + F.num(S.tokens.balance()) + '</a>' + gear('pa-gear', I) + '</div></div>';
+    return '<div class="pa-head"><div class="pa-head__t">Профиль</div><div class="pa-head__r"><a class="pa-chip" href="' + L.topup + '">50 генераций</a>' + gear('pa-gear', I) + '</div></div>';
   }
   function seenStrip(w, h) {
     return '<div class="pa-sec"><div class="pa-sec__h"><div class="pv-cap">ВЫ СМОТРЕЛИ</div><a class="pv-link12" href="' + L.seen + '">Все ›</a></div>' +
@@ -70,8 +70,8 @@
     return '<div class="pv pv--A">' + headWhite() + '<div class="pa-body">' +
       '<div class="pa-metod"><div class="pa-metod__top"><div class="pv-cap">ПОДПИСКА METOD</div><div class="pa-on">● активна</div></div><div class="pa-metod__until">до [дата окончания]</div>' +
         '<div class="pa-metod__d">Лента клуба и закрытые цены в Маркете · выгода [сумма] ₽</div><a class="pa-metod__a" href="' + L.metod + '">Управлять подпиской</a></div>' +
-      '<div class="pa-tok"><div class="pv-cap pv-cap--dk">ГЕНЕРАЦИИ</div><div class="pa-tok__n"><span>50</span><span>генераций</span></div><div class="pa-tok__d">Генерации и замены не сгорают</div>' +
-        '<div class="pa-tok__btns"><a class="pa-btn pa-btn--t" href="' + L.topup + '">Пополнить</a><a class="pa-btn pa-btn--o" href="account.html?v=tokens">История</a></div></div>' +
+      '<div class="pa-tok"><div class="pv-cap pv-cap--dk">ГЕНЕРАЦИИ</div><div class="pa-tok__n"><span>50</span><span>генераций</span></div><div class="pa-tok__d">Подарочные 50 генераций сгорят 20 ноября</div>' +
+        '<div class="pa-tok__btns"><a class="pa-btn pa-btn--t" href="' + L.topup + '">Пополнить</a><a class="pa-btn pa-btn--o" href="account.html?v=tokens">История генераций</a></div></div>' +
       '<div class="pa-flats"><div class="pv-cap">МОИ КВАРТИРЫ</div>' + FLATS_A.map(function (f, i) {
         return '<div class="pa-flat">' + flatTop(f) + '<div class="pa-flat__rows">' + f.rows.filter(noBudget).map(kv).join('') + '</div>' + budgetBox(i ? null : 'Премиум') + '<a class="pa-flat__open" href="' + L.my + '">Открыть Мой ремонт →</a></div>';
       }).join('') + '<a class="pa-add" href="' + L.add + '">+ Добавить квартиру</a></div>' +
@@ -89,7 +89,7 @@
   function variantB() {
     return '<div class="pv pv--B"><div class="pb-head"><div class="pb-id"><div class="pb-ava">ИФ</div><div class="pb-id__b"><div class="pb-id__n">Имя Фамилия</div><div class="pb-id__p">+7 [телефон]</div></div>' + gear('pb-gear', '#FFFFFF') + '</div>' +
       '<div class="pb-tiles"><div class="pb-tile"><div class="pb-tile__c">METOD</div><div class="pb-on">● активна</div><div class="pb-tile__s">лента клуба · закрытые цены</div><div class="pb-tile__s">до [дата]</div><a class="pb-tile__a" href="' + L.metod + '">Управлять подпиской</a></div>' +
-        '<div class="pb-tile"><div class="pb-tile__c">ГЕНЕРАЦИИ</div><div class="pb-tile__n">50</div><div class="pb-tile__s">не сгорают</div><a class="pb-tile__a" href="' + L.topup + '">+ Пополнить</a></div></div></div>' +
+        '<div class="pb-tile"><div class="pb-tile__c">ГЕНЕРАЦИИ</div><div class="pb-tile__n">50</div><div class="pb-tile__s">сгорят 20 ноября</div><a class="pb-tile__a" href="' + L.topup + '">+ Пополнить</a></div></div></div>' +
       '<div class="pb-body"><div class="pb-sec"><div class="pa-sec__h"><div class="pv-cap">МОИ КВАРТИРЫ</div><a class="pv-link12" href="' + L.add + '">+ Добавить</a></div>' + FLATS_B.map(function (f, i) {
         return '<a class="pb-flat" href="' + L.my + '"><div class="pb-flat__top"><div class="pb-flat__b"><div class="pa-flat__n">' + f.name + '</div><div class="pa-flat__d">' + f.data + '</div></div><span class="pa-tag pa-tag--b">' + f.budget + '</span></div>' +
           '<div class="pb-steps">' + f.steps.map(function (s) { return '<div class="pb-step' + (s.done ? ' is-on' : '') + '"><i></i><span>' + s.name + '</span></div>'; }).join('') + '</div>' +
@@ -111,7 +111,7 @@
   function variantC() {
     return '<div class="pv pv--C"><div class="pc-head"><div class="pc-head__b"><div class="pc-eyebrow">ПРОФИЛЬ</div><div class="pc-name">Имя Фамилия</div></div>' + gear('pa-gear', I, 1.6) + '</div>' +
       '<div class="pc-strip"><div class="pc-strip__l"><div class="pc-cap">METOD</div><div class="pc-on">Активна до [дата]</div><div class="pc-s">Лента клуба и закрытые цены</div><a class="pv-link12" href="' + L.metod + '">Управлять</a></div>' +
-        '<div class="pc-strip__r"><div class="pc-cap">ГЕНЕРАЦИИ</div><div class="pc-num">50</div><div class="pc-s">не сгорают</div><span class="pv-link12"><a href="' + L.topup + '">Пополнить</a> · <a href="account.html?v=tokens">История</a></span></div></div>' +
+        '<div class="pc-strip__r"><div class="pc-cap">ГЕНЕРАЦИИ</div><div class="pc-num">50</div><div class="pc-s">подарочные сгорят 20 ноября</div><span class="pv-link12"><a href="' + L.topup + '">Пополнить</a> · <a href="account.html?v=tokens">История</a></span></div></div>' +
       '<div class="pc-body"><div class="pc-sec"><div class="pc-sec__h"><div class="pc-h">Мои квартиры</div><a class="pv-link12" href="' + L.add + '">+ Добавить</a></div>' + FLATS_C.map(function (f, i) {
         return '<a class="pc-flat" href="' + L.my + '"><div class="pc-flat__pic" style="background:' + f.tone + '"><span>' + f.level + '</span></div><div class="pc-flat__b">' +
           '<div class="pc-flat__top"><div class="pc-flat__n">' + f.name + '</div><div class="pc-flat__bud">' + f.budget + '</div></div><div class="pa-flat__d">' + f.data + '</div>' +
@@ -132,7 +132,7 @@
     var f2 = { name: 'Дом', data: 'КП Отрада · МО · 120 м²', level: 'План застройщика', budget: 'База / Премиум', tone: '#A7A196' };
     return '<div class="pv pv--D">' + headWhite() + '<div class="pd-body">' +
       '<div class="pd-two"><div class="pd-metod"><div class="pv-cap pv-cap--10">ПОДПИСКА METOD</div><div class="pd-on">● активна</div><div class="pd-s">лента клуба и закрытые цены · до [дата]</div><a class="pv-link12" href="' + L.metod + '">Управлять</a></div>' +
-        '<div class="pd-tok"><div class="pv-cap pv-cap--10 pv-cap--dk">ГЕНЕРАЦИИ</div><div class="pd-tok__n">50</div><div class="pd-s pd-s--dk">не сгорают</div><span class="pv-link12 pd-tok__a"><a href="' + L.topup + '">Пополнить</a> · <a href="account.html?v=tokens">История</a></span></div></div>' +
+        '<div class="pd-tok"><div class="pv-cap pv-cap--10 pv-cap--dk">ГЕНЕРАЦИИ</div><div class="pd-tok__n">50</div><div class="pd-s pd-s--dk">сгорят 20 ноября</div><span class="pv-link12 pd-tok__a"><a href="' + L.topup + '">Пополнить</a> · <a href="account.html?v=tokens">История</a></span></div></div>' +
       '<div class="pv-cap pd-cap">МОИ КВАРТИРЫ</div>' +
       '<div class="pa-flat pd-flat pd-flat--main">' + flatTop(f1) + '<div class="pa-flat__rows">' + ROWS_D.map(kv).join('') + '</div>' +
         '<div class="pd-hist"><div class="pa-sec__h"><div class="pv-cap">ИСТОРИЯ ГЕНЕРАЦИЙ · 25</div><a class="pv-link12" href="' + L.my + '">Вся ›</a></div>' +
@@ -173,7 +173,7 @@
   function variantE() {
     return '<div class="pv pv--E">' + headWhite() + '<div class="pd-body">' +
       '<div class="pd-two"><div class="pd-metod"><div class="pv-cap pv-cap--10">ПОДПИСКА METOD</div><div class="pd-on">● активна</div><div class="pd-s">лента клуба и закрытые цены · до [дата]</div><a class="pv-link12" href="' + L.metod + '">Управлять подпиской</a></div>' +
-        '<div class="pd-tok"><div class="pv-cap pv-cap--10 pv-cap--dk">ГЕНЕРАЦИИ</div><div class="pd-tok__n">50</div><div class="pd-s pd-s--dk">не сгорают</div><span class="pv-link12 pd-tok__a"><a href="' + L.topup + '">Пополнить</a> · <a href="account.html?v=tokens">История</a></span></div></div>' +
+        '<div class="pd-tok"><div class="pv-cap pv-cap--10 pv-cap--dk">ГЕНЕРАЦИИ</div><div class="pd-tok__n">50</div><div class="pd-s pd-s--dk">сгорят 20 ноября</div><span class="pv-link12 pd-tok__a"><a href="' + L.topup + '">Пополнить</a> · <a href="account.html?v=tokens">История</a></span></div></div>' +
       '<div class="pa-sec"><div class="pa-sec__h"><div class="pv-cap">МОИ КВАРТИРЫ</div><span class="pe-count">' + FLATS_E.length + '</span></div><div class="pe-flats">' + FLATS_E.map(function (f, i) {
         return '<div class="pe-flat' + (i === eFlat ? ' is-on' : '') + '" role="button" tabindex="0" data-e-flat="' + i + '"><div class="pe-flat__pic" style="background:' + f.tone + '"></div><div class="pe-flat__b"><div class="pa-flat__n">' + f.name + '</div><div class="pa-flat__d">' + f.data + '</div>' +
           '<div class="pa-tags"><span class="pa-tag ' + (i ? 'pa-tag--plain' : 'pa-tag--ok') + '">' + f.level + '</span><span class="pa-tag pa-tag--b">' + f.budget + '</span></div>' +
@@ -196,7 +196,7 @@
     box.querySelectorAll('[data-e-save]').forEach(function (b) { b.addEventListener('click', function () { FLATS_E[eFlat].feed[Number(b.getAttribute('data-e-save'))].saved = true; drawFeed(root); S.ui.toast('Сохранено в Мой ремонт', 'ok'); }); });
   }
 
-  /* ---------- V · по макету Вики 25.10: карточка человека, METOD и токены, быстрый доступ, группы строк ----------
+  /* ---------- V · по макету Вики 25.10: карточка человека, METOD и генерации, быстрый доступ, группы строк ----------
      «Уберём поставщиков» (Вика 25.10) — строки поставщика в списке Профиля нет, «Для бизнеса» — дизайнерам и стройкам.
      Вход в кабинет поставщика — через «Личный профиль ›» в карточке человека: шторка «Выберите профиль» (kindSheet) */
   function variantV() {
@@ -208,8 +208,11 @@
       return '<a class="vp-row" href="' + r[3] + '"' + (r[4] ? ' ' + r[4] : '') + '><span class="vp-row__ic">' + ic(r[0]) + '</span><span class="vp-row__t"><b>' + r[1] + '</b><small>' + r[2] + '</small></span><span class="vp-row__ch">' + ic('chev', 16) + '</span></a>';
     }).join('') + '</div></section>'; }
     var quick = [
-      ['#vp-projects', 'doc', 'Мои проекты', 'Все объекты ремонта', 'assets/img/demo/0-planirovka-po-ankete.jpg', 'data-vp-open']
-    ];   /* структура «Б» (Алина 03.11): Мой ремонт — вкладка меню; Избранное и Заказы — в Моём ремонте; в Профиле — проекты */
+      ['my.html', 'home', 'Мой ремонт', 'Текущий ремонт и все инструменты', 'assets/img/capsules/hc/k4-main-2.jpg'],
+      ['#vp-projects', 'doc', 'Мои проекты', 'Все объекты ремонта', 'assets/img/demo/0-planirovka-po-ankete.jpg', 'data-vp-open'],
+      ['my.html?v=orders', 'box', 'Заказы', 'История покупок и доставки', 'assets/img/obj/armchair-boucle.jpg'],
+      ['favorites.html', 'heart', 'Избранное', 'Товары, интерьеры и подборки', 'assets/img/partners/sup.jpg']
+    ];
     return '<div class="vp">' +
       '<header class="vp-hd"><h1>Профиль</h1>' + gear('vp-gear', 'currentColor', 1.7) + '</header>' +
       '<a class="vp-me" href="account.html?v=settings"><span class="vp-me__av" aria-hidden="true">' + (ini || ic('user', 28)) + '</span>' +
@@ -220,11 +223,13 @@
           '<i class="' + (on ? 'is-on' : '') + '">' + (on ? 'Активна' : 'Не оформлена') + '</i></span><b>METOD</b>' +
           '<span class="vp-metod__d">' + (on && until ? 'До ' + F.dateLong(until) : 'Подключите — откроются закрытые цены') + '</span>' +
           '<span class="vp-metod__s">Специальные цены на мебель, материалы и услуги</span></span><span class="vp-metod__go">' + ic('chev', 16) + '</span></a>' +
-        '<a class="vp-tok" href="account.html?v=tokens"><span class="vp-tok__top">' + ic('coins', 18) + '<small>Генерации</small>' + ic('chev', 14) + '</span><b>✦ ' + F.num(tok) + '</b><span class="vp-tok__sw">⇄ ' + esc(F.swaps((S.tokens.swaps ? S.tokens.swaps() : 0))) + '</span>' +
+        '<a class="vp-tok" href="account.html?v=balance"><span class="vp-tok__top">' + ic('coins', 18) + '<small>Генерации</small>' + ic('chev', 14) + '</span><b>✦ ' + F.num(tok) + '</b>' +
           '<span class="vp-tok__up" data-vp-topup>Пополнить →</span></a>' +
       '</div>' +
-      /* «Быстрый доступ» убран (Алина 03.11): Мой ремонт и Заказы — во вкладке «Мой ремонт», «Мои проекты» — в «Мои данные» ниже */
-      grp('Подписка и бонусы', [['crown', 'Подписка METOD', 'Тариф, срок действия, продление', L.metod], ['coins', 'Баланс', 'Генерации и замены, тарифы, история', 'account.html?v=tokens']]) +
+      '<section class="vp-grp"><header class="vp-grp__h"><h2>Быстрый доступ</h2><a href="my.html">Главные разделы ' + ic('chev', 12) + '</a></header><div class="vp-quick">' + quick.map(function (q) {
+        return '<a class="vp-q" href="' + q[0] + '"' + (q[5] ? ' ' + q[5] : '') + '><span class="vp-q__pic"><img src="' + q[4] + '" alt="" loading="lazy"><i>' + ic(q[1], 16) + '</i></span><b>' + q[2] + '</b><small>' + q[3] + '</small></a>';
+      }).join('') + '</div></section>' +
+      grp('Подписка и бонусы', [['crown', 'Подписка METOD', 'Тариф, срок действия, продление', L.metod], ['coins', 'Генерации', 'Баланс, тарифы, история', 'account.html?v=balance']]) +
       '<section class="vp-grp" id="vp-projects"><h2>Мои данные</h2><div class="vp-list">' +
         '<a class="vp-row" href="account.html?v=settings"><span class="vp-row__ic">' + ic('user') + '</span><span class="vp-row__t"><b>Личные данные</b><small>Телефон, имя, e-mail</small></span><span class="vp-row__ch">' + ic('chev', 16) + '</span></a>' +
         '<button type="button" class="vp-row vp-row--acc" data-vp-proj aria-expanded="false" aria-controls="vp-proj"><span class="vp-row__ic">' + ic('home') + '</span><span class="vp-row__t"><b>Мои проекты</b><small>' + projLine() + '</small></span><span class="vp-row__ch vp-row__ch--acc">' + ic('chev', 16) + '</span></button>' +
@@ -262,7 +267,8 @@
         '<a class="pa-flat__open" href="my.html"' + (f.id ? ' data-vp-flat="' + f.id + '"' : '') + '>Открыть Мой ремонт →</a></div>';
     }).join('') + '<a class="pa-add" href="my.html?v=new">+ Добавить объект</a>';
   }
-  /* «Личный профиль ›» → шторка снизу «Выберите профиль»: личный (открыт сейчас, с галочкой) или кабинет поставщика.
+  /* «Личный профиль ›» → шторка снизу «Выберите профиль»: личный (открыт сейчас, с галочкой) или кабинет поставщика одного из трёх
+     типов (ТЗ кабинета, раздел 6; Валерия 04.11: «сделай выбор, так удобнее») — сразу демо-кабинет нужного типа, без входа по телефону.
      Окно — общее SOVE.ui.modal: на телефоне шторка снизу, закрывается по фону, крестику и Esc; фокус возвращаем на кнопку */
   var kindOpen = null;
   /* «Назад» из кабинета: браузер может вернуть страницу из кэша вместе с открытой шторкой — закрываем её */
@@ -274,8 +280,14 @@
       html: '<div class="vp-list">' +
         '<button type="button" class="vp-row vp-pick" aria-current="true" data-vp-stay><span class="vp-row__ic">' + ic('user') + '</span>' +
           '<span class="vp-row__t"><b>Личный профиль</b><small>сейчас открыт</small></span><span class="vp-pick__ok">' + ic('check', 20) + '</span></button>' +
-        '<a class="vp-row vp-pick" href="partner-cabinet.html"><span class="vp-row__ic">' + ic('box') + '</span>' +
-          '<span class="vp-row__t"><b>Кабинет поставщика</b><small>товары, заказы, финансы</small></span><span class="vp-row__ch">' + ic('chev', 16) + '</span></a>' +
+        '<div class="vp-row vp-row--head"><span class="vp-row__ic">' + ic('box') + '</span><span class="vp-row__t"><b>Кабинет поставщика</b><small>выберите тип поставщика</small></span><span></span></div>' +
+        [['stock', 'Ретейл', 'свет, сантехника, мебель в наличии'], ['materials', 'Материал с расчётом', 'плитка, краска, обои — по площади'], ['custom', 'Изделие на заказ', 'кухни, шкафы, столярка — с замером']].map(function (c) {
+          return '<a class="vp-row vp-pick vp-sub" href="partner-cabinet.html?demo=' + c[0] + '"><span></span><span class="vp-row__t"><b>' + c[1] + '</b><small>' + c[2] + '</small></span><span class="vp-row__ch">' + ic('chev', 16) + '</span></a>';
+        }).join('') +
+        /* админка дизайнера — рабочий экран команды (Алина 12.11): вход отсюда, чтобы не ходить по прямой ссылке */
+        '<a class="vp-row vp-pick" href="designer-admin.html?noframe=1"><span class="vp-row__ic">' + ic('doc') + '</span>' +
+          '<span class="vp-row__t"><b>Админка дизайнера</b><small>состав капсул: товары, цены, количества</small></span>' +
+          '<span class="vp-row__ch">' + ic('chev', 16) + '</span></a>' +
       '</div>',
       onClose: function () { kindOpen = null; btn.setAttribute('aria-expanded', 'false'); btn.focus(); } });
     m.el.classList.add('vp-sheet');
@@ -286,7 +298,7 @@
       var x = e.target.closest('[data-vp-kind]');
       if (x) { e.preventDefault(); e.stopPropagation(); kindSheet(x); return; }
       if (e.target.closest('[data-vp-topup]')) { e.preventDefault(); location.href = L.topup; return; }
-      if (e.target.closest('[data-vp-out]')) { S.ui.confirm({ title: 'Выйти из аккаунта?', text: 'Объекты, генерации и замены сохранятся — вернётесь к ним после входа по тому же номеру.', ok: 'Выйти', onOk: function () { S.auth.logout(); location.href = 'index.html'; } }); return; }
+      if (e.target.closest('[data-vp-out]')) { S.ui.confirm({ title: 'Выйти из аккаунта?', text: 'Объекты и генерации сохранятся — вернётесь к ним после входа по тому же номеру.', ok: 'Выйти', onOk: function () { S.auth.logout(); location.href = 'index.html'; } }); return; }
       var acc = e.target.closest('[data-vp-proj]');
       if (acc) { var open = acc.getAttribute('aria-expanded') !== 'true'; acc.setAttribute('aria-expanded', open); $('vp-proj').hidden = !open; return; }
       if (e.target.closest('[data-vp-open]')) { e.preventDefault(); var a2 = root.querySelector('[data-vp-proj]'); a2.setAttribute('aria-expanded', 'true'); $('vp-proj').hidden = false; $('vp-projects').scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
@@ -324,46 +336,43 @@
     $('pv-root').querySelectorAll('.pv-heart').forEach(function (b) { b.addEventListener('click', function () { b.textContent = b.textContent === '♡' ? '♥' : '♡'; }); });
   }
 
-  /* ---------- Профиль → Баланс (документ «Генерации SOVE — тарифы и экономика», 03.11): два счётчика ✦ генерации и ⇄ замены,
-     у каждого «Докупить»; тарифы; прайс действий; история — все списания и пополнения с ✦ / ⇄ ---------- */
+  /* ---------- Профиль → История (ТЗ 04.11): все списания и пополнения, новые сверху — дата, действие, −1 / +25 ✦; подарки и возвраты помечены ---------- */
   var TOK_TABS = [['all', 'Все'], ['out', 'Списания'], ['in', 'Пополнения']], tokTab = 'all';
+  function opKind(o) { return o.type === 'gift' ? 'подарок' : o.type === 'refund' ? 'возврат' : o.type === 'reserve' && !o.refunded ? 'в резерве, пока идёт генерация' : o.refunded ? 'вернулась на баланс' : ''; }
   function renderTokensView() {
-    var D = S.data, ops = S.tokens.history(), rt = encodeURIComponent('account.html?v=tokens');
+    var ops = S.tokens.history();
     var out = ops.filter(function (o) { return o.amount < 0; }), inn = ops.filter(function (o) { return o.amount > 0; });
     var list = tokTab === 'out' ? out : tokTab === 'in' ? inn : ops;
-    var EMPTY = { out: 'Списаний пока нет. Здесь будет каждое действие: что запускали, для какой квартиры и сколько ушло. Если генерация не удалась, она вернётся на баланс — это тоже будет видно.', in: 'Пополнений пока нет.', all: 'Операций пока нет.' };
-    function sign(o) { return o.cur === 'swap' ? '⇄' : '✦'; }
+    var EMPTY = { out: 'Списаний пока нет. Здесь будет каждая генерация: что запускали и когда. Если генерация не удалась, она вернётся на баланс — это тоже будет видно.', in: 'Пополнений пока нет.', all: 'Операций пока нет.' };
     $('acc-tokens').innerHTML =
-      '<div class="pv pt"><div class="pt-sum">' +
-        '<div class="pt-sum__c"><span>✦ Генерации</span><b>' + F.num(S.tokens.balance()) + '</b><a class="pt-buy" href="#pt-topup">Докупить</a></div>' +
-        '<div class="pt-sum__c"><span>⇄ Замены</span><b>' + F.num((S.tokens.swaps ? S.tokens.swaps() : 0)) + '</b><a class="pt-buy" href="#pt-topup">Докупить</a></div></div>' +
-      '<section class="pt-sec"><h2 class="pt-h">Тарифы</h2><div class="pt-list">' + D.genPlans.map(function (p) {
-        return '<a class="pt-op pt-plan" href="#" data-buy="' + p.id + '"><div class="pt-op__b"><div class="pt-op__t">' + esc(p.title) + (p.main ? ' · главный' : '') + '</div><div class="pt-op__m">✦ ' + p.gens + ' генераций · ⇄ ' + p.swaps + ' замен · ' + esc(p.swapsNote) + '</div></div><div class="pt-op__a">' + F.rub(p.price) + '</div></a>';
-      }).join('') + '</div><p class="pt-note">Тариф выгоднее докупки: от 49 до 33 ₽ за генерацию. Генерации и замены не сгорают.</p></section>' +
-      /* докупка — здесь же: Баланс — одно место для всего про генерации (Алина 03.11), отдельной страницы тарифов нет */
-      '<section class="pt-sec" id="pt-topup"><h2 class="pt-h">Докупка</h2><div class="pt-list">' + (D.genTopups || []).map(function (p) {
-        return '<a class="pt-op pt-plan" href="#" data-buy="' + p.id + '"><div class="pt-op__b"><div class="pt-op__t">' + esc(p.title) + '</div><div class="pt-op__m">' + (p.gens ? '✦ ' + F.tokens(p.gens) : '⇄ ' + F.swaps(p.swaps)) + '</div></div><div class="pt-op__a">' + F.rub(p.price) + '</div></a>';
-      }).join('') + '</div></section>' +
-      '<section class="pt-sec"><h2 class="pt-h">Сколько стоит действие</h2><div class="pt-list">' + D.genActions.map(function (a) {
-        return '<div class="pt-op"><div class="pt-op__b"><div class="pt-op__t pt-op__t--n">' + esc(a[0]) + '</div></div><div class="pt-op__a pt-op__a--s">' + esc(a[1]) + '</div></div>';
-      }).join('') + '</div><p class="pt-note">Платим только за готовое: не получилось — генерация вернётся на баланс. Замена меняет доску и список позиций сразу, картинку — по кнопке «Обновить комнату». Вернуть исходную позицию — бесплатно.</p></section>' +
-      '<section class="pt-sec"><h2 class="pt-h">История</h2>' +
+      '<div class="pv pt"><div class="pt-sum"><div class="pt-sum__c"><span>Баланс</span><b>' + F.gens(S.tokens.balance()) + '</b></div><div class="pt-sum__c"><span>Сегодня списано</span><b>' + F.num(S.tokens.dayUsed()) + ' из ' + F.num(S.tokens.dayLimit()) + '</b></div></div>' +
       '<div class="pt-tabs" role="tablist">' + TOK_TABS.map(function (t) { return '<button type="button" role="tab" data-tt="' + t[0] + '" aria-selected="' + (t[0] === tokTab) + '"' + (t[0] === tokTab ? ' class="is-on"' : '') + '>' + t[1] + '</button>'; }).join('') + '</div>' +
       (list.length ? '<div class="pt-list">' + list.map(function (o) {
-        var plus = o.amount > 0, note = o.type === 'reserve' && !o.refunded ? 'в резерве, пока идёт генерация' : o.refunded ? 'вернулась на баланс' : '';
+        var plus = o.amount > 0, note = opKind(o);
         return '<div class="pt-op"><div class="pt-op__b"><div class="pt-op__t">' + esc(o.reason || 'Операция') + '</div><div class="pt-op__m">' + F.dateLong(o.ts) + ' · ' + time(o.ts) + (note ? ' · ' + note : '') + '</div></div>' +
-          '<div class="pt-op__a' + (plus ? ' is-plus' : '') + (o.refunded ? ' is-back' : '') + '">' + (plus ? '+' : '−') + F.num(Math.abs(o.amount)) + ' ' + sign(o) + '</div></div>';
-      }).join('') + '</div>' : '<div class="pt-empty">' + EMPTY[tokTab] + '</div>') + '</section></div>';
+          '<div class="pt-op__a' + (plus ? ' is-plus' : '') + (o.refunded ? ' is-back' : '') + '">' + (plus ? '+' : '−') + F.num(Math.abs(o.amount)) + ' ✦</div></div>';
+      }).join('') + '</div>' : '<div class="pt-empty">' + EMPTY[tokTab] + '</div>') +
+      '<a class="pa-btn pa-btn--t pt-top" href="account.html?v=balance">Баланс и тарифы</a></div>';
     $('acc-tokens').querySelectorAll('[data-tt]').forEach(function (b) { b.addEventListener('click', function () { tokTab = b.getAttribute('data-tt'); renderTokensView(); }); });
-    $('acc-tokens').querySelectorAll('[data-buy]').forEach(function (a) { a.addEventListener('click', function (e) { e.preventDefault(); buy(a.getAttribute('data-buy')); }); });
   }
-  /* покупка тарифа или докупки прямо из Баланса → оплата; после оплаты — туда, откуда пришли (returnTo), иначе обратно в Баланс */
-  function buy(id) {
-    var D = S.data, p = (D.genPlans || []).concat(D.genTopups || []).filter(function (x) { return x.id === id; })[0]; if (!p) return;
-    var rt = S.ui.qs('returnTo'); rt = rt && /^[a-z0-9_-]+\.html([?#][^\s<>"'\\]*)?$/i.test(rt) ? rt : 'account.html?v=tokens';
-    if (!S.auth.isIn()) { S.ui.needAuth('Войдите, чтобы оплатить', 'account.html?v=tokens&buy=' + id + (rt !== 'account.html?v=tokens' ? '&returnTo=' + encodeURIComponent(rt) : '')); return; }
-    var pm = S.pay.create({ kind: 'pack', id: p.id, title: p.title, price: p.price, tokens: p.gens, swaps: p.swaps }, rt);
-    location.href = 'pay.html?id=' + encodeURIComponent(pm.id);
+  /* ---------- Профиль → Баланс (ТЗ 04.11): остаток крупно, «Пополнить», 3 тарифа и докупка, прайс действий без себестоимости, правила ---------- */
+  function kop(n) { return n.toFixed(2).replace('.', ',') + ' ₽'; }
+  function renderBalanceView() {
+    var G = S.data.gen || { tariffs: [], topup: [], price: {}, priceLabels: [] }, canTopup = !G.topupAfterTariffOnly || S.tokens.tariffBought();
+    var card = function (t, kind) { return '<button type="button" class="pt-tariff' + (t.main ? ' is-main' : '') + '" data-buy="' + kind + ':' + t.id + '"><span class="pt-tariff__t"><b>' + esc(t.title) + (t.main ? ' <i>главный</i>' : '') + '</b><small>' + (kind === 'topup' ? 'докупка · ' + kop(t.price / t.gens) + ' за генерацию' : F.tokens(t.gens) + (t.caption ? ' · ' + esc(t.caption) : '')) + '</small></span><span class="pt-tariff__p num">' + F.rub(t.price) + '</span></button>'; };
+    $('acc-tokens').innerHTML =
+      '<div class="pv pt"><div class="pt-bal"><small>На балансе</small><b>' + F.gens(S.tokens.balance()) + '</b><button type="button" class="pa-btn pa-btn--t" data-topup>Пополнить</button></div>' +
+      '<h2 class="pt-h">Тарифы</h2><div class="pt-tariffs">' + G.tariffs.map(function (t) { return card(t, 'tariff'); }).join('') + '</div>' +
+      '<h2 class="pt-h">Докупка</h2>' + (canTopup ? '<div class="pt-tariffs">' + G.topup.map(function (t) { return card(t, 'topup'); }).join('') + '</div>' : '<p class="pt-note">Докупка по одной откроется после первого тарифа.</p>') +
+      '<h2 class="pt-h">Что сколько стоит</h2><div class="pt-price">' + (G.priceLabels || []).map(function (x) { var n = G.price[x[0]]; return '<div class="pt-price__r"><span>' + esc(x[1]) + '</span><b>' + (x[2] ? esc(x[2]) : n ? F.tokens(n) : 'бесплатно') + '</b></div>'; }).join('') + '</div>' +
+      '<p class="pt-note">Генерации не сгорают. Списываются только за готовое: не получилось — генерация возвращается на баланс. В сутки — до ' + F.tokens(S.tokens.dayLimit()) + '. Бюджет по капсулам SOVEAPP без подписки METOD — один раз за подарочную генерацию, дальше нужна подписка.</p>' +
+      '<a class="pa-btn pa-btn--o pt-top" href="account.html?v=history">История операций ›</a></div>';
+    $('acc-tokens').querySelector('[data-topup]').addEventListener('click', function () { S.ui.topupSheet({ returnTo: 'account.html?v=balance' }); });
+    $('acc-tokens').querySelectorAll('[data-buy]').forEach(function (b) { b.addEventListener('click', function () {
+      var kv = b.getAttribute('data-buy').split(':'), t = (kv[0] === 'tariff' ? G.tariffs : G.topup).filter(function (x) { return x.id === kv[1]; })[0]; if (!t) return;
+      var pm = S.pay.create({ kind: 'pack', id: t.id, title: t.title, price: t.price, tokens: t.gens, tariff: kv[0] === 'tariff' }, 'account.html?v=balance');
+      location.href = 'pay.html?id=' + encodeURIComponent(pm.id);
+    }); });
   }
 
   /* ---------- настройки ---------- */
@@ -391,7 +400,7 @@
     $('acc-addr-add').addEventListener('click', function () { edit('address'); });
     $('acc-card-add').addEventListener('click', function () { S.ui.toast('В прототипе карта не привязывается'); });
     $('acc-logout').addEventListener('click', function () {
-      S.ui.confirm({ title: 'Выйти из аккаунта?', text: 'Объекты, генерации и замены сохранятся — вернётесь к ним после входа по тому же номеру.', ok: 'Выйти',
+      S.ui.confirm({ title: 'Выйти из аккаунта?', text: 'Объекты, генерации и генерации сохранятся — вернётесь к ним после входа по тому же номеру.', ok: 'Выйти',
         onOk: function () { S.auth.logout(); location.href = 'index.html'; } });
     });
   }
@@ -408,13 +417,12 @@
   }
 
 
-  if (VIEW === 'tokens') {
+  if (VIEW === 'history' || VIEW === 'balance') {
     $('pv-pick').hidden = true; $('pv-root').hidden = true; $('acc-tokens-wrap').hidden = false;
-    document.title = 'Баланс — SOVEAPP';
-    renderTokensView(); S.onChange(renderTokensView);
-    /* ?buy=<id> — выбор из окна «Не хватает генераций» или возврат после входа: сразу к оплате; buy из адреса убираем, чтобы «Назад» не повторял платёж */
-    var buyId = S.ui.qs('buy');
-    if (buyId) { try { history.replaceState(null, '', location.pathname + location.search.replace(/[?&]buy=[^&]*/, '').replace(/^&/, '?')); } catch (e) {} buy(buyId); }
+    var isBal = VIEW === 'balance', draw = isBal ? renderBalanceView : renderTokensView;
+    document.title = (isBal ? 'Баланс генераций' : 'История генераций') + ' — SOVEAPP';
+    var h1 = document.querySelector('#acc-tokens-wrap .acc-title'); if (h1) h1.textContent = isBal ? 'Баланс' : 'История';
+    draw(); S.onChange(draw);
   } else if (VIEW === 'settings') {
     $('pv-pick').hidden = true; $('pv-root').hidden = true; $('acc-settings-wrap').hidden = false;
     document.title = 'Настройки — SOVEAPP';

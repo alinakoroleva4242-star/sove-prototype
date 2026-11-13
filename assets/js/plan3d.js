@@ -484,8 +484,19 @@
       drag = null;
     });
   };
-  /* картинка вида для сохранения и PDF */
-  View.prototype.snapshot = function () { this.draw(); try { return this.renderer.domElement.toDataURL('image/jpeg', .86); } catch (e) { return null; } };
+  /* картинка вида для сохранения и PDF: всегда прямой ракурс по умолчанию и светлый фон. Раньше снимок брался как есть —
+     JPEG не знает прозрачности, фон выходил чёрным, а план — повёрнутым, как его покрутили (Вика 05.11, «Мой ремонт») */
+  View.prototype.snapshot = function () {
+    var was = { yaw: this.yaw, tilt: this.tilt, zoom: this.zoom }, c0 = isClay(this.opts), url = null;
+    this.yaw = c0 ? Math.PI / 4 : 0; this.tilt = c0 ? .8 : .28; this.zoom = 1; this.fit(); this.draw();
+    try {
+      var src = this.renderer.domElement, cv = document.createElement('canvas'), g = cv.getContext('2d');
+      cv.width = src.width; cv.height = src.height; g.fillStyle = '#F4F2EE'; g.fillRect(0, 0, cv.width, cv.height); g.drawImage(src, 0, 0);
+      url = cv.toDataURL('image/jpeg', .86);
+    } catch (e) {}
+    this.yaw = was.yaw; this.tilt = was.tilt; this.zoom = was.zoom; this.fit(); this.draw();
+    return url;
+  };
 
   /* ── типовой план «Плана нет»: комнаты полосами, вход через прихожую ── */
   function typicalGeo(rooms) {

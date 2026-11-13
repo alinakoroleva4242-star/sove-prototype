@@ -155,7 +155,7 @@
     title: function () { var o = object.get(), m = S.my.get(); if (!o) return m.area ? 'Квартира · ' + S.fmt.area(m.area) : 'Квартира'; var parts = [o.city, o.complex, o.area ? S.fmt.area(o.area) : null].filter(Boolean); return parts.length ? parts.join(' · ') : 'Квартира'; },
     /* шкала «Ваш ремонт готов на N %» и следующий шаг (одна главная кнопка) */
     readiness: function () {
-      var o = object.get() || {}, m = S.my.get(), lvl = object.level(), list = orders.list(), bask = basket.list();
+      var o = object.get() || {}, m = S.my.get(), lvl = object.level(), list = orders.mine(), bask = basket.list();
       var hasBudget = !!m.total || m.productIds.length > 0 || S.gens.list().length > 0;
       var placed = list.filter(function (x) { return x.status !== 'cancelled'; }).length, received = list.filter(function (x) { return x.status === 'received'; }).length;
       var sections = {}; m.productIds.forEach(function (id) { var p = D.product(id); if (p) sections[sectionFor(p)] = true; });
@@ -229,8 +229,15 @@
     o.prepayment = Math.round(o.total * (o.payment.prepaymentPct == null ? 100 : o.payment.prepaymentPct) / 100);
     return o;
   }
+  /* оформленное уходит и из корзины квартиры (плашка «Корзина», 🛒 в Маркете и Интерьере): раньше оставалось там, и экран корзины
+     переносил его в оплату снова — второй такой же заказ (Вика 05.11: дубли в «Заказах») */
+  function dropFromFlatCart(pid) { try { var R = RP(); if (R && R.cart && R.cart.has(pid)) R.cart.remove(pid); } catch (e) {} }
+  /* учебные заказы демо-кабинета поставщика (seed: «Демо · …», позиции source 'demo') — только для кабинета; покупателю — mine()
+     (Вика 05.11: две «Кухни угловые» в его заказах) */
+  function isDemo(o) { return !!(o && (o.demo || /^Демо · /.test(o.brand || '') || (o.items || []).some(function (it) { return it.source === 'demo'; }))); }
   var orders = {
     list: function () { return st.orders.slice().sort(function (a, b) { return b.ts - a.ts; }).map(decorate); },
+    mine: function () { return orders.list().filter(function (o) { return !isDemo(o); }); },
     get: function (id) { var o = st.orders.filter(function (x) { return x.id === id; })[0]; return o ? decorate(o) : null; },
     /* оформить: позиции «сейчас» → один заказ на поставщика (продавца), цена фиксируется (ТЗ, раздел 4).
        Заказ: brand — имя продавца (DECARO · Санкт-Петербург) или бренд; seller {id, name, city, delivery} и city — у товара с выбором продавца, иначе null */
@@ -243,7 +250,7 @@
         var sl = g.seller ? { id: g.seller.id, name: g.seller.name, city: g.seller.city || '', delivery: g.seller.delivery || '' } : null;
         var o = { id: 'o-' + Math.random().toString(16).slice(2, 8), ts: now(), updated: now(), brand: g.brand, seller: sl, city: sl ? sl.city || null : null, scenario: g.scenario, status: 'pending_confirmation', priceMode: m, total: total, address: address || object.title(), items: items, fields: {}, history: [entry('buyer', 'created', { total: total, priceMode: m, scenario: g.scenario })], review: null };
         st.orders.push(o); created.push(o.id);
-        rows.forEach(function (r) { basket.remove(r.id); });
+        rows.forEach(function (r) { basket.remove(r.id); dropFromFlatCart(r.productId); });
       });
       save(); return created.map(orders.get);
     },
@@ -300,7 +307,7 @@
         var total = items.reduce(function (a, it) { return a + it.lineTotal; }, 0), ts = now() - daysAgo * 864e5;
         var o = { id: 'o-' + Math.random().toString(16).slice(2, 8), ts: ts, updated: ts, brand: brand, scenario: type, status: 'pending_confirmation', priceMode: 'metod', total: total, address: object.title(), items: items, fields: Object.assign({}, SEED.first || {}), history: [entry('buyer', 'created', { total: total, priceMode: 'metod', scenario: type, note: 'учебный заказ' })], review: null };
         if (status !== 'pending_confirmation') { Object.keys(fields || {}).forEach(function (k) { o.fields[k] = fields[k]; }); o.history.push(entry('supplier', 'status', Object.assign({ status: status }, fields || {}))); o.status = status; }
-        st.orders.push(o); return o.id;
+        o.demo = true; st.orders.push(o); return o.id;
       };
       var ids = [];
       if (!have.length) { ids.push(mk(SEED.second[0], SEED.second[1], 6)); ids.push(mk('pending_confirmation', null, 1)); }
@@ -335,7 +342,7 @@
 
   window.SOVE.orders = { cfg: C, promotion: P, single: SINGLE, scenario: scn, scenarios: function () { return Object.keys(C.scenarios).filter(function (k) { return !SINGLE || k === C.default; }).map(function (k) { return Object.assign({ key: k }, C.scenarios[k]); }); }, detect: detect, statusLabel: statusLabel,
     mode: mode, priceFor: priceFor, sectionFor: sectionFor, supplierOf: supplierOf, SECTIONS: SECTIONS, DOC_KINDS: DOC_KINDS, DOC_LABEL: DOC_LABEL, LEVEL_LABEL: LEVEL_LABEL,
-    object: object, basket: basket, list: orders.list, get: orders.get, place: orders.place, setStatus: orders.setStatus, autoReceive: orders.autoReceive, review: orders.review, replyReview: orders.replyReview, supplierRating: orders.supplierRating,
+    object: object, basket: basket, list: orders.list, mine: orders.mine, isDemo: isDemo, get: orders.get, place: orders.place, setStatus: orders.setStatus, autoReceive: orders.autoReceive, review: orders.review, replyReview: orders.replyReview, supplierRating: orders.supplierRating,
     payFor: orders.payFor, syncPayments: orders.syncPayments, needsSupplier: orders.needsSupplier, needsBuyer: orders.needsBuyer, buyerAction: orders.buyerAction, seed: orders.seed, typeInfo: orders.typeInfo, active: orders.active, finance: orders.finance, profiles: profiles, requests: requests, reset: function () { st = blank(); save(); } };
   orders.syncPayments();
 })();

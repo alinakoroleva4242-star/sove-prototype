@@ -38,7 +38,7 @@
   }
   /* правки товаров поставщиков: одобрить → витрина, отклонить → снять с витрины */
   function secModeration() {
-    var list = X.edits.list().filter(function (e) { return modState === 'all' || e.state === modState; });
+    var list = X.edits.list().filter(function (e) { return e.state !== 'draft' && (modState === 'all' || e.state === modState); });   /* черновики партнёра на проверку не попадают */
     return '<div class="pc-tabs">' + [['pending', 'На проверке'], ['approved', 'Опубликованные'], ['rejected', 'Отклонённые'], ['all', 'Все']].map(function (x) { return '<button type="button" class="' + (modState === x[0] ? 'is-on' : '') + '" data-mod="' + x[0] + '">' + x[1] + '</button>'; }).join('') + '</div>' +
       (list.length ? list.map(function (e) { var p = !e.own && D.product(Number(e.ref.replace('cat:', ''))); return '<div class="card--my"><b>' + esc(e.name || e.ref) + ' · ' + X.REVIEW[e.state] + (e.published ? ' · в витрине' : '') + '</b><span class="small muted">' + esc(e.brand || '') + ' · ' + (e.own ? 'новый товар партнёра' + (e.source === 'yml' ? ' · из YML-фида' : '') : 'каталог #' + e.ref.replace('cat:', '')) + ' · ' + new Date(e.submittedAt).toLocaleString('ru-RU') + '</span>' +
         (p ? '<span class="line">Сейчас в витрине: ' + esc(p.name) + ' · розница ' + F.rub(p.retail) + ' · SOVEAPP ' + F.rub(p.metod) + '</span>' : '') +

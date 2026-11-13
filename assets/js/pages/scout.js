@@ -37,16 +37,20 @@
   }
 
   /* классификатор SOVEAPP — что входит в Базу и Премиум (Вика 21.10): данные в assets/js/classifier.js */
+  function clsNoPrice(v) { v = String(v || '').replace(/^\d[\d\s]*\s*(,|—)\s*/, ''); return /^одна сумма/i.test(v) ? 'входит' : v; }
+  function clsItem(name) { return String(name || '').replace(/,\s*(за\s+)?1?\s*(м²|пост|л|шт|п\.\s*м|м\s*п\.)\s*$/i, ''); }
   function clsHtml(level) {
     var C = S.classifier; if (!C || !C.sections) return '<p class="small muted">Классификатор не загрузился.</p>';
     var other = level === 'premium' ? 'base' : 'premium', otherName = other === 'premium' ? 'в Премиуме' : 'в Базе';
     return '<div class="cls-seg" role="group" aria-label="Тип ремонта">' + LEVELS.map(function (l) { return '<button type="button" class="cls-seg__b' + (l.id === level ? ' is-on' : '') + '" data-cls-level="' + l.id + '" aria-pressed="' + (l.id === level) + '">' + LEVEL_SHORT[l.id] + '</button>'; }).join('') + '</div>' +
       '<div class="cls-list">' + C.sections.map(function (sec) {
+        /* Алина 10.11 (задача 41): цены только в разделе «Мебель»; в остальных — что входит, без цены и единицы */
+        var priced = /мебель/i.test(sec.title) && !/встроенная/i.test(sec.title), val = priced ? function (v) { return v; } : clsNoPrice, item = priced ? function (v) { return v; } : clsItem;
         return '<div class="cls-sec"><h3 class="h4 cls-sec__t">' + esc(sec.title) + '</h3>' + sec.rows.map(function (r) {
-          return '<div class="cls-row"><span class="cls-row__k">' + esc(r.item) + '</span><b class="cls-row__v">' + esc(r[level] || '—') + '</b>' + (r[other] ? '<span class="cls-row__o small muted">' + otherName + ': ' + esc(r[other]) + '</span>' : '') + '</div>';
+          return '<div class="cls-row"><span class="cls-row__k">' + esc(item(r.item)) + '</span><b class="cls-row__v">' + esc(val(r[level]) || '—') + '</b>' + (r[other] && val(r[other]) !== val(r[level]) ? '<span class="cls-row__o small muted">' + otherName + ': ' + esc(val(r[other])) + '</span>' : '') + '</div>';
         }).join('') + '</div>';
       }).join('') + '</div>' +
-      '<p class="small muted">Цены — ориентиры классификатора SOVEAPP за единицу. Итог посчитаем по вашей планировке.</p>';
+      '<p class="small muted">Цены мебели — ориентиры за штуку. Остальное посчитаем по вашей планировке.</p>';
   }
   function openClassifier(level) {
     var api = S.ui.modal({ eyebrow: 'Классификатор SOVEAPP', title: 'Что входит в ремонт', html: clsHtml(level), actions: [{ label: 'Понятно', kind: 'primary' }] });
@@ -81,7 +85,8 @@
     if (!okCapsule(st.capsuleId)) st.capsuleId = null;
     if (st.source !== 'visuals') st.source = 'capsule';
     if (!st.visuals || !Array.isArray(st.visuals.files) || !Array.isArray(st.visuals.items)) st.visuals = null;
-    if (st.visuals) st.visuals.items = st.visuals.items.filter(function (it) { return it && D.product(it.id); });
+    /* товары с сервера живут в sove.products.extra (repair.js); если его стёрли — считаем по сохранённым в позиции цене и имени */
+    if (st.visuals) st.visuals.items = st.visuals.items.filter(function (it) { return it && (D.product(it.id) || it.metod > 0); });
     if (st.source === 'visuals' && !(st.visuals && st.visuals.items.length)) st.source = 'capsule';
     if (!byId(LEVELS, st.level)) st.level = 'base';
     st.gate = !!st.gate;
@@ -309,13 +314,35 @@
   function savePurpose(v) { var a = answersOf(); var x = a.all[a.id] && typeof a.all[a.id] === 'object' ? a.all[a.id] : (a.all[a.id] = {}); x.purpose = v; if (x.auto) delete x.auto.purpose; try { localStorage.setItem('sove.answers', JSON.stringify(a.all)); } catch (e) {} }
   if (!st.city && cityOfFlat()) { st.city = cityOfFlat(); st.auto.city = true; }
   if (!st.purpose && purposeOfFlat()) { st.purpose = purposeOfFlat(); st.auto.purpose = true; }
+  /* ---------- серверный расчёт (budget-api.js, 10.11): цифры по таблицам SOVE с сервера; работы и черновые — только когда считаем «комплектацию и работы» ---------- */
+  /* бюджет по фото: капсулы нет — работы и черновые спрашиваем у сервера по типовой норме (VIS_WORKS_CAP), материалы берём из подборки */
+  function apiCap() { return isVis() ? VIS_WORKS_CAP : st.capsuleId; }
+  function apiP() { return { capsuleId: apiCap(), level: st.level, stateId: st.stateId, formatId: scope() === 'kit' ? 'self' : 'track', area: totalArea(), rooms: st.plan ? st.plan.rooms.filter(function (x) { return typeof x.area === 'number' && x.area > 0 && !isWhole(x); }).map(function (x) { return { name: x.name, m2: x.area }; }) : [] }; }
+  function apiRes() { return okCapsule(apiCap()) && S.budgetApi ? S.budgetApi.get(apiP()) : null; }
+  var apiWait = false, apiFailed = '';   /* apiFailed — запрос, на который сервер не ответил: цифры по ставкам, без повторов */
+  function askServer() {
+    if (apiWait || !okCapsule(apiCap()) || !st.stateId || !(totalArea() > 0) || !S.budgetApi || !S.budgetApi.enabled) return;
+    var p = apiP(), k = JSON.stringify(p); if (k === apiFailed || S.budgetApi.get(p)) return;
+    apiWait = true;
+    S.budgetApi.fetch(p).then(function (res) { apiWait = false; if (!res) apiFailed = k; if (res && st.step === 5) resaveBudget(); if (st.step === 5) render(); else { updateBar(); askServer(); } });
+  }
+  /* ответ сервера пришёл уже после выдачи: бюджет квартиры в «Моём ремонте» был записан по ставкам (без api) — молча заменяем его серверным,
+     если это тот же расчёт (та же капсула и площадь). Иначе «Мой ремонт» показывал одно, а итог расчёта — другое (скрины Алины 11.11) */
+  function resaveBudget() {
+    if (!R || isVis() || st.fromInterior) return;
+    var f0 = R.flats.active(), r0 = f0 ? R.get(f0.id) : null, b0 = r0 && r0.budget, rr = calc();
+    if (!b0 || b0.api || !rr.api || b0.capsuleId !== st.capsuleId || Math.abs((b0.area || 0) - rr.area) > 0.01) return;
+    selfWrite(function () { R.save('budget', budgetData(rr), { force: true, silent: true }); });
+  }
   function calc() {
     var s = byId(SC.states, st.stateId), area = totalArea(), VW = S.scout.planWorks(st.volumes, s.id, st.level, area);
-    var works = scope() === 'kit' ? 0 : VW ? VW.total : s.rate * area, c = null, lines = null, kitMetod, kitRetail;
-    if (isVis()) { var vk = visKit(area); kitMetod = vk.kitMetod; kitRetail = vk.kitRetail; lines = vk.lines; }
+    var works = scope() === 'kit' ? 0 : VW ? VW.total : s.rate * area, c = null, lines = null, kitMetod, kitRetail, rough = 0, A = apiRes(), WA = null;
+    if (isVis()) { var vk = visKit(area); kitMetod = vk.kitMetod; kitRetail = vk.kitRetail; lines = vk.lines; WA = A; A = null; }   /* по фото: от сервера только работы и черновые */
     else { c = D.capsule(st.capsuleId); kitMetod = perM2(c, st.level) * area; kitRetail = kitMetod * SC.retailMarkup; }   /* как S.scout.estimate и Бюджет Моего ремонта */
-    var total = works + kitMetod;
-    return { capsule: c, visuals: lines, state: s, level: levelOf(c), format: byId(SC.formats, st.formatId), area: area, plan: VW,
+    if (A) { works = scope() === 'kit' ? 0 : A.totals.works; rough = scope() === 'kit' ? 0 : A.rough.sum; kitMetod = A.materials.metod; kitRetail = A.materials.market; }   /* ответ сервера важнее ставок */
+    else if (WA) { works = scope() === 'kit' ? 0 : WA.totals.works; rough = scope() === 'kit' ? 0 : WA.rough.sum; }
+    var total = works + rough + kitMetod;
+    return { capsule: c, visuals: lines, state: s, level: levelOf(c), format: byId(SC.formats, st.formatId), area: area, plan: VW, api: A || null, worksApi: WA || null, rough: rough, roughMode: 'top',
       works: works, kitMetod: kitMetod, kitRetail: kitRetail, total: total, perM2: total / area,
       save: kitRetail - kitMetod, savePct: kitRetail > 0 ? Math.round((kitRetail - kitMetod) / kitRetail * 100) : 0 };
   }
@@ -335,7 +362,7 @@
   function accessNow() { return (isVis() || okCapsule(st.capsuleId)) ? S.scout.access(accessParams()) : null; }
   function isPayable(a) { return !!a && (a.kind === 'paid' || a.kind === 'recalc-paid'); }
   function exampleMark() { return D.scoutAccess && D.scoutAccess.pricesAreExamples; }
-  function pairName() { if (isVis()) return 'Подборка по вашим картинкам'; var c = okCapsule(st.capsuleId); return c ? capName(c.id) + ' · ' + LEVEL_SHORT[st.level] : ''; }
+  function pairName() { if (isVis()) return 'Расчёт по вашим фото'; var c = okCapsule(st.capsuleId); return c ? capName(c.id) + ' · ' + LEVEL_SHORT[st.level] : ''; }
   /* шаг 4: строка над кнопкой и подпись кнопки */
   function accessLine() {
     var a = accessNow(); if (!a) return '';
@@ -345,6 +372,7 @@
     if (a.kind === 'repeat' && !sameScope(a.request)) return 'Капсула уже открыта — пересчёт бесплатный';
     if (a.kind === 'repeat') return 'Такой расчёт у вас уже есть — заявка № ' + a.request.number + ' от ' + F.dateLong(a.request.ts);
     if (isPayable(a)) return (a.kind === 'paid' ? 'Открытие расчёта ' : 'Пересчёт ') + pairName() + ' — ' + F.rub(a.price) + (exampleMark() ? ' (пример цены)' : '');
+    var c0 = okCapsule(st.capsuleId); if (!c0 || (c0.type || 'sove') === 'sove') return 'Бесплатный расчёт использован — дальше по подписке METOD';
     return 'Цена для этой капсулы не задана';
   }
   /* «✦» — расчёт бюджета тоже генерация, как «✦ Сгенерировать»; правила доступа прежние (П5 не трогаем до ответа команды) */
@@ -373,7 +401,7 @@
       if (st.fromInterior && R) {
         var rp1 = R.get(st.fromInterior);
         if (rp1) {
-          rp1.scoutParams = { stateId: st.stateId, area: rr.area, capsuleId: st.capsuleId, level: st.level, rooms: st.plan ? st.plan.rooms.map(function (r) { return { name: r.name, m2: r.area }; }) : [], byRooms: byRoomsData(rr) };
+          rp1.scoutParams = { stateId: st.stateId, area: rr.area, capsuleId: st.capsuleId, level: st.level, rooms: st.plan ? st.plan.rooms.map(function (r) { return { name: r.name, m2: r.area }; }) : [], byRooms: byRoomsData(rr), works: rr.works, rough: rr.rough, total: rr.total, roughMode: 'top', formatId: st.formatId, api: rr.api || undefined };
           rp1.budgetPlan = Object.assign({}, rp1.budgetPlan || {}, { full: true, type: st.level, ts: Date.now(), source: 'scout' });
           R.flats.update(st.fromInterior, {});
         }
@@ -382,7 +410,7 @@
       if (st.fromPlan !== undefined && st.fromPlan !== null && R) {
         var fid = st.fromPlan || (R.flats.active() || {}).id, rp = fid ? R.get(fid) : null;
         if (rp) {
-          rp.scoutParams = { stateId: st.stateId, area: rr.area, capsuleId: st.capsuleId, level: st.level, rooms: st.plan ? st.plan.rooms.map(function (r) { return { name: r.name, m2: r.area }; }) : [], byRooms: byRoomsData(rr) };
+          rp.scoutParams = { stateId: st.stateId, area: rr.area, capsuleId: st.capsuleId, level: st.level, rooms: st.plan ? st.plan.rooms.map(function (r) { return { name: r.name, m2: r.area }; }) : [], byRooms: byRoomsData(rr), works: rr.works, rough: rr.rough, total: rr.total, roughMode: 'top', formatId: st.formatId, api: rr.api || undefined };
           if (rp.budgetPlan) rp.budgetPlan.type = st.level;
           if (window.SOVE_FLOW && window.SOVE_FLOW.refreshBudget) window.SOVE_FLOW.refreshBudget(); else R.flats.update(fid, {});
         }
@@ -452,7 +480,7 @@
     if (project) document.getElementById('scout-crumbs').innerHTML = '<a href="account.html#projects">Кабинет</a><span aria-hidden="true">/</span><a href="project.html?id=' + encodeURIComponent(project.id) + '">' + esc(project.name) + '</a><span aria-hidden="true">/</span><span>Расчёт ремонта</span>';
   }
   function stepValue(n) {
-    if (n === 1) { if (isVis()) return 'по картинкам'; var c1 = okCapsule(st.capsuleId); return c1 ? capName(c1.id) : ''; }
+    if (n === 1) { if (isVis()) return 'по фото'; var c1 = okCapsule(st.capsuleId); return c1 ? capName(c1.id) : ''; }
     if (n === 2) { var s0 = byId(SC.states, st.stateId); return s0 ? s0.name.toLowerCase() : ''; }
     if (n === 3) { var ar = totalArea(); return ar > 0 ? F.area(ar) : ''; }
     if (n === 4) {
@@ -485,6 +513,9 @@
     var s0 = byId(SC.states, st.stateId), ar = totalArea(); if (!s0 || !(ar > 0)) return '';
     var c = okCapsule(st.capsuleId), VW = S.scout.planWorks(st.volumes, s0.id, st.level, ar), wk = scope() === 'kit' ? 0 : VW ? VW.total : s0.rate * ar;
     function mln(n) { return (Math.round(n / 100000) / 10).toFixed(1).replace('.', ','); }
+    var A0 = c && !isVis() && S.budgetApi ? S.budgetApi.get(apiP()) : null;
+    if (A0) return 'Предварительно: ' + mln(A0.totals.total) + ' млн ₽';
+    if (c && !isVis() && S.budgetApi && S.budgetApi.enabled && JSON.stringify(apiP()) !== apiFailed) return 'Предварительно: считаем по таблицам SOVE…';   /* до ответа цифру по ставкам не показываем */
     if (isVis()) return 'Предварительно: ' + mln(wk + visKit(ar).kitMetod) + ' млн ₽';
     if (c) return 'Предварительно: ' + mln(wk + perM2(c, st.level) * ar) + ' млн ₽';
     var ps = D.capsules.filter(function (x) { return okCapsule(x.id) && !x.designer; }).map(function (x) { return perM2(x, st.level); });
@@ -496,29 +527,41 @@
     if (valid(n)) return n === 4 ? accessLine() : estimate();
     if (n === 2) return 'Выберите, что сейчас в квартире';
     if (n === 3) return (!st.plan ? 'Укажите площадь: загрузите план или впишите вручную' : (st.plan.rooms.some(function (r) { return r.bad; }) ? 'Исправьте площадь, отмеченную красным' : 'Укажите площадь хотя бы одного помещения'));
-    if (n === 1) return visRecog ? 'Подбираем товары по картинкам…' : 'Выберите интерьер — капсулу SOVEAPP или свои картинки';
+    if (n === 1) return visRecog ? 'Разбираем ваши фото — обычно до минуты на фото…' : 'Выберите интерьер — капсулу SOVEAPP или свои фото';
     return '';
   }
   function bar() {
     var n = st.step, back = n !== 1 ? '<button type="button" class="btn btn--ghost" data-act="back">Назад</button>' : '';
     if (n === 5) return '<div class="scout-bar scout-bar--result"><div class="scout-bar__in">' + back + saveButton() + '</div></div>';
     return '<div class="scout-bar"><div class="scout-bar__in">' + back +
-      '<span class="scout-bar__hint small muted" id="scout-hint" aria-live="polite">' + esc(hint()) + '</span>' +
+      '<span class="scout-bar__hint small muted" id="scout-hint" aria-live="polite">' + hintHtml() + '</span>' +
       '<button type="button" class="btn btn--primary" data-act="next"' + (valid(n) ? '' : ' disabled') + '>' + (n === 4 ? nextLabel() : n === 1 ? 'Далее' : 'Готово') + '</button></div></div>';
   }
+  function hintHtml() { var t = hint(); var m = t.match(/^(Предварительно: )(.+)$/); return m ? esc(m[1]) + '<b class="num">' + esc(m[2]) + '</b>' : esc(t); }
   function updateBar() {
     var next = stage.querySelector('[data-act="next"]'), h = document.getElementById('scout-hint');
     if (next) next.disabled = !valid(st.step);
-    if (h) h.textContent = hint();
+    if (h) h.innerHTML = hintHtml();
   }
   function stepHead(title, text) {
     return '<div class="stack stack--2 scout-step__head"><h2 class="h2" id="scout-h" tabindex="-1">' + title + '</h2>' + (text ? '<p class="text">' + text + '</p>' : '') + '</div>';
   }
 
-  /* ---------- свои картинки («＋ Свой интерьер» в окне выбора): подбираем похожие товары каталога, капсула не нужна ----------
-     В прототипе распознавания нет — подборка из товаров каталога прототипа, одни и те же картинки дают ту же подборку */
-  var VIS_STAGES = ['Разбираю картинки', 'Нахожу предметы', 'Подбираю товары из каталога'];
-  /* что ищем на картинках: категория, начало подкатегории, сколько позиций и штук; отделка — на долю площади (м²) */
+  /* ---------- свои фото («＋ Свой интерьер» в окне выбора): настоящий разбор фото на сервере (задача 50, 11.11) ----------
+     POST /api/ai/render_job?quality=fast (~5 ₽ нам за фото) → GET /api/ai/job/{id}: предметы на фото и товары каталога к каждому —
+     то же ядро, что «поиск по фото» в Генерациях. До VIS_MAX фото за расчёт, фото уходят по одному (лимит сервера 10 запросов в минуту);
+     повтор того же файла — из кэша вкладки. Сервер не ответил — говорим честно и ничего не подбираем. Прежняя подборка по правилам
+     (composeVisuals) осталась только для работы без сервера (?vis=mock) и подписана как пример.
+     ✦: VIS_COST = 0 — пока бесплатно (Валерия 11.11: спросить Алину); при цене > 0 резерв на все фото → списание по итогу / возврат, как в ai.js */
+  var VIS_API = /^https?:$/.test(location.protocol) ? '/api' : null;
+  var VIS_MAX = 6, VIS_QUALITY = 'fast', VIS_TOPN = 3, VIS_COST = 0, VIS_POLL = 2000, VIS_WAIT = 120000;
+  var VIS_MOCK = S.ui.qs('vis') === 'mock' || !VIS_API;
+  var VIS_WORKS_CAP = 'k1';   /* работы и черновые для бюджета по фото — с сервера по типовой норме (капсула К1); материалы — товары с фото */
+  var VIS_STAGES = ['Загружаю фото', 'Нахожу предметы', 'Подбираю товары из каталога'];
+  /* отделка с фото — количество по площади квартиры (доля м²), остальное — по штукам найденных предметов */
+  var VIS_PER_M2 = [[/ламинат|паркет|кварц|линолеум|напольн|пробк/i, 0.85], [/керамогранит|плитк|мозаик/i, 0.2], [/обои|краск|панел|штукатур|микроцемент|декоративн/i, 1]];
+  var VIS_CACHE = 'sove.vis.cache.v1';
+  /* что ищем на картинках (только ?vis=mock): категория, начало подкатегории, сколько позиций и штук; отделка — на долю площади (м²) */
   var VIS_PLAN = [
     { cat: 'Мебель', sub: 'Диваны', n: 1 }, { cat: 'Мебель', sub: 'Кресла', n: 1 }, { cat: 'Мебель', sub: 'Столы', n: 1 },
     { cat: 'Мебель', sub: 'Кровати', n: 1 }, { cat: 'Мебель', sub: 'Стулья', n: 1, qty: 4 },
@@ -543,34 +586,134 @@
     });
     return items;
   }
+  /* позиция подборки без товара в каталоге прототипа (после перезагрузки в приватном окне) — считаем по сохранённым цене и имени */
+  function visProductOf(it) { return D.product(it.id) || (it.metod > 0 ? { id: it.id, name: it.name || 'Товар', brand: it.brand || '', metod: it.metod, retail: it.retail || it.metod, img: it.img || '', category: it.category || 'Мебель', subcat: it.subcat || '', capsules: [] } : null); }
   function visKit(area) {
     var kitMetod = 0, kitRetail = 0, lines = [];
     (st.visuals ? st.visuals.items : []).forEach(function (it) {
-      var p = D.product(it.id); if (!p) return;
+      var p = visProductOf(it); if (!p) return;
       var qty = it.perM2 ? Math.max(1, Math.round(area * it.perM2)) : (it.qty || 1);
       var m = (p.metod || p.retail) * qty, rt = (p.retail || p.metod) * qty;
-      kitMetod += m; kitRetail += rt; lines.push({ p: p, qty: qty, perM2: !!it.perM2, metod: m, retail: rt });
+      kitMetod += m; kitRetail += rt; lines.push({ p: p, qty: qty, perM2: !!it.perM2, metod: m, retail: rt, thing: it.thing || '', room: it.room || '', photo: it.photo });
     });
     return { kitMetod: kitMetod, kitRetail: kitRetail, lines: lines };
   }
   function stopVis() { if (visRecog && visRecog.timer) clearTimeout(visRecog.timer); visRecog = null; }
+  function visImg(raw) { raw = String(raw || ''); return /^https?:/.test(raw) && VIS_API ? VIS_API + '/img?u=' + encodeURIComponent(raw) : raw; }   /* картинки каталога — через прокси, как в ai.js */
+  /* карточка каталога с сервера → товар прототипа (как catalog-api.js toProto); регистрируем, чтобы D.product(id) и карточка товара работали после перезагрузки */
+  function visProduct(c) {
+    var retail = Number(c.price_retail || c.price_metod || 0), metod = Number(c.price_metod || c.price_retail || 0), raw = String(c.brand || '').trim();
+    var p = { id: c.id, name: String(c.name || '').trim(), brand: raw, brandRaw: raw, category: c.category || 'Мебель', subcat: c.subcat || '', capsules: [], retail: retail, metod: metod,
+      img: visImg(c.img) || D.noPhoto || '', live: true, unit: '', delivery: c.delivery ? String(c.delivery) : 'Уточняется у поставщика' };
+    if (R && R.registerProduct) R.registerProduct(p); else if (!D.product(p.id)) D.products.push(p);
+    return D.product(p.id) || p;
+  }
+  function visPerM2(p) {
+    if (String(p.category || '') !== 'Отделка') return 0;
+    var t = [p.subcat, p.name].join(' ');
+    for (var i = 0; i < VIS_PER_M2.length; i++) if (VIS_PER_M2[i][0].test(t)) return VIS_PER_M2[i][1];
+    return 0;
+  }
+  /* предметы с одного фото → позиции подборки: первый товар каждого предмета; предмет без товара или цены — «не подобрано» */
+  function visItems(objects, photo) {
+    var items = [], miss = 0;
+    (objects || []).forEach(function (o) {
+      var ob = (o && o.object) || {}, c = o && o.products && o.products[0];
+      if (!c || !c.id || !(Number(c.price_metod || c.price_retail) > 0)) { miss++; return; }
+      var p = visProduct(c);
+      items.push({ id: p.id, qty: 1, perM2: visPerM2(p), name: p.name, brand: p.brand, metod: p.metod, retail: p.retail, img: p.img, category: p.category, subcat: p.subcat,
+        thing: String(ob.subtype || ob.type || '').trim(), room: String(ob.room || '').trim(), photo: photo });
+    });
+    return { items: items, miss: miss };
+  }
+  function visCacheKey(f) { return [f.name, f.size, f.lastModified || 0].join(':'); }
+  function visCache() { try { return JSON.parse(sessionStorage.getItem(VIS_CACHE) || '{}') || {}; } catch (e) { return {}; } }
+  function visRemember(k, objects) { try { var c = visCache(); c[k] = objects; Object.keys(c).slice(0, -12).forEach(function (x) { delete c[x]; }); sessionStorage.setItem(VIS_CACHE, JSON.stringify(c)); } catch (e) { /* не влезло — просто без кэша */ } }
+  function visErr(status, j) {
+    if (status === 429) return 'лимит разборов фото на сегодня исчерпан';
+    if (status === 413) return 'фото больше 10 МБ';
+    var d = j && (j.detail || j.error); return d ? String(typeof d === 'string' ? d : JSON.stringify(d)).slice(0, 120) : 'сервер не ответил';
+  }
+  /* одно фото: задача на сервере → опрос до ответа. onStage(1|2) — для карточки, cb(objects | null, текст ошибки) */
+  function visRecognize(file, onStage, cb) {
+    var k = visCacheKey(file), cached = visCache()[k];
+    if (cached) { cb(cached, null); return; }
+    var fd = new FormData(); fd.append('file', file, file.name || 'photo.jpg');
+    var t0 = Date.now();
+    fetch(VIS_API + '/ai/render_job?quality=' + VIS_QUALITY + '&topn=' + VIS_TOPN, { method: 'POST', body: fd })
+      .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, status: r.status, j: j }; }, function () { return { ok: r.ok, status: r.status, j: null }; }); })
+      .then(function (res) {
+        if (!res.ok || !res.j || !res.j.job_id) throw new Error(visErr(res.status, res.j));
+        onStage(1);
+        return new Promise(function (done, fail) {
+          (function poll() {
+            if (Date.now() - t0 > VIS_WAIT) { fail(new Error('сервер думает дольше двух минут')); return; }
+            fetch(VIS_API + '/ai/job/' + encodeURIComponent(res.j.job_id)).then(function (r) { return r.json(); }).then(function (j) {
+              if (j.status === 'done') { done((j.result && j.result.objects) || []); return; }
+              if (j.status === 'error') { fail(new Error(j.error || 'разбор не удался')); return; }
+              if (j.stage === 'match') onStage(2);
+              setTimeout(poll, VIS_POLL);
+            }).catch(fail);
+          })();
+        });
+      })
+      .then(function (objects) { visRemember(k, objects); cb(objects, null); })
+      .catch(function (e) { cb(null, String((e && e.message) || e)); });
+  }
+  /* миниатюра до 200 px — для карточки, итога и сохранённого бюджета (целые фото в хранилище не влезут) */
+  function visThumb(file, cb) {
+    try {
+      var url = URL.createObjectURL(file), im = new Image();
+      im.onload = function () {
+        try { var k = Math.min(1, 200 / Math.max(im.naturalWidth, im.naturalHeight, 1)), cv = document.createElement('canvas'); cv.width = Math.max(1, Math.round(im.naturalWidth * k)); cv.height = Math.max(1, Math.round(im.naturalHeight * k)); cv.getContext('2d').drawImage(im, 0, 0, cv.width, cv.height); cb(cv.toDataURL('image/jpeg', 0.72)); } catch (e) { cb(''); }
+        URL.revokeObjectURL(url);
+      };
+      im.onerror = function () { URL.revokeObjectURL(url); cb(''); };
+      im.src = url;
+    } catch (e) { cb(''); }
+  }
   function onVisFiles(list) {
-    var files = Array.prototype.slice.call(list || []).filter(function (f) { return /^image\//.test(f.type || '') || /\.(jpe?g|png|webp|heic|gif)$/i.test(f.name || ''); }).slice(0, 12);
-    if (!files.length) { S.ui.toast('Нужны картинки: JPG, PNG или WEBP', 'error'); return; }
-    var meta = files.map(function (f) { return { name: String(f.name || 'картинка').slice(0, 80), size: f.size || 0 }; });
-    stopVis(); visRecog = { stage: 0, files: meta, timer: null };
-    if (st.step !== 1) { st.step = 1; st.gate = false; }       /* картинки выбрали из окна на шаге 4 — подбор виден на шаге «Интерьер» */
+    var all = Array.prototype.slice.call(list || []).filter(function (f) { return /^image\//.test(f.type || '') || /\.(jpe?g|png|webp|heic|gif)$/i.test(f.name || ''); });
+    if (!all.length) { S.ui.toast('Нужны фото: JPG, PNG или WEBP', 'error'); return; }
+    var files = all.slice(0, VIS_MAX);
+    if (all.length > files.length) S.ui.toast('Берём первые ' + VIS_MAX + ' фото — для расчёта этого достаточно');
+    var meta = files.map(function (f) { return { name: String(f.name || 'фото').slice(0, 80), size: f.size || 0, thumb: '' }; });
+    var opId = null, cost = VIS_COST * files.length;
+    if (cost > 0) {   /* платный разбор: резерв на все фото, списание в visDone */
+      if (!S.auth.isIn()) { S.ui.needAuth('Войдите, чтобы считать по своим фото', here()); return; }
+      opId = S.tokens.reserve(cost, 'Расчёт по своим фото · ' + files.length + ' фото'); if (!opId) { S.ui.needTokens(cost, here()); return; }
+    }
+    stopVis();
+    var run = visRecog = { stage: 0, files: meta, i: 0, n: files.length, items: [], miss: 0, errors: [], timer: null, opId: opId };
+    if (st.step !== 1) { st.step = 1; st.gate = false; }       /* фото выбрали из окна на шаге 4 — разбор виден на шаге «Интерьер» */
     focusAfter = '#scout-h'; render();
-    (function tick() {
-      visRecog.timer = setTimeout(function () {
-        if (!visRecog) return;
-        visRecog.stage += 1;
-        if (visRecog.stage < VIS_STAGES.length) { render(); tick(); return; }
-        st.visuals = { files: visRecog.files, items: composeVisuals(visRecog.files) };
-        st.source = 'visuals'; urlPick = null; visRecog = null; touch(); focusAfter = '[data-int-open]'; render();
-        S.ui.toast('Подобрали ' + st.visuals.items.length + ' ' + pl(st.visuals.items.length, ['товар', 'товара', 'товаров']) + ' по вашим картинкам — капсула не нужна', 'ok');
-      }, 900);
+    files.forEach(function (f, i) { visThumb(f, function (url) { meta[i].thumb = url; if (visRecog === run && st.step === 1) render(); else if (st.visuals && st.visuals.files === meta) touch(); }); });
+    if (VIS_MOCK) { run.timer = setTimeout(function () { if (visRecog === run) visDone(run, composeVisuals(meta), true); }, 1200); return; }
+    (function next() {
+      if (visRecog !== run) return;
+      if (run.i >= run.n) { visDone(run, run.items, false); return; }
+      run.stage = 0; render();
+      visRecognize(files[run.i], function (s) { if (visRecog === run && run.stage !== s) { run.stage = s; render(); } }, function (objects, err) {
+        if (visRecog !== run) return;
+        if (err) run.errors.push(err); else { var got = visItems(objects, run.i); run.items = run.items.concat(got.items); run.miss += got.miss; }
+        run.i += 1; next();
+      });
     })();
+  }
+  function visDone(run, items, mock) {
+    visRecog = null;
+    var n = items.length;
+    if (!n) {
+      if (run.opId) S.tokens.refund(run.opId, 'предметы на фото не найдены');
+      S.ui.toast(run.errors.length ? 'Не удалось разобрать фото: ' + run.errors[0] + '. Попробуйте другие фото или выберите интерьер SOVEAPP'
+        : 'На фото не нашли предметов из каталога — попробуйте другие фото или выберите интерьер SOVEAPP', 'error');
+      render(); return;
+    }
+    if (run.opId) S.tokens.commit(run.opId);
+    st.visuals = { files: run.files, items: items, live: !mock, miss: run.miss, failed: run.errors.length, ts: Date.now() };
+    st.source = 'visuals'; urlPick = null; touch(); focusAfter = '[data-int-open]'; render();
+    if (mock) S.ui.toast('Сервер недоступен — показан пример подборки: ' + n + ' ' + pl(n, ['товар', 'товара', 'товаров']));
+    else S.ui.toast('Нашли ' + n + ' ' + pl(n, ['предмет', 'предмета', 'предметов']) + ' на ' + run.n + ' фото' + (run.errors.length ? ' · ' + run.errors.length + ' фото не разобрали' : '') + ' — капсула не нужна', 'ok');
   }
   /* поле выбора картинок — вне сцены (сцена перерисовывается): «＋ Свой интерьер» открывает его синхронно в нажатии, иначе iOS не покажет выбор */
   var visInput = document.getElementById('scout-vis-file');
@@ -648,23 +791,26 @@
       : ownCard({ on: true, img: c.wide || c.cover, name: capName(c.id), sub: esc(sub || c.style || '') });
     return '<div class="scout-int__card">' + html + '</div>';
   }
+  function visThumbs() { return ((st.visuals && st.visuals.files) || []).map(function (f) { return f.thumb || ''; }).filter(Boolean); }
   function visCard() {
-    var first = st.visuals && st.visuals.items[0] && D.product(st.visuals.items[0].id), n = st.visuals ? st.visuals.items.length : 0;
-    return ownCard({ on: true, img: first ? first.img : '', name: 'Свой интерьер', sub: 'По вашим картинкам · ' + n + ' ' + pl(n, ['товар', 'товара', 'товаров']) });
+    var first = st.visuals && st.visuals.items[0] && visProductOf(st.visuals.items[0]), n = st.visuals ? st.visuals.items.length : 0, th = visThumbs();
+    return ownCard({ on: true, img: th[0] || (first ? first.img : ''), name: 'Свой интерьер',
+      sub: (st.visuals && st.visuals.live === false ? 'Пример подборки · ' : 'По вашим фото · ') + n + ' ' + pl(n, ['предмет', 'предмета', 'предметов']) });
   }
   function busyCard() {
-    var i = Math.min(visRecog.stage, VIS_STAGES.length - 1);
-    return ownCard({ busy: true, name: 'Свой интерьер', sub: esc(VIS_STAGES[i]) + '…',
-      foot: '<span class="scout-int__bar" role="presentation"><i style="width:' + Math.round((visRecog.stage + 1) / VIS_STAGES.length * 100) + '%"></i></span>' });
+    var i = Math.min(visRecog.stage, VIS_STAGES.length - 1), f = visRecog.files[Math.min(visRecog.i, visRecog.n - 1)] || {};
+    var pct = Math.round((visRecog.i + (visRecog.stage + 1) / VIS_STAGES.length) / Math.max(1, visRecog.n) * 100);
+    return ownCard({ busy: true, img: f.thumb || '', name: 'Свой интерьер', sub: (visRecog.n > 1 ? 'Фото ' + (visRecog.i + 1) + ' из ' + visRecog.n + ' · ' : '') + esc(VIS_STAGES[i]) + '…',
+      foot: '<span class="scout-int__bar" role="presentation"><i style="width:' + Math.min(100, pct) + '%"></i></span>' });
   }
   function interiorSlot() {
     var c = !isVis() && okCapsule(st.capsuleId), hasVis = !!(st.visuals && st.visuals.items.length);
     if (visRecog) return '<div class="scout-int">' + busyCard() + addTile(false, 'Другой интерьер', 'Капсула SOVEAPP') + '</div>';
-    if (isVis()) return '<div class="scout-int">' + visCard() + addTile(false, 'Другой интерьер', 'Капсула или картинки') + '</div>' +
-      '<div class="scout-int__acts"><button type="button" class="btn btn--link" data-act="drop-visuals">Убрать картинки</button></div>';
-    var useVis = hasVis ? '<div class="scout-int__acts"><button type="button" class="btn btn--link" data-act="use-visuals">Считать по картинкам</button><button type="button" class="btn btn--link" data-act="drop-visuals">Убрать картинки</button></div>' : '';
-    if (!c) return '<div class="scout-int">' + addTile(true, 'Выбрать интерьер', 'Капсула SOVEAPP или свои картинки') + '</div>' + useVis;
-    return '<div class="scout-int">' + capCard(c) + addTile(false, 'Другой интерьер', 'Капсула или свои картинки') + '</div>' +
+    if (isVis()) return '<div class="scout-int">' + visCard() + addTile(false, 'Другой интерьер', 'Капсула или другие фото') + '</div>' +
+      '<div class="scout-int__acts"><button type="button" class="btn btn--link" data-act="drop-visuals">Убрать фото</button></div>';
+    var useVis = hasVis ? '<div class="scout-int__acts"><button type="button" class="btn btn--link" data-act="use-visuals">Считать по фото</button><button type="button" class="btn btn--link" data-act="drop-visuals">Убрать фото</button></div>' : '';
+    if (!c) return '<div class="scout-int">' + addTile(true, 'Выбрать интерьер', 'Капсула SOVEAPP или свои фото') + '</div>' + useVis;
+    return '<div class="scout-int">' + capCard(c) + addTile(false, 'Другой интерьер', 'Капсула или свои фото') + '</div>' +
       '<div class="scout-lv"><span class="scout-lv__k">Тип ремонта</span><b class="scout-lv__v">' + LEVEL_SHORT[st.level] + '</b>' +
         '<button type="button" class="scout-lv__go" data-int-open aria-haspopup="dialog" aria-label="Сменить тип ремонта">Сменить</button></div>' + useVis;
   }
@@ -707,7 +853,7 @@
   }
   function viewStart() {
     return '<div class="scout-step scout-step--start">' +
-      stepHead('Выберите интерьер', isVis() ? 'Считаем по вашим картинкам: подобрали похожие товары из каталога. Капсула не нужна.' : 'Капсула задаёт комплектацию: отделку, мебель, свет и сантехнику. Цена — за м² по ценам METOD.') +
+      stepHead('Выберите интерьер', isVis() ? (st.visuals.live === false ? 'Пример подборки по правилам — сервер разбора фото недоступен.' : 'Считаем по вашим фото: нашли предметы и подобрали к ним товары каталога. Капсула не нужна.') :'Капсула задаёт комплектацию: отделку, мебель, свет и сантехнику. Цена — за м² по ценам METOD.') +
       interiorSlot() +
       '<div class="stack stack--2 scout-plan-box"><span class="eyebrow">План квартиры</span>' + planRow() + zkSoon() + '</div>' +
       '<div class="scout-caps-pad" aria-hidden="true"></div>' + capsRow() + bar() + '</div>';
@@ -773,7 +919,7 @@
   /* ---------- шаг 4: тип ремонта и формат — всегда; известное из объекта — сводкой сверху со «Сменить» / «Изменить» ---------- */
   function baseSummary() {
     var c = !isVis() && okCapsule(st.capsuleId), s = byId(SC.states, st.stateId), ar = totalArea(), n = roomsCount(), img = '', nm = '';
-    if (isVis()) { var first = D.product(st.visuals.items[0].id), k = st.visuals.items.length; img = first ? first.img : ''; nm = 'По вашим картинкам · ' + k + ' ' + pl(k, ['товар', 'товара', 'товаров']); }
+    if (isVis()) { var first = visProductOf(st.visuals.items[0]), k = st.visuals.items.length; img = visThumbs()[0] || (first ? first.img : ''); nm = 'По вашим фото · ' + k + ' ' + pl(k, ['предмет', 'предмета', 'предметов']); }
     else if (c) { img = c.wide || c.cover; nm = capName(c.id); }
     var areaSub = st.plan && st.plan.mode === 'plan' ? (n ? n + ' ' + pl(n, ['помещение', 'помещения', 'помещений']) + ' из плана' : 'из плана') : n > 1 ? n + ' ' + pl(n, ['помещение', 'помещения', 'помещений']) : '';
     function row(k, v, act) { return '<li class="scout-base__r"><span class="scout-base__k">' + k + '</span><span class="scout-base__v">' + v + '</span>' + act + '</li>'; }
@@ -872,11 +1018,11 @@
   /* выбранный на шаге 1 интерьер и тип ремонта — ещё раз в блоке «Ремонт», с «сменить ›» (окно выбора капсулы, в нём и тип) (Алина 10.11) */
   function sqInterior() {
     var c = !isVis() && okCapsule(st.capsuleId), lv = LEVEL_SHORT[st.level] || LEVEL_SHORT.base;
-    if (isVis()) { var first = D.product(st.visuals.items[0].id), k = st.visuals.items.length;
-      return sqCard('', 'Интерьер', '', sqOne('data-int-open aria-haspopup="dialog"', 'По вашим картинкам', k + ' ' + pl(k, ['товар', 'товара', 'товаров']), 'сменить', false, first ? first.img : '')); }
+    if (isVis()) { var first = visProductOf(st.visuals.items[0]), k = st.visuals.items.length;
+      return sqCard('', 'Интерьер', '', sqOne('data-int-open aria-haspopup="dialog"', 'По вашим фото', k + ' ' + pl(k, ['предмет', 'предмета', 'предметов']), 'сменить', false, visThumbs()[0] || (first ? first.img : ''))); }
     return sqCard('', 'Интерьер и тип ремонта', '', c
       ? sqOne('data-int-open aria-haspopup="dialog"', esc(capName(c.id)), 'Тип ремонта · ' + lv + (ownBase() ? ' · свой интерьер на её основе' : ''), 'сменить', false, c.wide || c.cover)
-      : sqOne('data-int-open aria-haspopup="dialog"', 'не выбран', 'капсула SOVEAPP или свои картинки', 'выбрать', true));
+      : sqOne('data-int-open aria-haspopup="dialog"', 'не выбран', 'капсула SOVEAPP или свои фото', 'выбрать', true));
   }
   function sqPurpose() {
     return sqCard('purpose', 'Для чего ремонт', st.auto.purpose ? '<em class="sq-from">Из объекта</em>' : '', sqChips('data-purpose', PURPOSE, st.purpose));
@@ -933,14 +1079,14 @@
   function viewInvoiceVis() {
     var a = S.scout.access(accessParams()), s0 = byId(SC.states, st.stateId), payable = isPayable(a), n = st.visuals.items.length;
     var metodHref = 'metod.html?returnTo=' + encodeURIComponent(here());
-    var title = payable ? 'Откройте расчёт по вашим картинкам' : 'Расчёт по картинкам — с подпиской METOD';
-    var text = 'Первый бесплатный расчёт уже использован. Расчёты по картинкам, как и по капсулам SOVEAPP, бесплатны с подпиской METOD. Параметры мы сохранили — после оформления сразу покажем расчёт.';
+    var title = payable ? 'Откройте расчёт по вашим фото' : 'Расчёт по фото — с подпиской METOD';
+    var text = 'Первый бесплатный расчёт уже использован. Расчёты по фото, как и по капсулам SOVEAPP, бесплатны с подпиской METOD. Параметры мы сохранили — после оформления сразу покажем расчёт.';
     var main = payable ? '<button type="button" class="btn btn--primary btn--lg scout-invoice__pay" data-act="pay">Оплатить ' + F.rub(a.price) + ' и получить расчёт</button>'
       : '<a class="btn btn--primary btn--lg scout-invoice__pay" href="' + esc(metodHref) + '">Оформить METOD</a>';
     return '<div class="scout-step scout-step--invoice">' + stepHead(title, text) +
       '<div class="split"><div class="col-7 card card--pad stack stack--6 scout-invoice">' +
         '<div class="row row--between scout-invoice__top"><span class="eyebrow">' + (payable ? 'Счёт · открытие расчёта' : 'Расчёт по счёту недоступен') + '</span><span class="badge badge--line">шаг «Результат» закрыт</span></div>' +
-        '<div class="rows rows--tight"><div><span>Подборка по картинкам</span><span class="num">' + n + ' ' + pl(n, ['товар', 'товара', 'товаров']) + '</span></div><div><span>Площадь</span><span class="num">' + F.area(totalArea()) + '</span></div><div><span>Состояние</span><span>' + esc(s0 ? s0.name : '') + '</span></div></div>' +
+        '<div class="rows rows--tight"><div><span>Предметы с ваших фото</span><span class="num">' + n + ' ' + pl(n, ['предмет', 'предмета', 'предметов']) + '</span></div><div><span>Площадь</span><span class="num">' + F.area(totalArea()) + '</span></div><div><span>Состояние</span><span>' + esc(s0 ? s0.name : '') + '</span></div></div>' +
         '<div class="scout-invoice__actions">' + main + '<button type="button" class="btn btn--link" data-act="ungate">Назад к параметрам</button></div>' +
       '</div></div>' +
       '<div class="scout-bar scout-bar--result"><div class="scout-bar__in">' + (payable ? '<button type="button" class="btn btn--primary" data-act="pay">Оплатить ' + F.rub(a.price) + '</button>' : '<a class="btn btn--primary" href="' + esc(metodHref) + '">Оформить METOD</a>') + '</div></div></div>';
@@ -951,8 +1097,10 @@
     var payable = isPayable(a), recalc = a.kind === 'recalc-paid', soveCap = (c.type || 'sove') === 'sove';
     var def = (D.scoutAccess.defaults[c.type || 'sove'] || {});
     var metodHref = 'metod.html?returnTo=' + encodeURIComponent(here());
-    var title = !payable ? 'Цена для этой капсулы не задана' : recalc ? 'Пересчёт по капсуле «' + esc(cn) + '» — по счёту' : 'Откройте расчёт по капсуле «' + esc(cn) + '»';
-    var text = !payable ? 'Открыть расчёт по капсуле «' + esc(cn) + '»' + ' за оплату пока нельзя: цена уточняется. Параметры мы сохранили.'
+    var byMetod = !payable && soveCap;   /* капсула SOVEAPP без цены для гостя — это правило (по подписке), а не «цена не задана» (Валерия 10.11) */
+    var title = byMetod ? 'Расчёт по подписке METOD' : !payable ? 'Цена для этой капсулы не задана' : recalc ? 'Пересчёт по капсуле «' + esc(cn) + '» — по счёту' : 'Откройте расчёт по капсуле «' + esc(cn) + '»';
+    var text = byMetod ? 'Первый бесплатный расчёт уже использован. Расчёты по другим капсулам SOVEAPP открываются по подписке METOD. Параметры сохранили — после оформления сразу покажем результат.'
+      : !payable ? 'Открыть расчёт по капсуле «' + esc(cn) + '»' + ' за оплату пока нельзя: цена уточняется. Параметры мы сохранили.'
       : (soveCap ? 'Первый бесплатный расчёт уже использован. ' : 'Расчёты по дизайнерским капсулам открываются по счёту. ') +
         'Пара «капсула + тип ремонта» открывается один раз' + (def.recalc ? '.' : ' — дальше пересчёты по ней бесплатны.') + ' Параметры вводить заново не нужно: расчёт покажем сразу после оплаты.';
     var payLabel = payable ? 'Оплатить ' + F.rub(a.price) + ' и получить расчёт' : '';
@@ -996,7 +1144,10 @@
   }
   /* экран Бюджета без Планировки строит 9 + 5 и «По комнатам» из этого сохранения (my-budget.js, fromSaved): состояние, комнаты и разбивка — вместе с итогами */
   function budgetData(r) {
-    return { type: st.level === 'premium' ? 'premium' : 'base', capsuleId: st.capsuleId, stateId: st.stateId, area: r.area, works: r.works, kitMetod: r.kitMetod, kitRetail: r.kitRetail, total: r.total,
+    /* по фото: капсулы у бюджета нет (раньше уезжала прежняя выбранная), список предметов и миниатюры — с собой */
+    return { type: st.level === 'premium' ? 'premium' : 'base', capsuleId: r.visuals ? null : st.capsuleId, source: r.visuals ? 'visuals' : 'capsule', stateId: st.stateId, area: r.area, works: r.works, kitMetod: r.kitMetod, kitRetail: r.kitRetail, total: r.total,
+      rough: r.rough || 0, roughMode: 'top', formatId: st.formatId, api: r.api || undefined, worksApi: r.worksApi || undefined,
+      visuals: r.visuals ? { live: !!(st.visuals && st.visuals.live), photos: visThumbs(), items: r.visuals.map(function (l) { return { id: l.p.id, name: l.p.name, brand: l.p.brand || '', thing: l.thing || '', room: l.room || '', qty: l.qty, perM2: l.perM2, metod: l.metod, retail: l.retail, category: l.p.category || '', img: l.p.img || '' }; }) } : undefined,
       rooms: st.plan ? st.plan.rooms.filter(function (x) { return x.area > 0; }).map(function (x) { return { name: x.name, m2: x.area }; }) : [], byRooms: byRoomsData(r) };
   }
   function saveButton() {
@@ -1023,14 +1174,22 @@
      Разбивка — SOVE_BUDGET.byRooms (budget.js): категории — по применимости к зоне (сантехника — санузел и кухня, техника — кухня,
      двери — поровну, остальное — по площади), «Вся квартира» отдельно не показываем — её остаток уходит по комнатам пропорционально.
      Комнат нет — типовые зоны по площади с пометкой. Те же данные уходят в паспорт квартиры (rp.scoutParams.byRooms) для экрана Бюджета. */
+  /* подборка по фото — по категориям товаров каталога (а не одной строкой «подборка»): так «Бюджет» Моего ремонта раскладывает её в свои 9 категорий */
+  function visCats(r) {
+    var B = window.SOVE_BUDGET, m = {}, order = [];
+    (r.visuals || []).forEach(function (l) { var k = l.p.category || 'Мебель'; if (!(k in m)) { m[k] = 0; order.push(k); } m[k] += l.metod; });
+    return order.map(function (k) { return { key: (B && B.kitKey && B.kitKey(k)) || k, title: k, sum: m[k] }; });
+  }
+  function visRoomName(room) { var r = String(room || '').trim().toLowerCase().replace(/\s+/g, ' '); return r ? r.charAt(0).toUpperCase() + r.slice(1) : ''; }
   function roomsSplit(r) {
     var B = window.SOVE_BUDGET; if (!B || !B.byRooms || !(r.area > 0)) return null;
     var rooms = st.plan ? st.plan.rooms.filter(function (x) { return typeof x.area === 'number' && x.area > 0 && !isWhole(x); }).map(function (x) { return { name: x.name || 'Помещение', area: x.area }; }) : [];
-    var cats = r.visuals ? [{ key: 'visuals', title: 'Подборка по вашим картинкам', sum: r.kitMetod }]
+    var cats = r.visuals ? visCats(r)
       : SC.kitShares.map(function (k) { return { key: B.kitKey(k[0]) || k[0], title: k[0], sum: r.kitMetod * k[1] / 100 }; });
     return B.byRooms({ rooms: rooms, area: r.area, works: r.works, cats: cats });
   }
   function byRoomsData(r) {
+    if (r.api && S.budgetApi) { var ao = S.budgetApi.rooms(r.api); return ao.rooms.map(function (x) { return { name: x.name, zone: x.zone, area: x.area, works: 0, kit: x.kit, total: x.kit, byCat: x.byCat, common: x.common || undefined, typical: ao.typical || undefined }; }); }
     var o = roomsSplit(r); if (!o) return null;
     return o.rooms.map(function (x) { return { name: x.name, zone: x.zone, area: x.area, works: x.works, kit: x.kit, total: x.total, byCat: x.byCat, typical: o.typical || undefined }; });
   }
@@ -1065,19 +1224,27 @@
   function viewResult() {
     var r = calc(), c = r.capsule, rq = issuedRequest();
     /* цифры берём из заявки Расчёт бюджета: повторный расчёт показывает ровно то, что было выдано */
-    if (rq && rq.result && rq.result.total > 0 && rq.result.area === r.area && sameScope(rq)) {
+    if (!r.api && !r.worksApi && rq && rq.result && rq.result.total > 0 && rq.result.area === r.area && sameScope(rq)) {   /* по фото работы с сервера (worksApi) тоже важнее заявки по ставкам */
       r.works = rq.result.works; r.kitMetod = rq.result.kitMetod; r.kitRetail = rq.result.kitRetail; r.total = rq.result.total;
       r.perM2 = r.total / r.area; r.save = r.kitRetail - r.kitMetod; r.savePct = Math.round(r.save / r.kitRetail * 100);
     }
     var reqLine = rq ? '<p class="small scout-req"><b class="num">Заявка на расчёт № ' + rq.number + '</b><br>основание: ' + esc(S.scout.basisLabel(rq.basis)) + ', <span class="muted" style="white-space:nowrap">' + esc(F.dateLong(rq.ts)) + '</span></p>' : '';
     /* Премиум у капсулы без своей цены Премиума (k1–k6) — по ценам Базы; у k7 цена Премиума есть (83 000 ₽/м²) — пометки нет */
-    var premiumNote = (r.level.sameAsBase && !r.visuals) ? '<div class="notice"><span class="small">В прототипе сумма для Премиума посчитана как для Базы — данные калькулятора подключаются на сервере.</span></div>' : '';
+    var premiumNote = (r.level.sameAsBase && !r.visuals && !r.api) ? '<div class="notice"><span class="small">В прототипе сумма для Премиума посчитана как для Базы — данные калькулятора подключаются на сервере.</span></div>' : '';
+    /* сервер не ответил — говорим прямо и даём пересчитать; пока ждём — честное «считаем». Тихой подмены серверных цифр ставками больше нет (Алина 11.11) */
+    var srvNote = '', srvWait = false;
+    if (!r.visuals && c && S.budgetApi && S.budgetApi.enabled && !r.api) {
+      srvWait = apiWait || JSON.stringify(apiP()) !== apiFailed;
+      srvNote = srvWait ? '<div class="notice scout-srv scout-srv--wait" role="status"><span class="small">Считаем по таблицам SOVE — обычно 2–3 секунды…</span></div>'
+        : '<div class="notice scout-srv scout-srv--fail" role="alert"><span class="small"><b>Сервер расчёта не ответил.</b> Цифры ниже — примерные, по ставкам; позиций по категориям нет.</span><button type="button" class="btn btn--dark btn--sm" data-act="recalc">Пересчитать</button></div>';
+    }
     var savedPr = st.savedProjectId ? S.projects.get(st.savedProjectId) : null;
     var pid = targetProjectId();
     var tail = c ? '?capsule=' + c.id + (pid ? '&project=' + encodeURIComponent(pid) : '') : (pid ? '?project=' + encodeURIComponent(pid) : '');
 
     /* по плану — суммы этапов из позиций Scout; без плана — доли ставки за м² */
-    var stageRows = r.plan ? r.plan.stages.filter(function (s) { return s[1] > 0; }).map(function (s) { return [s[0], Math.round(s[1] / r.works * 100), s[1]]; })
+    var WA = r.api || r.worksApi;   /* по фото — этапы работ сервера по типовой норме */
+    var stageRows = WA ? (WA.works.stages || []).filter(function (x) { return x.sum > 0; }).map(function (x) { return [x.title, r.works > 0 ? Math.round(x.sum / r.works * 100) : 0, x.sum]; }) : r.plan ? r.plan.stages.filter(function (s) { return s[1] > 0; }).map(function (s) { return [s[0], Math.round(s[1] / r.works * 100), s[1]]; })
       : SC.stages.map(function (s) { return [s[0], s[1], r.works * s[1] / 100]; });
     var stages = stageRows.map(function (s) {
       return '<li class="scout-line scout-line--stage"><span class="scout-line__name">' + esc(s[0]) + '</span><span class="bar" aria-hidden="true"><i style="width:' + s[1] + '%"></i></span><span class="scout-line__pct num muted">' + s[1] + ' %</span><span class="scout-line__sum num">' + F.rub(s[2]) + '</span></li>';
@@ -1094,7 +1261,7 @@
     var adeptFrom = Math.min.apply(null, D.adept.packages.map(function (p) { return p.rate; }));
     var cards = {
       adept: '<a class="card card--pad card--link scout-next" href="adept.html' + tail + '"><span class="row row--between"><span class="eyebrow">Дизайн-проект</span>' + (st.formatId === 'adept' ? '<span class="badge badge--line">ваш формат</span>' : '') + '</span>' +
-        '<h3 class="h3">' + (c ? 'Адаптируем «' + esc(capName(c.id)) + '» под вашу квартиру' : 'Соберём дизайн-проект по вашим картинкам') + '</h3><p class="small muted grow">' + (c ? 'Дизайнер переложит капсулу на вашу планировку' : 'Дизайнер разложит подборку по вашей планировке') + ': расстановка, визуализации, чертежи. Расчёт бюджета передадим вместе с заявкой. От <span class="num">' + F.rub(adeptFrom) + '/м²</span>.</p><span class="arrow-link">Перейти к дизайн-проекту</span></a>',
+        '<h3 class="h3">' + (c ? 'Адаптируем «' + esc(capName(c.id)) + '» под вашу квартиру' : 'Соберём дизайн-проект по вашим фото') + '</h3><p class="small muted grow">' + (c ? 'Дизайнер переложит капсулу на вашу планировку' : 'Дизайнер разложит подборку по вашей планировке') + ': расстановка, визуализации, чертежи. Расчёт бюджета передадим вместе с заявкой. От <span class="num">' + F.rub(adeptFrom) + '/м²</span>.</p><span class="arrow-link">Перейти к дизайн-проекту</span></a>',
       track: '<a class="card card--pad card--link scout-next" href="track.html' + tail + '"><span class="row row--between"><span class="eyebrow">Ремонт под ключ</span>' + (st.formatId === 'track' ? '<span class="badge badge--line">ваш формат</span>' : '') + '</span>' +
         '<h3 class="h3">Сделаем ремонт по этому расчёту</h3><p class="small muted grow">Команда SOVEAPP ведёт работы по этапам из сметы. Акты, сроки и оплаты видны в личном кабинете.</p><span class="arrow-link">Перейти к ремонту под ключ</span></a>',
       /* «Делаю сам» (саммари п. 12): раздел специалистов — мастера на отдельные работы; текст карточки — на согласование с Алиной */
@@ -1110,7 +1277,7 @@
        при сохранении: категории = Σ byCat по комнатам, этапы — 7 этапов расчёта в 5 этапов договора (как fromSaved в my-budget.js) ── */
     var B = window.SOVE_BUDGET, split = roomsSplit(r), rooms = split ? split.rooms : [];
     var kv = {}; rooms.forEach(function (x) { Object.keys(x.byCat || {}).forEach(function (k) { kv[k] = (kv[k] || 0) + (Number(x.byCat[k]) || 0); }); });
-    var KIT = r.visuals ? [['visuals', 'Подборка по вашим картинкам']] : ((B && B.KIT) || []);
+    var KIT = r.visuals ? visCats(r).map(function (k) { return [k.key, k.title]; }) : ((B && B.KIT) || []);
     var catTitle = {}; KIT.forEach(function (k) { catTitle[k[0]] = k[1]; });
     function frHead(t, sum) { return '<div class="fr-h"><b class="sq-group">' + t + '</b>' + (sum !== null && sum !== undefined ? '<span class="num">' + F.rub(sum) + '</span>' : '') + '</div>'; }
     function frList(items) {
@@ -1127,11 +1294,13 @@
       }).join('') + '</section>';
     }
     var capId = c ? c.id : '';
+    /* без ответа сервера категории — доли ставки; картинки-образцы прототипа под ними больше не показываем (Алина 11.11: «фото из капсул,
+       а не из каталога»; сумма категории не сходилась с товарами) — вместо них плашка «сервер не ответил» и «Пересчитать» (srvNote) */
     var catItems = KIT.map(function (k) {
-      return { name: k[1], sum: kv[k[0]] || 0, html: B && B.goodsHtml && capId ? B.goodsHtml(B.capsuleGoods(capId, k[0], st.level), 'Позиции этой категории появятся после подбора') : '', kids: rooms.map(function (x) { return [x.name, (x.byCat || {})[k[0]] || 0]; }) };
+      return { name: k[1], sum: kv[k[0]] || 0, html: '', kids: rooms.map(function (x) { return [x.name, (x.byCat || {})[k[0]] || 0]; }) };
     }).filter(function (x) { return x.sum > 0; });
     var roomItems = rooms.map(function (x) {
-      return { name: x.name, sub: '<span class="num">' + F.area(x.area) + '</span>', sum: x.kit, html: B && B.goodsHtml && capId ? B.goodsHtml(B.roomGoods(capId, x.zone, st.level), 'Позиции этой комнаты появятся после подбора') : '', kids: KIT.map(function (k) { return [k[1], (x.byCat || {})[k[0]] || 0]; }) };
+      return { name: x.name, sub: '<span class="num">' + F.area(x.area) + '</span>', sum: x.kit, html: '', kids: KIT.map(function (k) { return [k[1], (x.byCat || {})[k[0]] || 0]; }) };
     });
     /* работы — общая сумма на объект, по комнатам не делим */
     var W7 = {}; stageRows.forEach(function (x) { W7[x[0]] = x[2]; });
@@ -1139,41 +1308,74 @@
     var wv = { demolition: secondary ? W7['Демонтаж'] || 0 : 0, rough: (secondary ? 0 : W7['Демонтаж'] || 0) + (W7['Стены и перегородки'] || 0),
       engineering: (W7['Водоснабжение и канализация'] || 0) + (W7['Электрика, свет, двери'] || 0), prefinish: 0, finish_works: (W7['Полы'] || 0) + (W7['Потолки'] || 0) + (W7['Финальная сдача'] || 0) };
     var workItems = ((B && B.WORKS) || []).map(function (w, i) { return { n: i + 1, key: w[0], name: w[1], sum: Math.round(wv[w[0]] || 0) }; }).filter(function (w) { return w.sum > 0; });   /* n — номер этапа договора, как в «Бюджете» */
+    var WR = null;
+    if (r.api && S.budgetApi) {   /* серверный расчёт: категории, комнаты и этапы из его строк — те же суммы, что в «Бюджете» Моего ремонта */
+      var AR = S.budgetApi.rooms(r.api), AC = S.budgetApi.cats(r.api), AS = S.budgetApi.estimate(r.api, null, r.state).apiStages; WR = S.budgetApi.workRows(r.api);
+      /* позиции категории — карточками из таблицы капсулы: фото, кол-во × цена, итог строки (Алина 11.11: сумма категории = сумма позиций) */
+      catItems = AC.filter(function (k) { return k.sum > 0; }).map(function (k) { var rs = S.budgetApi.catRows(r.api, k.key); return { name: k.title, sum: k.sum, html: S.budgetApi.goodsHtml(rs), kids: AR.rooms.map(function (x) { return [x.name, (x.byCat || {})[k.key] || 0]; }) }; });
+      roomItems = AR.rooms.map(function (x) { var rs = []; AC.forEach(function (k) { S.budgetApi.catRows(r.api, k.key).forEach(function (c) { if (c[0] === x.name) rs.push(c); }); });
+        return { name: x.name, sub: x.common ? 'на всю квартиру' : '<span class="num">' + F.area(x.area) + '</span>', sum: x.kit, html: S.budgetApi.goodsHtml(rs, 'Позиций в этой комнате нет'), kids: AC.map(function (k) { return [k.title, (x.byCat || {})[k.key] || 0]; }) }; });
+      workItems = ((B && B.WORKS) || []).map(function (w, i) { return { n: i + 1, key: w[0], name: w[1], sum: Math.round(AS[w[0]] || 0) }; }).filter(function (w) { return w.sum > 0; });
+      split = { rooms: AR.rooms, typical: r.api.basis !== 'plan' };
+    } else if (r.visuals) {
+      /* бюджет по фото: категории и комнаты — предметы с фото с товарами каталога (витриной, как у капсулы); работы — этапы сервера по типовой норме */
+      var byCatV = {}, byRoomV = {}, orderC = [], orderR = [];
+      r.visuals.forEach(function (l) {
+        var k = l.p.category || 'Мебель', rm = visRoomName(l.room) || 'Комната не определена';
+        if (!byCatV[k]) { byCatV[k] = []; orderC.push(k); } byCatV[k].push(l);
+        if (!byRoomV[rm]) { byRoomV[rm] = []; orderR.push(rm); } byRoomV[rm].push(l);
+      });
+      var sumV = function (ls) { return ls.reduce(function (a, l) { return a + l.metod; }, 0); };
+      var goodsV = function (ls) { return B && B.goodsHtml ? B.goodsHtml(ls.map(function (l) { return { p: l.p, sub: (l.thing ? visRoomName(l.thing) : (l.p.subcat || '')) + (l.qty > 1 || l.perM2 ? ' · ' + l.qty + (l.perM2 ? ' м²' : ' шт.') : '') + (l.perM2 ? ' · по площади' : '') }; }), '') : ''; };
+      catItems = orderC.map(function (k) { return { name: k, sum: sumV(byCatV[k]), html: goodsV(byCatV[k]), kids: orderR.map(function (rm) { return [rm, sumV(byRoomV[rm].filter(function (l) { return (l.p.category || 'Мебель') === k; }))]; }) }; });
+      roomItems = orderR.map(function (rm) { return { name: rm, sub: byRoomV[rm].length + ' ' + pl(byRoomV[rm].length, ['предмет', 'предмета', 'предметов']) + ' на фото', sum: sumV(byRoomV[rm]), html: goodsV(byRoomV[rm]) }; });
+      if (orderR.length === 1 && orderR[0] === 'Комната не определена') roomItems = [];
+      if (r.worksApi && S.budgetApi) {
+        var ASv = S.budgetApi.estimate(r.worksApi, null, r.state).apiStages; WR = S.budgetApi.workRows(r.worksApi);
+        workItems = ((B && B.WORKS) || []).map(function (w, i) { return { n: i + 1, key: w[0], name: w[1], sum: Math.round(ASv[w[0]] || 0) }; }).filter(function (w) { return w.sum > 0; });
+      }
+      split = null;
+    }
     var wd = Math.round(r.works) - workItems.reduce(function (a, w) { return a + w.sum; }, 0); if (wd && workItems.length) workItems[workItems.length - 1].sum += wd;   /* округление — в последний этап */
+    if (r.rough > 0) workItems.push({ n: '＋', key: 'rough', name: 'Черновые материалы', sum: Math.round(r.rough) });   /* смеси, грунт, шпаклёвка — за м², только вместе с работами */
     var worksHtml = r.works > 0
-      ? frHead('Строительные работы', r.works) +
-        frList(workItems.map(function (w) { var ln = B.workLines ? B.workLines(w.key) : []; return { num: w.n, name: w.name, sum: w.sum, html: ln.length ? B.linesHtml(ln) : '' }; })).replace('<section class="sq-card fr-list">', '<section class="sq-card fr-list"><small class="sq-note">Общая сумма на объект · по комнатам не делится</small>').replace(/<\/section>$/, planWorksHtml + '</section>')
+      ? frHead('Строительные работы', r.works + r.rough) +
+        frList(workItems.map(function (w) { var ln = WR ? (WR[w.key] || []).map(function (l) { return l[0] + ' · ' + F.num(l[3]) + ' ' + l[1] + ' × ' + F.rub(l[2]) + ' = ' + F.rub(l[4]); }) : w.key === 'rough' ? [] : B.workLines ? B.workLines(w.key) : []; return { num: w.n, name: w.name, sum: w.sum, html: ln.length ? B.linesHtml(ln) : '' }; })).replace('<section class="sq-card fr-list">', '<section class="sq-card fr-list"><small class="sq-note">Общая сумма на объект · по комнатам не делится</small>').replace(/<\/section>$/, planWorksHtml + '</section>')
       : frHead('Строительные работы', null) + '<section class="sq-card"><small class="sq-note">' + (st.city === 'msk'
           ? 'Выбрана только комплектация. <button type="button" class="sq-link sq-link--in" data-act="edit">Посчитать с работами ›</button>'
           : 'Строительную смету считаем по Москве') + '</small></section>';
-    var vFirst = r.visuals && r.visuals[0] && r.visuals[0].p;
-    var heroImg = c ? (c.wide || c.cover) : vFirst ? vFirst.img : '', heroName = c ? esc(capName(c.id)) : 'Подборка из каталога';
+    var vFirst = r.visuals && r.visuals[0] && r.visuals[0].p, vTh = r.visuals ? visThumbs() : [], vLive = !!(st.visuals && st.visuals.live), nPh = r.visuals && st.visuals ? st.visuals.files.length : 0;
+    var heroImg = c ? (c.wide || c.cover) : vTh[0] || (vFirst ? vFirst.img : ''), heroName = c ? esc(capName(c.id)) : vLive ? 'Предметы с ваших фото' : 'Пример подборки из каталога';
     var nRooms = roomsCount(), layX = LAYOUTS.filter(function (x) { return x[0] === layoutNow(); })[0], bathsN = byPlan() ? rooms.filter(function (x) { return x.zone === 'bathroom'; }).length : bathsNow();
-    var heroChips = [r.visuals ? '' : esc(r.level.name), '<span class="num">' + F.area(r.area) + '</span>', st.city === 'msk' ? 'Москва' : '', esc(r.state.name),
+    var heroChips = [r.visuals ? (nPh ? nPh + ' фото · ' : '') + r.visuals.length + ' ' + pl(r.visuals.length, ['предмет', 'предмета', 'предметов']) : esc(r.level.name), '<span class="num">' + F.area(r.area) + '</span>', st.city === 'msk' ? 'Москва' : '', esc(r.state.name),
       byPlan() && nRooms ? nRooms + ' ' + pl(nRooms, ['помещение', 'помещения', 'помещений']) : layX ? esc(cap(layX[1])) : '',
       bathsN ? bathsN + ' ' + pl(bathsN, ['санузел', 'санузла', 'санузлов']) : ''].filter(Boolean);
+    var visNote = r.visuals ? '<small class="sq-note fr-note">' + (vLive ? 'Предметы с ваших фото и товары каталога к ним · отделка по площади квартиры · работы по типовой норме · примерно' : 'Пример подборки по правилам — сервер разбора фото недоступен') +
+      (st.visuals && st.visuals.miss ? ' · ' + st.visuals.miss + ' ' + pl(st.visuals.miss, ['предмет', 'предмета', 'предметов']) + ' без товара в каталоге' : '') + '</small>' : '';
+    var visPhotos = vTh.length > 1 ? '<div class="fr-photos" aria-label="Ваши фото">' + vTh.map(function (u) { return '<img src="' + esc(u) + '" alt="" width="72" height="72" loading="lazy">'; }).join('') + '</div>' : '';
 
     return '<div class="scout-step scout-step--result sq fr">' +
       '<div class="sq-title"><h2 id="scout-h" tabindex="-1">Ваш бюджет</h2></div>' +
       (savedPr ? '<div class="notice notice--ok" role="status"><span class="small"><b>Расчёт сохранён в проект «' + esc(savedPr.name) + '».</b> Он появился в кабинете вместе с капсулой и площадью.</span><a class="btn btn--dark btn--sm" href="project.html?id=' + encodeURIComponent(savedPr.id) + '">Открыть проект</a></div>' : '') +
-      premiumNote +
+      premiumNote + srvNote +
 
       /* продающая карточка итога (Алина 10.11): фото выбранного интерьера, параметры квартиры и плановый бюджет — светлая, фото не затемняем */
       '<section class="sq-card fr-hero">' +
         (heroImg ? '<span class="fr-hero__pic"><img src="' + esc(heroImg) + '" alt="" loading="lazy"></span>' : '') +
         '<div class="fr-hero__b">' +
-          '<div class="fr-hero__top"><small class="fr-k">' + (r.visuals ? 'Интерьер по вашим картинкам' : 'Интерьер') + '</small><b class="fr-hero__name">' + heroName + '</b></div>' +
+          '<div class="fr-hero__top"><small class="fr-k">' + (r.visuals ? 'Интерьер по вашим фото' : 'Интерьер') + '</small><b class="fr-hero__name">' + heroName + '</b></div>' +
           '<div class="fr-chips">' + heroChips.map(function (t) { return '<span>' + t + '</span>'; }).join('') + '</div>' +
           '<div class="fr-hero__sum"><small class="fr-k">Плановый бюджет</small>' +
             '<div class="fr-total__row"><b class="fr-big num">' + F.rub(r.total) + '</b><span class="fr-per num">' + F.rub(r.perM2) + '/м²</span></div>' +
-            '<div class="fr-parts"><span>Комплектация <b class="num">' + F.rub(r.kitMetod) + '</b></span>' + (r.works > 0 ? '<span>Работы <b class="num">' + F.rub(r.works) + '</b></span>' : '') + '</div>' +
+            '<div class="fr-parts"><span>Комплектация <b class="num">' + F.rub(r.kitMetod) + '</b></span>' + (r.works > 0 ? '<span>Работы <b class="num">' + F.rub(r.works) + '</b></span>' : '') + (r.rough > 0 ? '<span>Черновые <b class="num">' + F.rub(r.rough) + '</b></span>' : '') + '</div>' +
             (r.save > 0 ? '<div class="fr-save"><span>Экономия с подпиской METOD</span><b class="num">−' + F.rub(r.save) + '</b></div>' : '') +
           '</div>' +
         '</div>' +
       '</section>' +
 
-      (catItems.length ? frHead('По категориям', r.kitMetod) + frList(catItems) : '') +
-      (roomItems.length ? frHead('По комнатам', r.kitMetod) + (split && split.typical ? '<small class="sq-note fr-note">Типовые зоны · загрузите план, чтобы считать точно</small>' : '') + frList(roomItems) : '') +
+      visPhotos + visNote +
+      (srvWait ? '' : (catItems.length ? frHead('По категориям', r.kitMetod) + frList(catItems) : '') +
+      (roomItems.length ? frHead('По комнатам', r.kitMetod) + (split && split.typical ? '<small class="sq-note fr-note">Типовые зоны · загрузите план, чтобы считать точно</small>' : '') + frList(roomItems) : '')) +
       worksHtml +
 
       '<div class="fr-acts">' + saveButton() +
@@ -1203,7 +1405,7 @@
   /* ---------- отрисовка ---------- */
   function render() {
     if (st.step <= 3) st.auto[st.step] = false;   /* шаг на экране — человек его видел: из линии шагов он больше не пропадает, «Назад» ведёт на него */
-    renderHead(); renderSteps();
+    renderHead(); renderSteps(); askServer();
     var note = restoredNote ? '<p class="small muted scout-restored">Вернули ваш незаконченный расчёт — продолжайте с того же места. <button type="button" class="btn btn--link" data-act="restart">Начать заново</button></p>' : '';
     var html = st.step === 1 ? viewStart() : st.step === 2 ? viewStateStep() : st.step === 3 ? viewPlanStep() : st.step === 4 ? (st.gate ? viewInvoice() : viewFinish()) : viewResult();
     stage.innerHTML = note + html;
@@ -1217,6 +1419,8 @@
     st.step = n; st.gate = false; payError = ''; restoredNote = false;
     focusAfter = '#scout-h'; render(); persist(); toTop();
   }
+  /* «<» в шапке — на шаг назад внутри расчёта, не со страницы (Валерия 10.11) */
+  window.SOVE.backStep = function () { if (st.gate) { go(4); return true; } if (st.step > 1) { go(prevFrom(st.step)); return true; } return false; };
 
   /* ---------- сохранение в проект (кабинет, прежний путь) ---------- */
   function writeTo(id) {
@@ -1282,6 +1486,7 @@
       if (st.step === 3 && !(st.fromPlan !== undefined && st.fromPlan !== null)) keepArea();
       go(nextFrom(st.step));
     }
+    else if (act === 'recalc') { apiFailed = ''; askServer(); render(); }
     else if (act === 'pay') payOpen();
     else if (act === 'ungate') go(4);
     else if (act === 'back') go(prevFrom(st.step));
@@ -1291,7 +1496,7 @@
     else if (act === 'add-room') { var id = 'n' + (++roomSeq); while (byId(st.plan.rooms, id)) id = 'n' + (++roomSeq); st.plan.rooms.push({ id: id, name: '', area: null }); st.plan.src = 'user'; touch(); focusAfter = '#rn-' + id; render(); }
     else if (act === 'del-room') { var row = t.closest('[data-room]'); if (row && st.plan.rooms.length > 1) { st.plan.rooms = st.plan.rooms.filter(function (r) { return r.id !== row.getAttribute('data-room'); }); st.plan.src = 'user'; touch(); focusAfter = '[data-act="add-room"]'; render(); } }
     else if (act === 'use-visuals') { if (st.visuals && st.visuals.items.length) { st.source = 'visuals'; touch(); focusAfter = '[data-int-open]'; render(); } }
-    else if (act === 'drop-visuals') { st.visuals = null; st.source = 'capsule'; touch(); focusAfter = '[data-int-open]'; render(); }
+    else if (act === 'drop-visuals') { stopVis(); st.visuals = null; st.source = 'capsule'; touch(); focusAfter = '[data-int-open]'; render(); }
     else if (act === 'vis-to-my') { if (st.visuals) { st.visuals.items.forEach(function (it) { S.my.addProduct(it.id); }); S.ui.toast('Подборка в «Мой ремонт» — ' + st.visuals.items.length + ' ' + pl(st.visuals.items.length, ['товар', 'товара', 'товаров']), 'ok'); } }
     else if (act === 'save') save();
     else if (act === 'dl-toggle') { var dm = t.nextElementSibling, dopen = t.getAttribute('aria-expanded') === 'true'; t.setAttribute('aria-expanded', String(!dopen)); if (dm) dm.hidden = dopen; }

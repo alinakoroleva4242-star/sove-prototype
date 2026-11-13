@@ -1,5 +1,4 @@
-/* Каталог капсул: фильтр по стилю, крупные карточки, режим выбора (?pick=1&returnTo=scout.html) — запасной путь для страниц без окна выбора
-   (SOVE.capsulePicker): выбор возвращает на returnTo с ?capsule=<id>. Коды К1–К7 в интерфейсе не показываем — ни в тексте, ни в alt и aria-label */
+/* Каталог капсул: фильтр по стилю, крупные карточки, режим выбора (?pick=1&returnTo=scout.html) */
 (function () {
   var S = window.SOVE;
   var grid = document.getElementById('caps-grid');
@@ -10,8 +9,6 @@
   }
   var D = S.data, F = S.fmt, esc = F.esc;
   var all = D.capsules.slice();
-  /* имя капсулы — короткое, как в окне выбора, Интерьере, полоске объекта и тосте после выбора (SOVE_KB), иначе из data.js; стиль — строкой над именем */
-  function nm(c) { var k = window.SOVE_KB && window.SOVE_KB.capsule && window.SOVE_KB.capsule(c.id); return (k && k.name) || c.name; }
 
   function plural(n, one, few, many) { var a = Math.abs(n) % 100, b = a % 10; return (a > 10 && a < 20) ? many : b === 1 ? one : (b >= 2 && b <= 4) ? few : many; }
 
@@ -22,7 +19,7 @@
   var pick = S.ui.qs('pick') === '1';
   var returnTo = pick ? (safeReturn(S.ui.qs('returnTo')) || 'scout.html') : null;
   var current = pick ? (S.ui.qs('capsule') || '').toLowerCase() : '';
-  var RETURN_NAMES = { 'scout.html': 'в расчёт бюджета', 'adept.html': 'в дизайн-проект', 'track.html': 'в управление ремонтом', 'project.html': 'в проект', 'account.html': 'в кабинет', 'my.html': 'в Мой ремонт' };
+  var RETURN_NAMES = { 'scout.html': 'в расчёт бюджета', 'adept.html': 'в дизайн-проект', 'track.html': 'в управление ремонтом', 'project.html': 'в проект', 'account.html': 'в кабинет' };
   var backLabel = pick ? (RETURN_NAMES[returnTo.split('?')[0]] || 'назад') : '';
 
   if (pick) {
@@ -32,8 +29,7 @@
     document.getElementById('caps-lead').textContent = 'Нажмите на карточку — вернём вас ' + backLabel + ' с выбранной капсулой. Расчёт и введённые данные сохранятся';
     var note = document.getElementById('caps-pick');
     note.hidden = false;
-    var forMy = returnTo.split('?')[0] === 'my.html', anySoon = all.some(function (c) { return c.soon; });
-    note.innerHTML = '<span class="small">' + (forMy ? 'Вы выбираете интерьер квартиры — он появится в Моём ремонте.' : 'Вы выбираете капсулу для расчёта.') + (anySoon ? ' Капсула «скоро» пока недоступна: у неё нет комплектации.' : '') + '</span>' +
+    note.innerHTML = '<span class="small">Вы выбираете капсулу для расчёта. Капсула «скоро» пока недоступна: у неё нет комплектации.</span>' +
       '<a class="btn btn--link" href="' + esc(returnTo) + '">Вернуться ' + esc(backLabel) + ' без выбора</a>';
     var next = document.getElementById('caps-next'); if (next) next.hidden = true;
   }
@@ -50,7 +46,8 @@
 
   /* ---------- фильтр по стилю ---------- */
   var styles = [];
-  all.forEach(function (c) { if (styles.indexOf(c.style) < 0) styles.push(c.style); });
+  function collectStyles() { all.forEach(function (c) { if (c.style && styles.indexOf(c.style) < 0) styles.push(c.style); }); }
+  collectStyles();
   var active = S.ui.qs('style'); if (styles.indexOf(active) < 0) active = '';
   var filterBox = document.getElementById('caps-filter'), countBox = document.getElementById('caps-count');
 
@@ -63,35 +60,23 @@
   }
 
   /* ---------- карточки ---------- */
-  function priceRow(c) {
-    return c.soon || !c.pricePerM2
-      ? '<p class="cap-card__price"><span class="tiny muted">комплектация</span><span class="small muted">собирается</span></p>'
-      : '<p class="cap-card__price"><span class="tiny muted">комплектация от</span><span class="mid-num">' + F.rub(c.pricePerM2) + '/м²</span></p>';
-  }
-  function picHtml(c) {
-    return '<img src="' + esc(c.cover) + '" alt="Интерьер «' + esc(nm(c)) + '»: ' + esc(c.style.toLowerCase()) + '" loading="lazy" width="960" height="1200">' +
-      (c.soon ? '<span class="badge badge--line cap-card__soon">скоро</span>' : '');
-  }
-  function bodyHtml(c) {
-    return '<div class="cap-card__body"><span class="eyebrow">' + esc(c.style) + '</span>' +
-      '<h2 class="cap-card__name">' + esc(nm(c)) + '</h2>' + priceRow(c) + '</div>';
-  }
+  /* сама карточка — единая SOVE.ui.capCard (cap-card.js), как в «Расчёте ремонта» (Вика 03.11): фото, название, стиль,
+     палитра, «от N ₽/м²»; на телефоне одна в ряд — крупная (l). Строка ссылок и строка выбора — прежние, под карточкой */
   function card(c) {
     if (pick) {
       if (c.soon) {
-        return '<div class="cap-card is-off" aria-disabled="true"><div class="cap-card__pic">' + picHtml(c) + '</div>' + bodyHtml(c) +
+        return '<div class="cap-card">' + S.ui.capCard(c, { tag: 'div', size: 'l', off: true, attrs: { 'aria-disabled': 'true' } }) +
           '<div class="cap-card__pickline"><span class="small muted">Выбрать пока нельзя — капсула готовится</span></div></div>';
       }
-      var isCur = c.id === current;
-      return '<a class="cap-card cap-card--pick' + (isCur ? ' is-current' : '') + '" href="' + esc(withCapsule(returnTo, c.id)) + '" aria-label="Выбрать капсулу «' + esc(nm(c)) + '»">' +
-        '<div class="cap-card__pic">' + picHtml(c) + '</div>' + bodyHtml(c) +
-        '<div class="cap-card__pickline">' + (isCur ? '<span class="small muted">Выбрана сейчас</span>' : '<span></span>') + '<span class="arrow-link">Выбрать</span></div></a>';
+      var isCur = c.id === current, href = withCapsule(returnTo, c.id);
+      return '<div class="cap-card">' + S.ui.capCard(c, { href: href, size: 'l', on: isCur, label: 'Выбрать капсулу «' + c.name + '»' }) +
+        '<div class="cap-card__pickline">' + (isCur ? '<span class="small muted">Выбрана сейчас</span>' : '<span></span>') +
+        '<a class="arrow-link" href="' + esc(href) + '" tabindex="-1" aria-hidden="true">Выбрать</a></div></div>';
     }
     var view = 'capsule.html?id=' + c.id;
-    return '<article class="cap-card">' +
-      '<a class="cap-card__pic" href="' + view + '" tabindex="-1" aria-hidden="true">' + picHtml(c) + '</a>' + bodyHtml(c) +
-      '<div class="cap-card__links"><a class="btn btn--link" href="' + view + '" aria-label="Смотреть капсулу «' + esc(nm(c)) + '»">Смотреть</a>' +
-      (c.soon ? '<span class="small muted">расчёт появится позже</span>' : '<a class="arrow-link" href="scout.html?capsule=' + c.id + '" aria-label="Рассчитать ремонт с капсулой «' + esc(nm(c)) + '»">Рассчитать</a>') + '</div></article>';
+    return '<article class="cap-card">' + S.ui.capCard(c, { href: view, size: 'l', off: false }) +
+      '<div class="cap-card__links"><a class="btn btn--link" href="' + view + '" aria-label="Смотреть капсулу «' + esc(c.name) + '»">Смотреть</a>' +
+      (c.soon ? '<span class="small muted">расчёт появится позже</span>' : '<a class="arrow-link" href="scout.html?capsule=' + c.id + '" aria-label="Рассчитать ремонт с капсулой «' + esc(c.name) + '»">Рассчитать</a>') + '</div></article>';
   }
 
   function renderGrid() {
@@ -114,6 +99,9 @@
     setStyle(key);
     var again = filterBox.querySelector('[data-style="' + (window.CSS && CSS.escape ? CSS.escape(active) : active) + '"]'); if (again) again.focus();
   });
+
+  /* новая капсула или цена пришли с сервера, пока страница открывалась (data.js) */
+  window.addEventListener('sove:capsules', function () { all = D.capsules.slice(); collectStyles(); renderFilter(); renderGrid(); });
 
   renderFilter(); renderGrid();
 })();

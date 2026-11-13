@@ -13,7 +13,7 @@
   load();
 
   var STATUS = { in_stock: 'В наличии', under_order: 'Под заказ', none: 'Нет в наличии' };
-  var REVIEW = { pending: 'На проверке', approved: 'Опубликовано', rejected: 'Отклонено' };
+  var REVIEW = { draft: 'Черновик', pending: 'На проверке', approved: 'Опубликовано', rejected: 'Отклонено' };
   var SECTIONS = ['orders', 'goods', 'finance', 'messages', 'promotion', 'admin'];
   var SECTION_LABEL = { orders: 'Заказы', goods: 'Товары и цены', finance: 'Финансы', messages: 'Сообщения', promotion: 'Продвижение', admin: 'Профиль и сотрудники' };
   function money(v) { if (v == null || v === '') return null; var n = Number(String(v).replace(/\s/g, '').replace(',', '.')); return isFinite(n) && n >= 0 ? Math.round(n * 100) / 100 : null; }
@@ -22,11 +22,12 @@
   var edits = {
     list: function (brand) { return Object.keys(st.edits).map(function (k) { return st.edits[k]; }).filter(function (e) { return !brand || e.brand === brand; }).sort(function (a, b) { return b.submittedAt - a.submittedAt; }); },
     get: function (ref) { return st.edits[ref] || null; },
-    submit: function (ref, data) {
+    /* asDraft — черновик (ТЗ кабинета, экран 05: «черновик/публикация»): сохраняется у партнёра, менеджеру на проверку не уходит */
+    submit: function (ref, data, asDraft) {
       var cur = st.edits[ref] || { ref: ref, published: null, own: /^own:/.test(ref) };
       Object.keys(data).forEach(function (k) { if (data[k] !== undefined) cur[k] = data[k]; });
       cur.priceRetail = money(cur.priceRetail); cur.priceSove = money(cur.priceSove);
-      cur.state = 'pending'; cur.note = null; cur.submittedAt = Date.now();
+      cur.state = asDraft ? 'draft' : 'pending'; cur.note = null; cur.submittedAt = Date.now();
       st.edits[ref] = cur; save(); return cur;
     },
     decide: function (ref, approve, note) {
@@ -105,7 +106,7 @@
     plan: function (ob, items) {
       return rooms.defs(ob).map(function (room) {
         var covered = room.sections.filter(function (s) { return items.some(function (it) { return it.section === s && rooms.matches(room, it.room) !== false; }); });
-        return Object.assign({}, room, { covered: covered, missing: room.sections.filter(function (s) { return covered.indexOf(s) < 0; }), percent: Math.round(covered.length / room.sections.length * 100), capsule: st.roomCapsules[room.key] || null });
+        return Object.assign({}, room, { covered: covered, missing: room.sections.filter(function (s) { return covered.indexOf(s) < 0; }), percent: Math.round(covered.length / room.sections.length * 100), capsule: (st.roomCapsules[room.key] ? String(st.roomCapsules[room.key]).replace(/^К\d+\s*·\s*/, '') : null )});
       });
     },
     summary: function (plan) { var total = 0, done = 0; plan.forEach(function (r) { total += r.sections.length; done += r.covered.length; }); return { total: total, done: done, percent: total ? Math.round(done / total * 100) : 0 }; },
@@ -217,4 +218,27 @@
     add: function (id, who, text) { var l = chat.list(id); l.push({ who: who, text: text, ts: Date.now() }); st[id] = l; save(); return l; }
   };
   S.pext.chat = chat;
+})();
+/* логистика и документы заказа (Вика 05.11, кабинет поставщика): согласование доставки с клиентом и документы рядом с перепиской —
+   договор, счёт, акт; оплаты — из заказа. Ключ — id заказа. Файлы в прототипе не храним — только имя и статус. */
+(function () {
+  var S = window.SOVE; if (!S || !S.pext) return;
+  var KEY = 'sove.proto.partnerOrderDocs.v1';
+  function blank() { return { log: {}, docs: {} }; }
+  var st; try { st = Object.assign(blank(), JSON.parse(localStorage.getItem(KEY) || '{}')); } catch (e) { st = blank(); }
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (e) {} }
+  S.pext.logistics = {
+    get: function (id) { return st.log[id] || null; },
+    set: function (id, patch) { st.log[id] = Object.assign({}, st.log[id] || {}, patch, { ts: Date.now() }); save(); return st.log[id]; }
+  };
+  S.pext.docs = {
+    list: function (id) { return (st.docs[id] || []).slice(); },
+    get: function (id, kind) { return (st.docs[id] || []).filter(function (d) { return d.kind === kind; })[0] || null; },
+    put: function (id, kind, patch) {
+      var l = st.docs[id] = st.docs[id] || [], d = kind === 'other' ? null : l.filter(function (x) { return x.kind === kind; })[0];
+      if (!d) { d = { id: 'd' + Date.now().toString(36) + l.length, kind: kind }; l.push(d); }
+      Object.assign(d, patch, { ts: Date.now() }); save(); return d;
+    },
+    set: function (id, docId, patch) { var d = (st.docs[id] || []).filter(function (x) { return x.id === docId; })[0]; if (d) { Object.assign(d, patch, { ts: Date.now() }); save(); } return d || null; }
+  };
 })();

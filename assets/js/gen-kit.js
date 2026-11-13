@@ -48,7 +48,7 @@
   function ic(n, s) {
     return '<svg viewBox="0 0 24 24" width="' + (s || 22) + '" height="' + (s || 22) + '" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true">' + (P[n] || '') + '</svg>';
   }
-  var rates = D.scout.states.map(function (x) { return x.rate; });
+  var rates = D.scout.states.map(function (x) { return x.rate + D.scout.roughRate(x.id); });   /* черновые сверху — только при включённом флаге */
   var minRate = Math.min.apply(null, rates), maxRate = Math.max.apply(null, rates);
   function mln(n) { return (Math.round(n / 100000) / 10).toFixed(1).replace('.', ','); }
   /* бюджет ремонта в капсуле: работы (от лёгкого до тяжёлого состояния) + комплектация по ценам METOD */

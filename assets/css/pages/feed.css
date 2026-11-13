@@ -319,6 +319,37 @@ body[data-page="feed"], body[data-page="feed"] #main { background: #efe8df; }
 .fd-rt span { padding: 0; }
 .fd-rt b { font-size: 13px; line-height: 1.05; overflow-wrap: anywhere; hyphens: auto; }
 .fd-rt small { font-size: 8px; letter-spacing: .08em; }
-/* бегунок ползунка площади заметный (Алина 04.11: «колесо прозрачное»): белый круг с тёмной обводкой и тенью */
-.fd-top .hc-range::-webkit-slider-thumb { background: var(--white); border: 2px solid var(--ink); box-shadow: 0 3px 10px rgba(41,36,33,.3); width: 26px; height: 26px; margin-top: -11.5px; }
-.fd-top .hc-range::-moz-range-thumb { background: var(--white); border: 2px solid var(--ink); box-shadow: 0 3px 10px rgba(41,36,33,.3); }
+/* ползунок площади: стили .hc-range из home3.css копии Алины (в нашем home3.css их нет — ползунок рисовался браузерным синим, Валерия 04.11).
+   Тонкая дорожка с заливкой до бегунка (--fill ставит syncArea), поле касания 44 px; бегунок — белый круг с тёмной обводкой и тенью
+   (Алина 04.11: «колесо прозрачное»); одинаково в Safari, Chrome и Firefox */
+.fd-top .hc-range { -webkit-appearance: none; appearance: none; display: block; width: 100%; height: 44px; margin: -2px 0 -4px; padding: 0; background: transparent; cursor: pointer; --fill: 50%; -webkit-tap-highlight-color: transparent; }
+.fd-top .hc-range:focus { outline: none; }
+.fd-top .hc-range::-webkit-slider-runnable-track { height: 3px; border-radius: 3px; background: linear-gradient(to right, var(--accent-2, var(--accent)) 0, var(--accent-2, var(--accent)) var(--fill), var(--line-2) var(--fill), var(--line-2) 100%); }
+.fd-top .hc-range::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 26px; height: 26px; margin-top: -11.5px; border: 2px solid var(--ink); border-radius: 50%; box-sizing: border-box;
+  background: var(--white); box-shadow: 0 3px 10px rgba(41,36,33,.3); transition: transform .15s; }
+.fd-top .hc-range:active::-webkit-slider-thumb { transform: scale(1.12); }
+.fd-top .hc-range:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 3px var(--white), 0 0 0 5px var(--accent-2, var(--accent)); }
+.fd-top .hc-range::-moz-range-track { height: 3px; border-radius: 3px; background: var(--line-2); }
+.fd-top .hc-range::-moz-range-progress { height: 3px; border-radius: 3px; background: var(--accent-2, var(--accent)); }
+.fd-top .hc-range::-moz-range-thumb { width: 26px; height: 26px; border: 2px solid var(--ink); border-radius: 50%; box-sizing: border-box; background: var(--white); box-shadow: 0 3px 10px rgba(41,36,33,.3); }
+.fd-top .hc-range:focus-visible::-moz-range-thumb { box-shadow: 0 0 0 3px var(--white), 0 0 0 5px var(--accent-2, var(--accent)); }
+
+/* карусель капсул под кнопкой подписки (без подписки, Алина 04.11): ряд единых карточек с прокруткой внутри ряда */
+.fd-caps { margin: 14px 0 2px; }
+#feed-root > .fd-caps { margin: 0; }   /* с подпиской карусель — первой на экране, отступы даёт стек */
+#feed-root .fd-top { padding-bottom: 0; }   /* home3.css держит под #home3 50 px под плашку сравнения — в ленте это «странный промежуток» (Алина 04.11) */
+/* плитка доски компактнее (Алина 04.11: «попробуй её поменьше»): фото ниже, полароид и логотип мельче, заголовок 22 px, кнопка 46 px */
+.fd-gift { border-radius: 18px; }
+.fd-gift__ph { height: 172px; }
+.fd-gift__tag { left: 10px; top: 10px; padding: 5px 9px; font-size: 10px; }
+.fd-gift__logo { right: 10px; top: 10px; padding: 6px 8px; border-radius: 10px; }
+.fd-gift__logo i { width: 64px; }
+.fd-gift__pol { right: 12px; bottom: -24px; width: 92px; padding: 5px 5px 3px; }
+.fd-gift__pol figcaption { padding-top: 3px; font-size: 10px; }
+.fd-gift__b { gap: 8px; padding: 12px 14px 14px; }
+.fd-gift__t { padding-right: 100px; min-height: 0; font-size: 22px; line-height: 1.1; }
+.fd-gift__go { min-height: 46px; font-size: 14px; }
+.fd-caps__t { display: block; margin-bottom: 8px; font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: #817b76; }
+.fd-caps__row { display: flex; gap: 10px; overflow-x: auto; scroll-snap-type: x mandatory; padding: 2px 2px 6px; margin: 0 -2px; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+.fd-caps__row::-webkit-scrollbar { display: none; }
+.fd-caps__row > .ucap { flex: 0 0 150px; width: 150px; scroll-snap-align: start; }

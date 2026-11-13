@@ -109,6 +109,8 @@
   .market-grid .price__metod { font-size: 18px; }
   .market-grid .price__retail { font-size: 13px; }
   .market-grid .product-card__fav { top: 4px; right: 4px; }
+  /* корзина — под сердечком, как на широком экране (my-repair.css: top 60px); без этого правило выше ставит её поверх сердечка */
+  .market-grid .product-card__cart { top: 52px; }
 }
 .market-grid > .empty, .market-grid > .error-screen { grid-column: 1 / -1; }
 .market-grid > .empty { padding-block: var(--s12); }
@@ -219,7 +221,7 @@
 .market-skel__body { padding: 12px 2px 0; }
 
 /* «в мой ремонт» — кнопка на фото, не отдельная строка под каждой карточкой */
-.market-grid .pc__add { position: absolute; z-index: 2; top: 0; right: 0; margin: calc(100% - 44px) 0 0; width: 44px; min-height: 44px; height: 44px; padding: 0; border: 0; background: var(--white); color: transparent; font-size: 0; opacity: 1; transform: none; overflow: hidden; white-space: nowrap; transition: width .18s ease, background .15s; }
+.market-grid .pc__add { position: absolute; z-index: 2; top: 0; right: 0; margin: calc(100% - 52px) 8px 0 0; width: 44px; min-height: 44px; height: 44px; padding: 0; border: 0; background: var(--white); color: transparent; font-size: 0; opacity: 1; transform: none; overflow: hidden; white-space: nowrap; transition: width .18s ease, background .15s; }
 .market-grid .pc__add::before { content: ''; position: absolute; right: 14px; top: 14px; width: 16px; height: 16px; background: linear-gradient(var(--ink), var(--ink)) center / 16px 1.6px no-repeat, linear-gradient(var(--ink), var(--ink)) center / 1.6px 16px no-repeat; }
 .market-grid .pc__add.is-on { background: var(--green); }
 .market-grid .pc__add.is-on::before { width: 14px; height: 8px; right: 15px; top: 15px; background: none; border-left: 2px solid var(--white); border-bottom: 2px solid var(--white); transform: rotate(-45deg); }

@@ -69,9 +69,11 @@
     } catch (e) { return ''; }
   }
   var media = [ { src: p.img, alt: p.name, label: 'Фото товара', render: false } ];
-  if (caps[0]) media.push({ src: caps[0].cover, alt: 'Интерьер капсулы ' + caps[0].code + ': ' + caps[0].name, label: 'Интерьер капсулы ' + caps[0].code, render: true });
+  if (caps[0]) media.push({ src: caps[0].cover, alt: 'Интерьер капсулы «' + caps[0].name + '»', label: 'Интерьер капсулы «' + caps[0].name + '»', render: true });
 
   function hasAccess() { return S.auth.isIn() && S.metod.hasContact(p.id); }
+  function hasPrice() { return p.metod > 0 || p.retail > 0; }
+  var perUnit = p.unit ? ' за ' + F.esc(p.unit) : '';
   function plural(n, forms) { var a = Math.abs(n) % 100, b = a % 10; return (a > 10 && a < 20) ? forms[2] : b === 1 ? forms[0] : (b >= 2 && b <= 4) ? forms[1] : forms[2]; }
 
   /* ---------- похожие ---------- */
@@ -114,6 +116,7 @@
   }
   function renderBuy() {
     var box = document.getElementById('p-buy'); if (!box) return;
+    if (!hasPrice()) { box.innerHTML = '<p class="product-buy__note">Цена уточняется: товар пока нельзя добавить в корзину.</p>'; return; }
     var c = cartState(), state = !c.inCart ? 'add' : c.other ? 'switch' : 'open';
     var label = { add: 'В корзину', 'switch': 'Сменить продавца в корзине', open: 'В корзине ✓' }[state];
     box.innerHTML = '<button type="button" class="btn btn--primary btn--lg btn--block product-buy__btn' + (state === 'open' ? ' is-on' : '') + '" data-act="cart" data-state="' + state + '"' +
@@ -149,11 +152,11 @@
     var rows =
       '<div><span>Срок</span><span>' + F.esc(p.leadTime) + '</span></div>' +
       '<div><span>Доставка</span><span id="p-delivery">' + rowDelivery(sel()) + '</span></div>' +
-      (p.madeToOrder ? '' : '<div><span>Бренд</span><span>' + F.esc(p.brand) + '</span></div>') +
-      (caps.length ? '<div><span>' + plural(caps.length, ['Капсула', 'Капсулы', 'Капсулы']) + '</span><span class="row">' + caps.map(function (c) { return '<a class="chip" href="capsule.html?id=' + c.id + '" title="' + F.esc(c.name) + '">' + c.code + '</a>'; }).join('') + '</span></div>' : '');
+      (p.madeToOrder || !p.brand ? '' : '<div><span>Бренд</span><span>' + F.esc(p.brand) + '</span></div>') +
+      (caps.length ? '<div><span>' + plural(caps.length, ['Капсула', 'Капсулы', 'Капсулы']) + '</span><span class="row">' + caps.map(function (c) { return '<a class="chip" href="capsule.html?id=' + c.id + '" title="' + F.esc(c.name) + '">' + F.esc(c.name) + '</a>'; }).join('') + '</span></div>' : '');
     /* у товара с выбором продавца список — в блоке «Где купить» над кнопкой «В корзину» */
-    if (!multi) rows += '<div><span>Поставщик</span><span>' + F.esc(suppliers[0].name) + '</span></div>';
-    rows += '<div class="seller"><span>Продавец</span><span class="seller__body"><b id="p-seller-name">' + F.esc(sel().name) + '</b><small>ИНН и ОГРН — из реестра партнёров · проверен по ЕГРЮЛ</small><a href="about.html#docs">Документы и сертификаты</a></span></div>';
+    if (!multi && p.brandRaw !== '') rows += '<div><span>Поставщик</span><span>' + F.esc(suppliers[0].name) + '</span></div>';
+    if (p.brandRaw !== '') rows += '<div class="seller"><span>Продавец</span><span class="seller__body"><b id="p-seller-name">' + F.esc(sel().name) + '</b><small>ИНН и ОГРН — из реестра партнёров · проверен по ЕГРЮЛ</small><a href="about.html#docs">Документы и сертификаты</a></span></div>';
 
     var sim = similar().filter(function (x) { return x.white; });
     var guest = !S.auth.isIn();
@@ -174,14 +177,14 @@
       '<div class="col-5 stack stack--6 product-info">' +
         '<div class="stack stack--3"><div class="product-eyebrow"><span class="eyebrow">' + F.esc(eyebrow) + '</span>' + tierChip() + '</div><h1 class="h2">' + F.esc(p.name) + '</h1></div>' +
         /* без скидки (у поставщика нет цены METOD) — одна цена, без «−0 %» и «выгода 0 ₽» (Таня 29.10) */
-        (p.discount > 0 && p.retail > p.metod
+        (!hasPrice() ? '<div class="price2"><div class="price2__row price2__row--our"><span>Цена уточняется</span></div></div>' : p.discount > 0 && p.retail > p.metod
           ? '<div class="price2">' +
-              '<div class="price2__row"><span>Цена поставщика</span><b class="num">' + F.rub(p.retail) + '</b></div>' +
-              '<div class="price2__row price2__row--our"><span>Ваша цена с METOD</span><b class="num">' + F.rub(p.metod) + '</b></div>' +
+              '<div class="price2__row"><span>Цена поставщика' + perUnit + '</span><b class="num">' + F.rub(p.retail) + '</b></div>' +
+              '<div class="price2__row price2__row--our"><span>Ваша цена с METOD' + perUnit + '</span><b class="num">' + F.rub(p.metod) + '</b></div>' +
               '<div class="price2__save"><span class="badge badge--green">−' + p.discount + ' %</span><span>выгода ' + F.rub(p.retail - p.metod) + '</span>' +
               (S.metod.active() ? '<i>подписка активна</i>' : '<a class="link" href="metod.html?returnTo=' + encodeURIComponent('product.html?id=' + p.id) + '">Подключить METOD</a>') + '</div>' +
             '</div>'
-          : '<div class="price2"><div class="price2__row price2__row--our"><span>Цена</span><b class="num">' + F.rub(p.retail || p.metod) + '</b></div>' +
+          : '<div class="price2"><div class="price2__row price2__row--our"><span>Цена' + perUnit + '</span><b class="num">' + F.rub(p.retail || p.metod) + '</b></div>' +
               '<p class="tiny muted">Скидки METOD у этого поставщика нет.</p></div>') +
         (function () { var pub = S.pext && S.pext.edits.published('cat:' + p.id); return pub ? '<p class="product-avail"><b>Наличие: ' + (S.pext.STATUS[pub.status] || '—') + '</b> · по данным поставщика' + (pub.priceSove ? ' · цена поставщика ' + F.rub(pub.priceSove) : '') + '</p>' : ''; })() +
         buyHTML() +
@@ -250,7 +253,7 @@
       '<div class="stack stack--2 product-access">' +
       '<button type="button" class="option" data-single' + (singleOn ? '' : ' disabled') + '><span class="option__row"><span class="option__title">Только этот поставщик</span>' + (singleOn ? '<span class="num">' + F.rub(single.price) + '</span>' : '<span class="badge badge--line">цена уточняется</span>') + '</span>' +
       '<span class="option__note">Разовый доступ к контакту и промокоду по этому товару' + (singleOn ? '' : '. Пока недоступен') + '</span></button>' +
-      '<a class="option is-active" href="metod.html?returnTo=' + rt + '"><span class="option__row"><span class="option__title">METOD — все поставщики и клуб</span></span>' +
+      '<a class="option is-active" href="metod.html?returnTo=' + rt + '"><span class="option__row"><span class="option__title">METOD — все поставщики, клуб и генерации</span></span>' +
       '<span class="option__note">от ' + F.rub(plans[0].price) + ' · тарифы на ' + monthsText + ' ' + plural(months[months.length - 1], ['месяц', 'месяца', 'месяцев']) + '. После оплаты вернём вас к этому товару</span></a>' +
       '</div>';
     var m = S.ui.modal({ eyebrow: 'Цена METOD', title: 'Доступ к контакту', html: html,

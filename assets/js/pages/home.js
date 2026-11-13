@@ -21,7 +21,8 @@
   }
   function calc() {
     var s = D.scout.states.filter(function (x) { return x.id === st.stateId; })[0], a = clampArea(st.area);
-    totalEl.textContent = 'от ' + mln((s.rate + minKit) * a) + ' до ' + mln((s.rate + maxKit) * a) + ' млн ₽';
+    var rr = D.scout.roughRate(s.id);   /* черновые сверху — только при включённом флаге */
+    totalEl.textContent = 'от ' + mln((s.rate + rr + minKit) * a) + ' до ' + mln((s.rate + rr + maxKit) * a) + ' млн ₽';
     perEl.textContent = 'работы ' + F.rub(s.rate) + '/м², наполнение от ' + F.rub(minKit) + '/м²';
     goEl.href = 'scout.html?area=' + a + '&state=' + s.id;
     noteEl.textContent = 'Оценка для ' + F.area(a) + '. Точная сумма зависит от интерьера и плана квартиры.';

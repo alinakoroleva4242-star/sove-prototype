@@ -157,7 +157,8 @@ body[data-page="sove-ai"] .appbar { display: none; }
 .gai-caps__h h2 { margin: 0; font-family: var(--font-display); font-weight: 500; font-size: 26px; line-height: 1; }
 .gai-caps__h p { margin: 3px 0 0; font-size: 12px; color: var(--graphite); text-wrap: balance; }
 .gai-caps__h a { display: inline-flex; align-items: center; gap: 2px; font-size: 13px; font-weight: 600; color: var(--gai-tc) !important; white-space: nowrap; padding: 14px 0 14px 10px; margin: -10px 0 -14px -10px; }
-.gai-caps__row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+/* карточки — единые (cap-card.css, Вика 03.11): 4 в ряд в колонке до 480 px (.sai) не помещаются — по 2, как в Расчёте (было 4 в ряд, зазор 8) */
+.gai-caps__row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 .gai-cap { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
 .gai-cap__pic { display: block; aspect-ratio: 1.15; border-radius: 10px; overflow: hidden; background: var(--tile); }
 .gai-cap__pic img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .3s; }
@@ -176,9 +177,3 @@ body[data-page="sove-ai"] .appbar { display: none; }
   .gai-plan { grid-template-columns: 1fr; }
   .gai-plan__side { padding: 12px; }
 }
-
-/* нейтральные подложки (Алина 03.11: «убери на странице генераций оранжевые подложки»):
-   кружки с номерами блоков и кнопки-пилюли — на светло-сером, рамка серая; текст кнопок остаётся терракотовым */
-.gai-blk__n { background: #f1efec; }
-.gai-pill { background: #f6f5f3; border-color: rgba(41,36,33,.16); }
-.gai-pill:hover { background: #eeece8; }

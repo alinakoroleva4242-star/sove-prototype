@@ -1,7 +1,7 @@
 /* «Мой ремонт» как на макете SOVE App (Валерия, 20.10.2026): тёплый фон, белые карточки с мягкой тенью,
    серифные заголовки, своя верхняя панель и нижнее меню (Мой ремонт · Каталог · Корзина · Заказы · Профиль).
-   Подключается только к my.html после my.css — кабинет партнёра этот файл не видит. Те же токены, что у партнёра (partner.css). */
-/* токены — из хендоффа дизайнера (site.css, 21.10): свои --mw-* только как псевдонимы, чтобы кабинет красился из одного места */
+   Подключается только к my.html после my.css — кабинет партнёра этот файл не видит. Те же генерации, что у партнёра (partner.css). */
+/* генерации — из хендоффа дизайнера (site.css, 21.10): свои --mw-* только как псевдонимы, чтобы кабинет красился из одного места */
 body[data-page="my"] { --mw-bg: var(--bg); --mw-shadow: var(--shadow-card); --mw-line: var(--border); --mw-line-2: var(--border); --mw-soft: var(--surface-warm); --mw-soft-2: var(--surface-warm); --mw-serif: var(--font-display); --mw-track: var(--border); background: var(--mw-bg); }
 body[data-page="my"] main { background: var(--mw-bg); }
 /* верхняя панель сайта скрыта — у экранов кабинета свои шапки; нижнее меню — общее меню приложения (Корзина и Заказы — вкладки в нём) */
@@ -197,15 +197,3 @@ body[data-page="my"] #site-footer { display: none; }
 
 /* полоса Корзина · Избранное · Бюджет закрывала нижнюю кнопку корзины («Оформить заказ») на 390 — запас снизу, как на других страницах с полосой */
 body[data-page="my"].has-rp-strip #main { padding-bottom: 76px; }
-
-/* анкета объекта: строка «＋ Выбрать капсулу» (окно выбора интерьера) — значок вместо картинки; эталонные .q-chip / .q-big / .q-opt не меняем */
-.q-opt__ic { width: 56px; height: 56px; flex: none; display: grid; place-items: center; border-radius: var(--r-xs); background: var(--accent-soft); color: var(--accent); font-size: 26px; line-height: 1; }
-.q-later { align-self: flex-start; min-height: 40px; }
-/* «Выбрать позже» — ссылка-кнопка с подчёркиванием: скругление .btn этой страницы (12 px) гнуло линию дугой */
-body[data-page="my"] .q-later { border-radius: 0; }
-/* анкета новой квартиры (my.html?v=new): полоска «Квартира · Интерьер» и полоса «Корзина · Избранное · Бюджет» показывали бы прежнюю активную квартиру — прячем */
-body.my-new .ob, body.my-new .rp-strip { display: none; }
-body.my-new.has-rp-strip #main { padding-bottom: 24px; }
-/* экран объекта: под строкой «Интерьеры» — «Открыть в Интерьере» и «Все интерьеры · N» */
-.my-objlinks { display: flex; flex-wrap: wrap; gap: 4px 16px; margin-top: -4px; }
-.my-objlinks .arrow-link { min-height: 40px; font-size: 13px; }

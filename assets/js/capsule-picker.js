@@ -192,14 +192,18 @@
     s.onerror = function () { if (s.parentNode) s.parentNode.removeChild(s); flush(false); };
     document.head.appendChild(s);
   }
+  /* как в окне классификатора расчёта (scout.js, задача 41 Алины): цены только в разделе «Мебель», в остальных — что входит, без цены и единицы */
+  function clsNoPrice(v) { v = String(v || '').replace(/^\d[\d\s]*\s*(,|—)\s*/, ''); return /^одна сумма/i.test(v) ? 'входит' : v; }
+  function clsItem(name) { return String(name || '').replace(/,\s*(за\s+)?1?\s*(м²|пост|л|шт|п\.\s*м|м\s*п\.)\s*$/i, ''); }
   function clsHtml(level) {
     var C = S.classifier, other = level === 'premium' ? 'base' : 'premium', otherName = other === 'premium' ? 'в Премиуме' : 'в Базе';
     return '<div class="cpk-cls">' + C.sections.map(function (sec) {
+      var priced = /мебель/i.test(sec.title) && !/встроенная/i.test(sec.title), val = priced ? function (v) { return v; } : clsNoPrice, item = priced ? function (v) { return v; } : clsItem;
       return '<section class="cpk-cls__sec"><h3 class="cpk-cls__t">' + esc(sec.title) + '</h3>' + (sec.rows || []).map(function (r) {
-        return '<div class="cpk-cls__row"><span>' + esc(r.item) + '</span><b>' + esc(r[level] || '—') + '</b>' +
-          (r[other] && r[other] !== r[level] ? '<small>' + otherName + ': ' + esc(r[other]) + '</small>' : '') + '</div>';
+        return '<div class="cpk-cls__row"><span>' + esc(item(r.item)) + '</span><b>' + esc(val(r[level]) || '—') + '</b>' +
+          (r[other] && val(r[other]) !== val(r[level]) ? '<small>' + otherName + ': ' + esc(val(r[other])) + '</small>' : '') + '</div>';
       }).join('') + '</section>';
-    }).join('') + '<p class="cpk-cls__note">Цены — ориентиры классификатора SOVEAPP за единицу. Итог посчитаем по вашей планировке.</p></div>';
+    }).join('') + '<p class="cpk-cls__note">Цены мебели — ориентиры за штуку. Остальное посчитаем по вашей планировке.</p></div>';
   }
 
   /* ---------- окно ---------- */

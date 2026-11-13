@@ -1,7 +1,7 @@
 /* Тема «как на сайте»: Montserrat, пилюли, карточки со скруглением 20–24, тёплый графит для тёмных плиток.
    Подключается после site.css и переопределяет прямые углы прототипа. Референс: sove-web (src/constants/sove.ts). */
 :root {
-  /* токены хендоффа SOVE_Supplier_Handoff_Package (21.10.2026) */
+  /* генерации хендоффа SOVE_Supplier_Handoff_Package (21.10.2026) */
   --font: Manrope, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   --ink: #292421; --graphite: #5b534e; --stone: #817b76; --line: #e9e2dc; --line-2: #d8cec5;
   --paper: #f8f6f3; --white: #ffffff; --surface-2: #f1eae4;
@@ -108,7 +108,7 @@ body[data-page="home"] .h1, body[data-page="home"] .h2, body[data-page="home"] .
 .pg__figure .dim { display: none; }
 .product-top { padding-top: var(--s2); }
 
-/* вход: подарок токенов — заметная плашка */
+/* вход: подарок генераций — заметная плашка */
 .auth__gift { display: flex; align-items: center; gap: 12px; margin-top: var(--s3); padding: 13px 15px; border-radius: var(--r-sm); background: var(--accent-soft); border: 1px solid rgba(160, 80, 53, .16); color: var(--graphite); line-height: 1.35; }
 .auth__gift-t b { display: block; font-size: 15px; font-weight: 700; color: var(--ink); white-space: nowrap; }
 .auth__gift-t i { display: block; font-style: normal; font-size: 12px; color: var(--graphite); margin-top: 2px; }
@@ -273,7 +273,7 @@ body[data-page="my"] .pc__add { display: none; }
 .appbar__slogan { order: 1; flex: 0 1 auto; min-width: 0; margin: 0 auto 0 4px; font-family: var(--font); font-size: 12px; font-weight: 300; letter-spacing: .04em; line-height: 1.2; color: var(--graphite); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none; }
 body[data-page="home"] .appbar > .logo { order: 0; }
 body[data-page="home"] .appbar > :not(.logo):not(.appbar__slogan) { order: 2; }
-/* одна строка и на узком телефоне (Валерия 26.10): шрифт чуть меньше по ширине экрана, у логотипа и «токенов» на главной — поуже отступы */
+/* одна строка и на узком телефоне (Валерия 26.10): шрифт чуть меньше по ширине экрана, у логотипа и «генераций» на главной — поуже отступы */
 @media (max-width: 440px) {
   .appbar__slogan { font-size: clamp(10.5px, 3.05vw, 12px); letter-spacing: .01em; margin-left: 2px; }
   body[data-page="home"] .appbar .logo { padding-left: 8px; }

@@ -1,6 +1,6 @@
 /* Поиск товаров по фото предмета и по рендеру интерьера.
    Состояния экрана: idle (нет снимка) → ready (снимок выбран, цена видна) → running (ход поиска) → done | empty.
-   Токены: reserve при запуске, commit при успехе, refund при пустом результате. Гость тратит пробные запуски. */
+   Генерации: reserve при запуске, commit при успехе, refund при пустом результате. Гость тратит пробные запуски. */
 (function () {
   'use strict';
   var S = window.SOVE; if (!S) return;
@@ -40,10 +40,24 @@
   };
 
   var st = { mode: MODES[ui.qs('mode')] ? ui.qs('mode') : 'photo', view: 'idle', source: null, genId: null, error: '', tick: null, lastStage: -1 };
+  /* «Найти другую» из Интерьера (Алина 04.11): ?swap=<предмет>&returnTo=<экран> — тот же поиск по одному предмету (рамка + «что на снимке»),
+     у найденного товара кнопка «Поставить в интерьер»: товар уезжает в Интерьер через sessionStorage, перерисовка там без доплаты */
+  st.swap = ui.qs('swap') || null; st.back = ui.qs('returnTo') || null;
+  if (st.swap) st.mode = 'photo';
 
   /* ---------- мелочи ---------- */
   function plural(n, forms) { var a = Math.abs(n) % 100, b = a % 10; return forms[(a > 10 && a < 20) ? 2 : b === 1 ? 0 : (b >= 2 && b <= 4) ? 1 : 2]; }
-  function returnTo() { return 'ai.html?mode=' + st.mode; }
+  function returnTo() { return 'ai.html?mode=' + st.mode + (st.swap ? '&swap=' + encodeURIComponent(st.swap) + (st.back ? '&returnTo=' + encodeURIComponent(st.back) : '') : ''); }
+  /* карточка + кнопка в одной ячейке сетки, иначе кнопка займёт соседний столбец */
+  function pick(card, id) { return st.swap ? '<div class="ai-pick">' + card + '<button type="button" class="btn btn--primary btn--sm btn--block ai-put" data-put="' + F.esc(String(id)) + '">Поставить в интерьер</button></div>' : card; }
+  function swapNote() { return st.swap ? '<p class="ai-charge">Ищем замену для «' + F.esc(st.swap) + '». Выбери товар — он встанет в интерьер, картинка перерисуется без доплаты.</p>' : ''; }
+  /* найденный товар → Интерьер: id каталога нужен серверу для перерисовки без повторного подбора */
+  function putToInterior(id) {
+    var x = liveById[id], p = x ? { catalogId: x.id, name: x.name, brand: x.brand || x.subcat || '', metod: Math.round(x.price_metod || x.price_retail || 0), retail: Math.round(x.price_retail || x.price_metod || 0), img: apiImg(x.img) } : null;
+    if (!p) { var d = D.product(id); if (!d) return; p = { catalogId: d.id, name: d.name, brand: d.brand || '', metod: d.metod || d.retail || 0, retail: d.retail || d.metod || 0, img: d.img }; }
+    try { sessionStorage.setItem('sove.int.put', JSON.stringify({ kind: st.swap, product: p, ts: Date.now() })); } catch (e) {}
+    location.href = st.back || 'interior.html';
+  }
   function mode() { return MODES[st.mode]; }
   function $(sel) { return stage.querySelector(sel); }
   function on(sel, fn) { var els = stage.querySelectorAll(sel); for (var i = 0; i < els.length; i++) els[i].addEventListener('click', fn); }
@@ -223,7 +237,7 @@
     if (!cost) return { button: 'Найти товары', line: 'Бесплатно, без списания генераций', note: 'Платим только за разбор рендера интерьера — там работы больше.' };
     if (S.auth.isIn()) {
       var bal = S.tokens.balance();
-      if (bal >= cost) return { line: 'Спишется ' + F.tokens(cost) + ' · останется ' + F.num(bal - cost), note: 'Если ничего не найдём, генерация вернётся на баланс.' };
+      if (bal >= cost) return { line: 'Спишется ' + F.tokens(cost) + ' · останется ' + F.num(bal - cost), note: 'Если ничего не найдём, генерации вернутся на баланс.' };
       return { short: true, line: 'Нужно ' + F.tokens(cost) + ' · на балансе ' + F.num(bal), note: 'Снимок сохраним: после пополнения вернётесь на этот же экран.' };
     }
     var left = S.demo.left();
@@ -275,7 +289,7 @@
           '<span class="run__card" data-k="1"><i></i><b></b><em></em></span>' +
           '<span class="run__card" data-k="2"><i></i><b></b><em></em></span>' +
         '</div>' +
-        '<p class="ai-charge run__charge">' + (gen.opId ? 'В резерве ' + F.tokens(gen.cost) + ' · спишем, только когда найдём товары' : 'Пробный запуск · без списания') + '</p>' +
+        '<p class="ai-charge run__charge">' + (gen.opId ? 'В резерве ' + F.tokens(gen.cost) + ' · спишем, только когда найдём товары' : 'Пробный запуск · генерации не нужны') + '</p>' +
         '<p class="small" role="status" aria-live="polite" id="ai-live" style="position:absolute;left:-9999px"></p>' +
       '</div>';
     }
@@ -288,7 +302,7 @@
           '<ol class="stages" id="ai-stages">' + labels.map(function (t, i) { return '<li data-i="' + i + '">' + t + '</li>'; }).join('') + '</ol>' +
           '<p class="small" role="status" aria-live="polite" id="ai-live" style="position:absolute;left:-9999px"></p>' +
         '</div>' +
-        '<p class="ai-charge">' + (gen.opId ? 'В резерве ' + F.tokens(gen.cost) + ' · спишем, только когда найдём товары' : 'Пробный запуск · без списания') + '</p>' +
+        '<p class="ai-charge">' + (gen.opId ? 'В резерве ' + F.tokens(gen.cost) + ' · спишем, только когда найдём товары' : 'Пробный запуск · генерации не нужны') + '</p>' +
         (gen.kind === 'render' ? '<p class="text ai-leave">Можно уйти со страницы — результат появится в <a class="link" href="generations.html">Генерациях</a>.</p>' : '') +
       '</div></div>';
   }
@@ -331,7 +345,7 @@
     st.tick = setInterval(tick, 200); tick();
   }
 
-  /* запуск: гость — пробные, вошедший — резерв токенов */
+  /* запуск: гость — пробные, вошедший — резерв генераций */
   function launch() {
     var m = mode(), src = st.source, cost = m.cost, inn = S.auth.isIn();
     if (!src) return;
@@ -396,7 +410,7 @@
   function chargeLine(gen) {
     if (gen.opId) return 'Списано ' + F.tokens(gen.cost) + ' · остаток ' + F.num(S.tokens.balance());
     if (!S.auth.isIn()) return 'Пробный запуск · осталось ' + S.demo.left() + ' из ' + D.demoLimit;
-    return 'Пробный запуск · генерация не списана';
+    return 'Пробный запуск · генерации не списаны';
   }
   function ownNotice(gen) {
     return gen.sample === 'own' ? '<div class="notice" role="note"><span class="small">В прототипе распознавание не подключено — показываем результат на примере.</span></div>' : '';
@@ -543,9 +557,9 @@
           '<i>' + F.esc(sub) + '</i></div>' +
         '<button type="button" class="btn btn--ghost btn--sm res-top__again" data-act="reset">Другой снимок</button>' +
       '</div>' +
-      '<p class="ai-charge res-top__charge">' + chargeLine(gen) + '</p>' +
+      '<p class="ai-charge res-top__charge">' + chargeLine(gen) + '</p>' + swapNote() +
       (items.length
-        ? '<div class="ai-cards ai-cards--2">' + items.map(function (it) { return ui.productCard(it.p, { tag: it.match }); }).join('') + '</div>'
+        ? '<div class="ai-cards ai-cards--2">' + items.map(function (it) { return pick(ui.productCard(it.p, { tag: it.match }), it.p.id); }).join('') + '</div>'
         : '<p class="hatch ai-obj__none">В каталоге похожего нет</p>') +
       '<div class="row row--between rule-top ai-actions"><div class="row ai-actions">' + saveButton(gen) + '</div>' +
         '<a class="arrow-link" href="' + market + '">Все похожие в маркете</a></div>' +
@@ -580,8 +594,8 @@
           '<b data-focus tabindex="-1">Нашли ' + items.length + ' ' + plural(items.length, ['товар', 'товара', 'товаров']) + '</b>' +
           '<i>подобрало ядро SOVEAPP по боевому каталогу</i></div>' +
       '</div>' +
-      '<p class="ai-charge res-top__charge">' + chargeLine(gen) + '</p>' +
-      '<div class="ai-cards ai-cards--2">' + items.map(function (x) { return apiCard(x, top); }).join('') + '</div>' +
+      '<p class="ai-charge res-top__charge">' + chargeLine(gen) + '</p>' + swapNote() +
+      '<div class="ai-cards ai-cards--2">' + items.map(function (x) { return pick(apiCard(x, top), x.id); }).join('') + '</div>' +
       '<div class="row row--between rule-top ai-actions">' +
         '<button type="button" class="btn btn--ghost" data-act="reset">Снять другой предмет</button>' +
         '<a class="arrow-link" href="market.html">Открыть маркет</a></div>' +
@@ -593,12 +607,12 @@
     var m = MODES[gen.kind];
     var back = gen.opId
       ? F.tokens(gen.cost) + ' ' + plural(gen.cost, ['вернулся', 'вернулись', 'вернулись']) + ' на баланс · остаток ' + F.num(S.tokens.balance()) + '.'
-      : (S.auth.isIn() ? 'Генерация не списана.' : 'Пробный запуск не сгорел: осталось ' + S.demo.left() + ' из ' + D.demoLimit + '.');
+      : (S.auth.isIn() ? 'Генерации не списаны.' : 'Пробный запуск не сгорел: осталось ' + S.demo.left() + ' из ' + D.demoLimit + '.');
     return '<div class="split ai-split">' +
       '<div class="col-5">' + frame(st.source ? st.source.src : gen.src, { fit: true, caption: gen.title, alt: gen.title }) + '</div>' +
       '<div class="col-7 ai-side">' +
         '<div class="stack stack--3"><span class="eyebrow">Результат · ' + m.name.toLowerCase() + '</span>' +
-          '<h2 class="h2" data-focus tabindex="-1">Ничего не нашли · ' + (gen.opId ? 'генерация вернулась на баланс' : 'запуск не потрачен') + '</h2></div>' +
+          '<h2 class="h2" data-focus tabindex="-1">Ничего не нашли · ' + (gen.opId ? 'генерации возвращены' : 'запуск не потрачен') + '</h2></div>' +
         '<p class="ai-charge ai-charge--back">' + back + '</p>' +
         '<div class="stack stack--3"><p class="text">На снимке не получилось выделить мебель, свет или декор. Попробуйте другой кадр:</p>' +
           '<ul class="ai-advice">' + m.tips.map(function (t) { return '<li>' + t + '</li>'; }).join('') + '</ul></div>' +
@@ -625,8 +639,8 @@
   function pickFile(file) {
     if (!file) return;
     st.error = '';
-    if (!/^image\/(jpeg|png)$/.test(file.type)) { fail('Файл «' + file.name + '» не подходит: нужна картинка JPG или PNG. Поиск не запускался, генерация не списана.'); return; }
-    if (file.size > MAX_MB * 1024 * 1024) { fail('Файл весит ' + (Math.round(file.size / 1024 / 1024 * 10) / 10).toString().replace('.', ',') + ' МБ, а можно до ' + MAX_MB + ' МБ. Сожмите снимок или выберите другой. Генерация не списана.'); return; }
+    if (!/^image\/(jpeg|png)$/.test(file.type)) { fail('Файл «' + file.name + '» не подходит: нужна картинка JPG или PNG. Поиск не запускался, генерации не списаны.'); return; }
+    if (file.size > MAX_MB * 1024 * 1024) { fail('Файл весит ' + (Math.round(file.size / 1024 / 1024 * 10) / 10).toString().replace('.', ',') + ' МБ, а можно до ' + MAX_MB + ' МБ. Сожмите снимок или выберите другой. Генерации не списаны.'); return; }
     var drop = $('#ai-drop'); if (drop) drop.classList.add('is-over');
     var url = URL.createObjectURL(file), img = new Image();
     img.onload = function () {
@@ -636,7 +650,7 @@
       st.source = { kind: 'own', src: src, thumb: thumb, title: mode().ownTitle, name: file.name };
       afterShot();
     };
-    img.onerror = function () { URL.revokeObjectURL(url); fail('Не получилось открыть «' + file.name + '»: файл повреждён или это не картинка. Генерация не списана.'); };
+    img.onerror = function () { URL.revokeObjectURL(url); fail('Не получилось открыть «' + file.name + '»: файл повреждён или это не картинка. Генерации не списаны.'); };
     img.src = url;
   }
   /* ---------- настоящий поиск: боевое ядро SOVEAPP ----------
@@ -994,6 +1008,7 @@
     });
     on('[data-act="crop-go"]', function () { cropAndLaunch(false); });
     on('[data-act="crop-all"]', function () { cropAndLaunch(true); });
+    on('[data-put]', function (e) { putToInterior(e.currentTarget.getAttribute('data-put')); });
     on('[data-open]', function (e) {
       var id = e.currentTarget.getAttribute('data-open'), g = S.gens.get(id); if (!g) return;
       st.mode = MODES[g.kind] ? g.kind : st.mode;
@@ -1051,7 +1066,7 @@
     }
     if (fresh) {
       showFinished(fresh);
-      ui.toast(fresh.status === 'empty' ? 'Поиск завершился, пока вас не было: ничего не нашли, ' + (fresh.opId ? 'генерация вернулась' : 'запуск не потрачен') : 'Поиск завершился, пока вас не было', fresh.status === 'empty' ? undefined : 'ok');
+      ui.toast(fresh.status === 'empty' ? 'Поиск завершился, пока вас не было: ничего не нашли, ' + (fresh.opId ? 'генерации вернулись' : 'запуск не потрачен') : 'Поиск завершился, пока вас не было', fresh.status === 'empty' ? undefined : 'ok');
       return;
     }
     render();

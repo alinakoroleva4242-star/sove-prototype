@@ -220,7 +220,7 @@
   D.products.forEach(function (p) { if (p.capsules && p.capsules.length) { sumRetail += p.retail; sumMetod += p.metod; } });
   var noMetodK = sumMetod ? sumRetail / sumMetod : 1.2;
   function mln(n) { return (Math.round(n / 100000) / 10).toFixed(1).replace('.', ','); }
-  function budget(a) { return mln((BASE_STATE.rate + CAP.pricePerM2) * a) + ' млн ₽'; }
+  function budget(a) { return mln((BASE_STATE.rate + D.scout.roughRate(BASE_STATE.id) + CAP.pricePerM2) * a) + ' млн ₽'; }
   function gain(a) { return 'до ' + F.num(Math.round((CAP.pricePerM2 * noMetodK - CAP.pricePerM2) * a / 10000) * 10000).replace(/ /g, ' ') + ' ₽'; }
   function flatName(a) { return a < 41 ? 'Студия' : a < 56 ? '1-комнатная' : a < 71 ? '2-комнатная' : '3-комнатная'; }
   var HERO_SRC = ((D.ai && D.ai.renderMarks) || {})[CAP.id] ? D.ai.renderMarks[CAP.id].src : CAP.cover;
@@ -256,8 +256,15 @@
       (active
         ? '<p class="fd-ok">' + STAR + ' Подписка METOD активна' + (S.metod.active() ? ' · осталось ' + S.metod.daysLeft() + ' дн.' : '') + ' · вся лента и закрытые цены открыты</p>'
         : '<a class="hc-go" href="#" data-sub>Оформить подписку · от ' + F.rub(FROM).replace(/ /g, ' ') + '</a>' +
-          '<p class="fd-open">Сейчас открыто ' + open + ' ' + plural(open, 'пост', 'поста', 'постов') + ' из ' + POSTS.length + '</p>') +
+          '<p class="fd-open">Сейчас открыто ' + open + ' ' + plural(open, 'пост', 'поста', 'постов') + ' из ' + POSTS.length + '</p>' + capsRow()) +
       '</div>';
+  }
+  /* карусель капсул (Алина 04.11: «сюда карусель капсул в ряд, как плитки выше»; с подпиской — первой на экране) — единая карточка SOVE.ui.capCard (Вика 03.11) */
+  function capsRow() {
+    var caps = (D.capsules || []).filter(function (c) { return !c.soon; });
+    if (!caps.length || !S.ui.capCard) return '';
+    return '<div class="fd-caps"><small class="fd-caps__t">Интерьерные капсулы</small><div class="fd-caps__row">' +
+      caps.map(function (c) { return S.ui.capCard(c, { size: 'xs', href: 'capsule.html?id=' + c.id, cls: 'fd-caps__i' }); }).join('') + '</div></div>';
   }
   function syncArea() {
     var r = document.getElementById('fd-range'); if (!r) return;
@@ -267,15 +274,15 @@
     r.style.setProperty('--fill', ((a - AREA_MIN) / (AREA_MAX - AREA_MIN) * 100).toFixed(1) + '%');
     r.setAttribute('aria-valuetext', a + ' м², ремонт ' + budget(a).replace(/ /g, ' '));
   }
-  /* плитка-подарок «Доска материалов по вашему рендеру» (ТЗ 04.11, п. 3) */
+  /* плитка-подарок «Доска материалов по вашему рендеру» (ТЗ 04.11, п. 3) — компактная (Алина 04.11: «поменьше»).
+     Без подписки плитка тоже есть: тап по «Прислать рендер» — окно «Оформить подписку» (renderGift), загрузка только подписчикам */
   function giftHTML(active) {
     return '<section class="fd-gift"><div class="fd-gift__ph"><img src="assets/img/feed/concept-78.jpg" alt="Доска материалов" loading="lazy">' +
       '<span class="fd-gift__tag">' + GIFT + (active ? 'ВХОДИТ В ВАШУ ПОДПИСКУ' : 'В ПОДАРОК С ПОДПИСКОЙ') + '</span>' +
       '<span class="fd-gift__logo" aria-label="METOD ремонта"><i></i></span>' +
       '<figure class="fd-gift__pol"><img src="assets/img/feed/concept-78-ref-1.jpg" alt="" loading="lazy"><figcaption>ваш рендер</figcaption></figure></div>' +
+      /* Алина 04.11: «это место только загрузка и всё» — без описания и плашек, только заголовок и кнопка */
       '<div class="fd-gift__b"><h2 class="fd-gift__t">Доска материалов по вашему рендеру</h2>' +
-      '<p class="fd-gift__x">Пришлите рендер или фото интерьера — дизайнер SOVE соберёт материалы с ценами из Маркета</p>' +
-      '<div class="fd-gift__m"><span><b>≈ 10</b><small>материалов на доске</small></span><span><b>ДНК</b><small>цвета интерьера</small></span><span><b>Цены</b><small>METOD и ссылки</small></span></div>' +
       '<button type="button" class="fd-gift__go" data-render>' + UPLOAD + ' Прислать рендер</button></div></section>';
   }
   function renderGift() {
@@ -323,7 +330,8 @@
       '<div class="fd-view" role="tablist" aria-label="Как выглядит лента">' +
         '<button type="button" role="tab" data-view="sub" aria-selected="' + active + '"' + (active ? ' class="is-on"' : '') + '>С подпиской</button>' +
         '<button type="button" role="tab" data-view="nosub" aria-selected="' + !active + '"' + (!active ? ' class="is-on"' : '') + '>Без подписки</button></div>' +
-      topHTML(active, open) + giftHTML(active) +
+      /* с подпиской экран тоже начинается с карусели капсул (Алина 04.11), без подписки карусель — под кнопкой «Оформить» внутри topHTML */
+      (active ? capsRow() : '') + topHTML(active, open) + giftHTML(active) +
       (focus
         ? '<div class="fd-back"><button type="button" class="btn btn--ghost btn--sm" data-feed-back>← Все посты</button><small>' + esc(KIND[focus.type] || '') + (focus.concept ? ' · концепция ' + focus.concept : '') + '</small></div>'
         : filtersHTML()) +
@@ -340,20 +348,21 @@
   var INSIDE = ['Закрытые акции партнёров', 'Доски материалов от дизайнера — раз в неделю', 'Подборки товаров — каждый день', 'Отзывы о поставщиках', 'Клуб участников — 3000+ человек'];
   function monthsW(n) { return n + ' ' + plural(n, 'месяц', 'месяца', 'месяцев'); }
   function openSub() {
-    var plans = D.metodPlans || [], base = plans[0], B = D.metodBonus || {}, on = S.metod.active();
+    var plans = D.metodPlans || [], base = plans[0], on = S.metod.active();   /* подарок — giftGens тарифа (ТЗ 04.11: 6 месяцев — 25 генераций) */
     S.ui.modal({ eyebrow: 'Подписка METOD', title: on ? 'Продлить подписку' : 'Оформить подписку',
       html: '<ul class="fd-in">' + INSIDE.map(function (t) { return '<li>' + esc(t) + '</li>'; }).join('') + '</ul>' +
         '<div class="fd-plans">' + plans.map(function (m) {
-          var gift = B.minMonths && m.months >= B.minMonths;
+          var gift = m.giftGens || 0;
           return '<button type="button" class="fd-plan' + (gift ? ' is-best' : '') + '" data-mt-buy="' + m.id + '"><span class="fd-plan__t"><b>' + monthsW(m.months) + '</b>' +
-            '<small>' + (m.months > 1 ? '≈ ' + F.rub(m.price / m.months) + ' в месяц' : 'чтобы попробовать') + (gift ? ' · «Твоя квартира» в подарок: ' + F.tokens(B.gens) + ' и ' + F.swaps(B.swaps) : '') + '</small></span>' +
+            '<small>' + (m.months > 1 ? '≈ ' + F.rub(m.price / m.months) + ' в месяц' : 'чтобы попробовать') + (gift ? ' · в подарок ' + F.tokens(gift) : '') + '</small></span>' +
             '<b class="fd-plan__p">' + F.rub(m.price) + '</b></button>';
         }).join('') + '</div>' + (on ? '<p class="small muted">Сейчас активна до ' + F.dateLong(S.metod.until()) + ' — продлим с этой даты.</p>' : '') });
   }
   function buySub(id) {
     var m = (D.metodPlans || []).filter(function (x) { return x.id === id; })[0]; if (!m) return;
-    if (!S.auth.isIn()) { S.ui.needAuth('Войдите, чтобы оплатить', 'feed.html?buy=' + id); return; }
-    var pm = S.pay.create({ kind: 'metod', id: m.id, title: 'METOD · ' + monthsW(m.months), price: m.price, months: m.months }, 'feed.html');
+    var back = ui.qs('returnTo') || 'feed.html';   /* после оплаты — на экран, с которого пришли (окно «бюджет по подписке» и т.п.) */
+    if (!S.auth.isIn()) { S.ui.needAuth('Войдите, чтобы оплатить', 'feed.html?buy=' + id + '&returnTo=' + encodeURIComponent(back)); return; }
+    var pm = S.pay.create({ kind: 'metod', id: m.id, title: 'METOD · ' + monthsW(m.months), price: m.price, months: m.months, giftGens: m.giftGens || 0 }, back);
     location.href = 'pay.html?id=' + encodeURIComponent(pm.id);
   }
   document.addEventListener('click', function (e) {

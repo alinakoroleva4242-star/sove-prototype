@@ -1,15 +1,12 @@
 /* SOVEAPP — прототип. Данные-примеры. Страницы НЕ меняют этот файл.
    Настоящие (с платформы sove.app, 21.09.2026): капсулы К1–К7 и бюджеты ₽/м², цены открытия расчёта, ставки и сроки дизайн-проекта.
-   Также настоящие: пакеты токенов, тарифы METOD, ставки работ и этапы расчёта, цены функций ИИ (5/10).
+   Также настоящие: пакеты генераций, тарифы METOD, ставки работ и этапы расчёта, цены функций ИИ (5/10).
    Примеры: товары каталога и их цены, поставщики, результаты распознавания. */
 (function () {
   var IMG = 'assets/img/';
 
   var capsules = [
-    /* pricePerM2Premium k1–k6 (02.11): База демо × соотношение Премиум/База из «Калькулятор MOD», лист «Итог», строка «Цена за кв.»
-       (METOD: k1 69 453/47 169, k2 64 461/42 839, k3 65 762/43 940, k4 75 010/44 829, k5 68 720/41 811, k6 65 842/45 178), округлено до 1 000;
-       k7 — из админки платформы (50 000 / 83 000). Команде показать на проверку */
-    { id: 'k1', code: 'К1', name: 'Бургундский камень в арт‑классике', style: 'Арт-классика', pricePerM2: 51000, pricePerM2Premium: 75000,
+    { id: 'k1', code: 'К1', name: 'Бургундский камень в арт‑классике', style: 'Арт-классика', pricePerM2: 51000,
       concept: 'Светлая классика с лепниной, в которую врезан бордовый мрамор и тёмно-красные акценты.',
       forWhom: 'Для тех, кто хочет парадный интерьер без музейности.',
       materials: ['Мрамор бордо', 'Дуб светлый, ёлочка', 'Латунь', 'Букле'],
@@ -17,7 +14,7 @@
       slides: [ { room: 'Гостиная-кухня', src: IMG + 'slides/k1-living-1.jpg' }, { room: 'Спальня', src: IMG + 'slides/k1-bed-1.jpg' }, { room: 'Прихожая', src: IMG + 'slides/k1-hall-1.jpg' }, { room: 'Санузел', src: IMG + 'slides/k1-bath-1.jpg' } ],
       gallery: [ { room: 'Гостиная', src: IMG + 'capsules/k1-living.jpg' }, { room: 'Кухня', src: IMG + 'capsules/k1-kitchen.jpg' }, { room: 'Гостиная', src: IMG + 'capsules/k1-main-2.jpg' }, { room: 'Спальня', src: IMG + 'capsules/k1-bed-1.jpg' }, { room: 'Санузел', src: IMG + 'capsules/k1-bath-1.jpg' }, { room: 'Прихожая', src: IMG + 'capsules/k1-hall-1.jpg' } ],
       dna: [1, 2, 3, 4].map(function (i) { return IMG + 'mat/k1-mat-' + i + '.jpg'; }) },
-    { id: 'k2', code: 'К2', name: 'Изумрудная неоклассика в орехе', style: 'Неоклассика', pricePerM2: 46000, pricePerM2Premium: 69000,
+    { id: 'k2', code: 'К2', name: 'Изумрудная неоклассика в орехе', style: 'Неоклассика', pricePerM2: 46000,
       concept: 'Тёплый орех, зелёный камень и глубокие оливковые ткани. Вечерний, собранный интерьер.',
       forWhom: 'Для тех, кто любит тёмное дерево и приглушённый свет.',
       materials: ['Орех американский', 'Зелёный мрамор', 'Бронза', 'Велюр оливковый'],
@@ -25,7 +22,7 @@
       slides: [ { room: 'Гостиная-кухня', src: IMG + 'slides/k2-living-1.jpg' }, { room: 'Спальня', src: IMG + 'slides/k2-bed-1.jpg' }, { room: 'Прихожая', src: IMG + 'slides/k2-hall-1.jpg' }, { room: 'Санузел', src: IMG + 'slides/k2-bath-1.jpg' } ],
       gallery: [ { room: 'Гостиная', src: IMG + 'capsules/k2-main-1.jpg' }, { room: 'Гостиная', src: IMG + 'capsules/k2-main-2.jpg' }, { room: 'Спальня', src: IMG + 'capsules/k2-bed-1.jpg' }, { room: 'Санузел', src: IMG + 'capsules/k2-bath-1.jpg' }, { room: 'Прихожая', src: IMG + 'capsules/k2-hall-1.jpg' } ],
       dna: [1, 2, 3, 4].map(function (i) { return IMG + 'mat/k2-mat-' + i + '.jpg'; }) },
-    { id: 'k3', code: 'К3', name: 'Минимализм с голубым и хромом', style: 'Минимализм', pricePerM2: 47000, pricePerM2Premium: 70000,
+    { id: 'k3', code: 'К3', name: 'Минимализм с голубым и хромом', style: 'Минимализм', pricePerM2: 47000,
       concept: 'Белые объёмы, хром и один холодный синий акцент. Много воздуха и света.',
       forWhom: 'Для тех, кому важны простор и порядок.',
       materials: ['Микроцемент', 'Хром', 'Стекло', 'Букле белое'],
@@ -33,7 +30,7 @@
       slides: [ { room: 'Спальня', src: IMG + 'slides/k3-bed-1.jpg' }, { room: 'Прихожая', src: IMG + 'slides/k3-hall-1.jpg' }, { room: 'Санузел', src: IMG + 'slides/k3-bath-1.jpg' } ],
       gallery: [ { room: 'Гостиная', src: IMG + 'capsules/k3-main-1.jpg' }, { room: 'Гостиная', src: IMG + 'capsules/k3-main-2.jpg' }, { room: 'Спальня', src: IMG + 'capsules/k3-bed-1.jpg' }, { room: 'Санузел', src: IMG + 'capsules/k3-bath-1.jpg' }, { room: 'Прихожая', src: IMG + 'capsules/k3-hall-1.jpg' } ],
       dna: [1, 2, 3, 4].map(function (i) { return IMG + 'mat/k3-mat-' + i + '.jpg'; }) },
-    { id: 'k4', code: 'К4', name: 'Тёплая классика с терракотом', style: 'Классика', pricePerM2: 48000, pricePerM2Premium: 80000,
+    { id: 'k4', code: 'К4', name: 'Тёплая классика с терракотом', style: 'Классика', pricePerM2: 48000,
       concept: 'Молочные стены с молдингами, тёмный паркет ёлочкой и терракотовые детали.',
       forWhom: 'Для семьи: спокойно, тепло, без резких решений.',
       materials: ['Дуб тёмный, ёлочка', 'Мрамор светлый', 'Латунь', 'Велюр горчичный'],
@@ -41,7 +38,7 @@
       slides: [ { room: 'Гостиная-кухня', src: IMG + 'slides/k4-living-1.jpg' }, { room: 'Спальня', src: IMG + 'slides/k4-bed-1.jpg' }, { room: 'Прихожая', src: IMG + 'slides/k4-hall-1.jpg' }, { room: 'Санузел', src: IMG + 'slides/k4-bath-1.jpg' } ],
       gallery: [ { room: 'Гостиная', src: IMG + 'capsules/k4-main-1.jpg' }, { room: 'Гостиная', src: IMG + 'capsules/k4-main-2.jpg' }, { room: 'Гостиная', src: IMG + 'capsules/k4-main-3.jpg' }, { room: 'Спальня', src: IMG + 'capsules/k4-bed-1.jpg' }, { room: 'Санузел', src: IMG + 'capsules/k4-bath-1.jpg' }, { room: 'Прихожая', src: IMG + 'capsules/k4-hall-1.jpg' } ],
       dna: [1, 2, 3, 4].map(function (i) { return IMG + 'mat/k4-mat-' + i + '.jpg'; }) },
-    { id: 'k5', code: 'К5', name: 'Органика в песочном минимализме', style: 'Органика', pricePerM2: 45000, pricePerM2Premium: 74000,
+    { id: 'k5', code: 'К5', name: 'Органика в песочном минимализме', style: 'Органика', pricePerM2: 45000,
       concept: 'Арки, шпон и песочные оттенки. Мягкие формы и рассеянный свет.',
       forWhom: 'Для тех, кто хочет тихий, природный интерьер.',
       materials: ['Шпон ореха', 'Травертин', 'Лён', 'Бумажные светильники'],
@@ -49,21 +46,39 @@
       slides: [ { room: 'Гостиная-кухня', src: IMG + 'slides/k5-living-1.jpg' }, { room: 'Спальня', src: IMG + 'slides/k5-bed-1.jpg' }, { room: 'Прихожая', src: IMG + 'slides/k5-hall-1.jpg' }, { room: 'Санузел', src: IMG + 'slides/k5-bath-1.jpg' } ],
       gallery: [ { room: 'Гостиная', src: IMG + 'capsules/k5-main-1.jpg' }, { room: 'Гостиная', src: IMG + 'capsules/k5-main-2.jpg' }, { room: 'Спальня', src: IMG + 'capsules/k5-bed-1.jpg' }, { room: 'Санузел', src: IMG + 'capsules/k5-bath-1.jpg' }, { room: 'Прихожая', src: IMG + 'capsules/k5-hall-1.jpg' } ],
       dna: [1, 2, 3, 4].map(function (i) { return IMG + 'mat/k5-mat-' + i + '.jpg'; }) },
-    { id: 'k6', code: 'К6', name: 'Оливковая классика с тёмным деревом', style: 'Классика', pricePerM2: 50000, pricePerM2Premium: 73000,
+    { id: 'k6', code: 'К6', name: 'Оливковая классика с тёмным деревом', style: 'Классика', pricePerM2: 50000,
       concept: 'Современная классика в природной палитре: оливковые стены, тёмное дерево, латунь.',
       forWhom: 'Для тех, кто хочет глубокий, спокойный интерьер с характером.', materials: ['Дуб тёмный', 'Оливковая краска', 'Латунь', 'Мрамор'],
       cover: IMG + 'capsules/k6-main-1.jpg',
       slides: [ { room: 'Гостиная-кухня', src: IMG + 'slides/k6-living-1.jpg' }, { room: 'Спальня', src: IMG + 'slides/k6-bed-1.jpg' }, { room: 'Прихожая', src: IMG + 'slides/k6-hall-1.jpg' }, { room: 'Гардероб', src: IMG + 'slides/k6-dress-1.jpg' }, { room: 'Санузел', src: IMG + 'slides/k6-bath-1.jpg' } ],
       gallery: [ { room: 'Гостиная', src: IMG + 'capsules/k6-main-1.jpg' }, { room: 'Гостиная', src: IMG + 'capsules/k6-main-2.jpg' }, { room: 'Спальня', src: IMG + 'capsules/k6-bed-1.jpg' }, { room: 'Санузел', src: IMG + 'capsules/k6-bath-1.jpg' }, { room: 'Прихожая', src: IMG + 'capsules/k6-hall-1.jpg' } ],
       dna: [1, 2, 3, 4].map(function (i) { return IMG + 'mat/k6-mat-' + i + '.jpg'; }) },
-    { id: 'k7', code: 'К7', name: 'Минималистичная классика с солнечным дубом', style: 'Минимализм', pricePerM2: 50000, pricePerM2Premium: 83000, designer: true,
+    { id: 'k7', code: 'К7', name: 'Минималистичная классика с солнечным дубом', style: 'Минимализм', pricePerM2: 60000, pricePerM2Premium: 97000, designer: true,
       concept: 'Современная классика в светлой природной палитре. Авторская капсула дизайнера.',
       forWhom: 'Для квартир от 40 м² в современных домах: для себя, под премиальную аренду или продажу.', materials: ['Дуб светлый', 'Светлый камень', 'Лён', 'Матовая латунь'],
       cover: IMG + 'capsules/k7-main-1.jpg',
       slides: [ { room: 'Гостиная-кухня', src: IMG + 'slides/k7-living-1.jpg' }, { room: 'Спальня', src: IMG + 'slides/k7-bed-1.jpg' }, { room: 'Кабинет', src: IMG + 'slides/k7-work-1.jpg' }, { room: 'Терраса', src: IMG + 'slides/k7-other-1.jpg' }, { room: 'Санузел', src: IMG + 'slides/k7-bath-1.jpg' } ],
       gallery: [1, 2, 3, 4, 5, 6, 7, 8].map(function (i) { return { room: 'Интерьер', src: IMG + 'capsules/k7-main-' + i + '.jpg' }; }),
       dna: [1, 2, 3, 4].map(function (i) { return IMG + 'mat/k5-mat-' + i + '.jpg'; }),
-      adeptRates: { start: 1800, base: 2400, opt: 3500 } }
+      adeptRates: { start: 1800, base: 2400, opt: 3500 } },
+    /* К8, Дарья: название, описание и цена — с sove.app/concepts (06.11), рендеры от Валерии 06.11, материалы — таблица «Дарья» */
+    { id: 'k8', code: 'К8', name: 'Современная эклектика с индиго', style: 'Минимализм', pricePerM2: 60000, pricePerM2Premium: 97000, designer: true,
+      concept: 'Выразительный интерьер на сочетании глубокого индиго, тёплого дерева и хромированных акцентов.',
+      forWhom: 'Для собственников квартир, которые ценят насыщенные цвета, необычные детали и интерьер с характером. Подходит для собственного проживания, премиальной аренды или последующей продажи.',
+      materials: ['Серый дуб, ёлочка', 'Шпон ореха', 'Мозаика', 'Синий бархат'],
+      cover: IMG + 'capsules/k8-main-1.jpg',
+      slides: [ { room: 'Гостиная-кухня', src: IMG + 'slides/k8-living-1.jpg' }, { room: 'Спальня', src: IMG + 'slides/k8-bed-1.jpg' }, { room: 'Прихожая', src: IMG + 'slides/k8-hall-1.jpg' }, { room: 'Санузел', src: IMG + 'slides/k8-bath-1.jpg' } ],
+      gallery: ['Гостиная-кухня', 'Гостиная-кухня', 'Гостиная-кухня', 'Гостиная-кухня', 'Спальня', 'Спальня', 'Прихожая', 'Санузел'].map(function (room, i) { return { room: room, src: IMG + 'capsules/k8-main-' + (i + 1) + '.jpg' }; }),
+      dna: [1, 2, 3, 4].map(function (i) { return IMG + 'mat/k8-mat-' + i + '.jpg'; }) },
+    /* К9, Роман (Алина 06.11): рендеры с Яндекс-диска «Капсула 9 визуализации», материалы — таблица «Рома». Название — Таня 06.11.
+       soon: цены за м² нет, в калькуляторе MOD блока К9 нет, цена — от Алины; карусель и фактуры видны, расчёт появится с ценой */
+    { id: 'k9', code: 'К9', name: 'Модернизм в ритме джаза', style: 'Мидсенчури', soon: true, designer: true, noMarket: true,   /* noMarket: товаров К9 ещё нет в каталоге, фильтр в Маркете был бы пустым; снять, когда появятся */
+      concept: 'Тёплый дуб, шоколадный диван, хромированный металл и бордовые акценты. Авторская капсула дизайнера.',
+      materials: ['Дуб, ёлочка', 'Шпон дуба', 'Плитка цвета мха', 'Плитка-октагон'],
+      cover: IMG + 'capsules/k9-main-1.jpg',
+      slides: [ { room: 'Гостиная-кухня', src: IMG + 'slides/k9-living-1.jpg' }, { room: 'Спальня', src: IMG + 'slides/k9-bed-1.jpg' }, { room: 'Прихожая', src: IMG + 'slides/k9-hall-1.jpg' }, { room: 'Санузел', src: IMG + 'slides/k9-bath-1.jpg' }, { room: 'Гардеробная', src: IMG + 'slides/k9-dress-1.jpg' } ],
+      gallery: ['Гостиная-кухня', 'Гостиная-кухня', 'Гостиная-кухня', 'Спальня', 'Спальня', 'Прихожая', 'Санузел', 'Гардеробная'].map(function (room, i) { return { room: room, src: IMG + 'capsules/k9-main-' + (i + 1) + '.jpg' }; }),
+      dna: [1, 2, 3, 4].map(function (i) { return IMG + 'mat/k9-mat-' + i + '.jpg'; }) }
   ];
   /* карточки капсул в широком формате (Вика 23.10): широкий кадр без кривой обрезки, палитра, теги фильтров расчёта.
      wide/kN.jpg — заранее обрезанные (мебель в кадре) и облегчённые до ~90 КБ копии: на телефоне по LTE листаются без задержки;
@@ -77,7 +92,9 @@
     k4: { wide: 'wide/k4.jpg', from: 'k4-main-4', palette: ['#EDE4D8', '#B4643F', '#6D5135', '#402C1C'], tags: ['warm', 'classic'] },
     k5: { wide: 'wide/k5.jpg', from: 'k5-main-2', palette: ['#DFD3C3', '#BAABA1', '#B38756', '#8C694C'], tags: ['light', 'warm', 'modern'] },
     k6: { wide: 'wide/k6.jpg', from: 'k6-main-3', palette: ['#5C6042', '#543F2A', '#A68A55', '#E9E4D9'], tags: ['classic'] },
-    k7: { wide: 'wide/k7.jpg', from: 'k7-main-1', palette: ['#E6E1D8', '#BDB09F', '#A49380', '#6C5945'], tags: ['light', 'modern', 'classic'] }
+    k7: { wide: 'wide/k7.jpg', from: 'k7-main-1', palette: ['#E6E1D8', '#BDB09F', '#A49380', '#6C5945'], tags: ['light', 'modern', 'classic'] },
+    k8: { wide: 'wide/k8.jpg', from: 'k8-main-1', palette: ['#D8D2C8', '#6B4A33', '#8F8A82', '#3E4E7A'], tags: ['modern'] },
+    k9: { wide: 'wide/k9.jpg', from: 'k9-main-1', palette: ['#E9E3D8', '#B0814F', '#5A4334', '#6E2A2C'], tags: ['warm', 'modern'] }
   };
   /* pos — какую часть вертикального кадра показывать в широкой карточке (мебель в кадре, а не потолок) */
   capsules.forEach(function (c) { var x = CAPS_EXTRA[c.id]; if (x) { c.wide = IMG + 'capsules/' + x.wide; c.wideFrom = x.from; c.widePos = x.pos || ''; c.palette = x.palette; c.tags = x.tags; } });
@@ -150,9 +167,7 @@
       seen[p.subcat] = 1; pick.push(p);
     });
     pick.forEach(function (p, i) {
-      /* срок акции — через 7–21 день от сегодня (прежние «до 26–30.09» к ноябрю выглядели просроченными) */
-      var end = new Date(Date.now() + [7, 10, 14, 21][i % 4] * 864e5);
-      PROMO[p.id] = { until: ('0' + end.getDate()).slice(-2) + '.' + ('0' + (end.getMonth() + 1)).slice(-2), partner: p.brand || 'партнёр' };
+      PROMO[p.id] = { until: ['26.09', '27.09', '28.09', '30.09'][i % 4], partner: p.brand || 'партнёр' };
     });
   })();
 
@@ -166,37 +181,40 @@
     categories: categories,
     products: products,
 
-    /* цены функций — на сайте придут с сервера из конфига */
+    /* ── Генерации ✦ (ТЗ Алины «Генерации SOVE — правила и ТЗ», 04.11.2026): одна валюта, одна настройка. ──
+       price — сколько ✦ списывает действие; tariffs — три тарифа по результату (main — главный, подсвечен в шторке);
+       topup — докупка (только после покупки тарифа, если topupAfterTariffOnly); gift — подарки; limits — защита от злоупотреблений.
+       Меняется здесь одной строкой — экраны, шторка пополнения и Профиль читают отсюда. В бою это придёт с сервера. */
+    gen: {
+      price: { plan: 1, materials: 1, budget: 1, budgetOther: 1, dpBudget: 5, dpBudgetRenders: 15, dpBudgetStep: 3, room: 1, angle: 1, refresh: 1,
+        objectSwap: 1, findOther: 1, photoSearch: 1, boardSwap: 0, capsule: 0, level: 0, replan: 0 },
+      /* бюджет по капсуле (Алина 04.11 16:36): капсулы SOVEAPP К1–К6 — подписчику METOD бесплатно, без подписки 1 ✦ (подарочная тоже),
+         при нуле — предложение подписки, а не тарифы; капсулы дизайнеров и свой интерьер — 1 ✦ всем, при нуле — тарифы */
+      budget: { metodFree: ['k1', 'k2', 'k3', 'k4', 'k5', 'k6'] },
+      priceLabels: [['plan', 'План: распознавание, чертёж, 3D, расстановка'], ['materials', 'Материалы одной комнаты'],
+        ['budget', 'Бюджет по капсуле SOVEAPP', 'по METOD — бесплатно'], ['budgetOther', 'Бюджет по капсуле дизайнера или своему интерьеру'],
+        ['dpBudget', 'Бюджет по своему дизайн-проекту (до 15 рендеров)'], ['room', 'Комната в интерьере, 1 ракурс'], ['angle', 'Ещё ракурс'],
+        ['refresh', 'Обновить комнату после замен на доске'], ['objectSwap', 'Замена предмета на рендере'], ['findOther', '«Найти другую» — замена по фото или описанию'],
+        ['photoSearch', 'Поиск товара по фото'], ['boardSwap', 'Замена на доске из готовых вариантов'], ['capsule', 'Капсула SOVEAPP']],
+      tariffs: [
+        { id: 'room', title: 'Твоя комната', price: 249, gens: 9, caption: 'план, материалы и бюджет, комната с обновлением и ракурсом, 3 замены' },
+        { id: 'flat', title: 'Твоя квартира', price: 590, gens: 25, caption: 'план, материалы 4 комнат, бюджет, 4 комнаты с обновлениями и ракурсами, 9 замен' },
+        { id: 'flat3', title: 'Твоя квартира в 3 интерьерах', price: 1290, gens: 56, caption: 'три интерьера на всю квартиру, обновления, ракурсы и 18 замен', main: true }
+      ],
+      topup: [ { id: 't1', title: '1 генерация', price: 49, gens: 1 }, { id: 't5', title: '5 генераций', price: 229, gens: 5 } ],
+      topupAfterTariffOnly: true,
+      gift: { newUser: 1, metod6: 25, metodForever: 25 },
+      limits: { gensPerDay: 100, boardSwapsPerDay: 300 }
+    },
+    /* совместимость со старыми экранами: поиск по фото и по рендеру — по 1 ✦; подарок новому — 1 ✦ без срока; пакетов по зонам нет */
     costs: { photo: 1, render: 1 },
     demoLimit: 3,
-    /* подарок новому пользователю — 1 генерация, один раз на номер, не сгорает (Генерации SOVE — тарифы и экономика, 03.11) */
-    gift: { tokens: 1, days: null },
-
-    /* ✦ генерации и ⇄ замены (документ «Генерации SOVE — тарифы и экономика», 03.11): два баланса, каждое действие — 1 единица своего баланса,
-       исключение — бюджет по своему дизайн-проекту = 5 ✦. Слово «токены» в интерфейсе не используем. */
-    genPlans: [
-      { id: 'room', title: 'Твоя комната', price: 249, gens: 6, swaps: 3, swapsNote: '1 зона', perGen: 41 },
-      { id: 'flat', title: 'Твоя квартира', price: 590, gens: 16, swaps: 8, swapsNote: '4 зоны', perGen: 37 },
-      { id: 'flat3', title: 'Квартира в 3 интерьерах', price: 1290, gens: 36, swaps: 18, swapsNote: '3 интерьера × 4 зоны', perGen: 36, main: true }
-    ],
-    genTopups: [
-      { id: 'g1', title: '1 генерация', price: 49, gens: 1, swaps: 0 },
-      { id: 'g5', title: '5 генераций', price: 229, gens: 5, swaps: 0 },
-      { id: 's3', title: 'Замены на 1 зону', price: 49, gens: 0, swaps: 3 },
-      { id: 's12', title: 'Замены на квартиру · 4 зоны', price: 179, gens: 0, swaps: 12 }
-    ],
-    genActions: [
-      ['План: распознавание, чертёж, 3D, расстановка и правки', '1 ✦'], ['Материалы 1 зоны · база и премиум', '1 ✦'], ['Бюджет по капсуле', '1 ✦'],
-      ['Бюджет по своему дизайн-проекту · до 15 рендеров, больше — +1 ✦ за каждые 3 рендера', '5 ✦'], ['Комната в интерьере · 1 ракурс', '1 ✦'], ['Ещё ракурс', '1 ✦'],
-      ['Обновить комнату после замен', '1 ✦'], ['Поиск товара по фото', '1 ✦'], ['Замена материала на доске или предмета на картинке', '1 ⇄'], ['Маркет: каталог, поиск, корзина', 'бесплатно']
-    ],
-    budgetOwnProject: 5,
-    tokenPacks: [ { id: 'g1', tokens: 1, price: 49 }, { id: 'g5', tokens: 5, price: 229 } ],
-    /* пакеты по зонам (созвон 28.10) заменены тарифами генераций (genPlans) — 03.11 */
+    gift: { tokens: 1, days: 0 },
+    tokenPacks: [ { id: 't1', tokens: 1, price: 49 }, { id: 't5', tokens: 5, price: 229 } ],
     packages: [],
-    /* подарок METOD: тариф «Твоя квартира» (16 ✦ + 8 ⇄) — только при оплате на 6 месяцев или «Навсегда», один раз за оплату; 1 и 3 месяца — без подарка */
-    metodBonus: { minMonths: 6, gens: 16, swaps: 8, label: '«Твоя квартира» в подарок · 16 ✦ + 8 ⇄', note: 'при оплате на 6 месяцев' },
-    metodPlans: [ { id: 'm1', months: 1, price: 4400 }, { id: 'm3', months: 3, price: 6200 }, { id: 'm6', months: 6, price: 9800 } ],
+    metodBonus: null,
+    /* METOD на 6 месяцев и «Навсегда» дарит тариф «Твоя квартира» (25 ✦) один раз при оплате; 1 и 3 месяца — без подарка (ТЗ 04.11) */
+    metodPlans: [ { id: 'm1', months: 1, price: 4400 }, { id: 'm3', months: 3, price: 6200 }, { id: 'm6', months: 6, price: 9800, giftGens: 25 } ],
     /* разовый доступ к контакту: цен в ТЗ нет — в интерфейсе показывать «цена уточняется» */
     singleAccess: null,
 
@@ -209,8 +227,19 @@
       ],
       stages: [ ['Демонтаж', 10], ['Стены и перегородки', 20], ['Водоснабжение и канализация', 20], ['Электрика, свет, двери', 15], ['Полы', 15], ['Потолки', 10], ['Финальная сдача', 10] ],
       /* доли комплектации по категориям — пример, для показа структуры */
-      kitShares: [ ['Отделка', 22], ['Освещение', 7], ['Выключатели и розетки', 2], ['Сантехника', 10], ['Техника', 12], ['Мебель покупная', 17], ['Мебель на заказ', 20], ['Двери и перегородки', 6], ['Текстиль и декор', 4] ],
+      /* раскладка работ без плана (ставка × м²) по 5 этапам договора: веса — суммы этапов сметы №684 (К6, бетон, 50 м²). Для других состояний — те же строки, что есть в этом состоянии в книге работ (вторичка — плюс демонтаж 5 000 ₽/м²), чистовая — как предчистовая, как и в расчёте по плану. Итог работ они не меняют */
+      stageWeights: {
+        concrete: { demolition: 95000, rough: 604755, engineering: 507290, prefinish: 759601, finish_works: 822993 },
+        pre: { demolition: 95000, rough: 0, engineering: 150546, prefinish: 631601, finish_works: 776243 },
+        secondary: { demolition: 345000, rough: 310343, engineering: 355546, prefinish: 759601, finish_works: 622993 },
+        finish: { demolition: 95000, rough: 0, engineering: 150546, prefinish: 631601, finish_works: 776243 }
+      },
+      kitShares: [ ['Отделка', 22], ['Освещение', 7], ['Выключатели и розетки', 2], ['Сантехника', 10], ['Техника', 12], ['Мебель покупная', 17], ['Мебель заказная', 20], ['Двери и перегородки', 6], ['Текстиль и декор', 4] ],
       retailMarkup: 1.1746, /* розница / METOD по примеру К4 45 м² из ТЗ: 2 764 512 / 2 353 552 */
+      /* черновые материалы сверху комплектации, ₽/м² (Алина 08.11: «считаются по кв. метрам при выборе с работами», образец №684). Выключить — черновые = 40 % «Отделки» внутри комплектации, как было */
+      roughOnTop: true,
+      roughRates: { secondary: 20000, pre: 10000, concrete: 15000, finish: 0 },
+      roughRate: function (id) { return this.roughOnTop ? this.roughRates[id] || 0 : 0; },
       formats: [ { id: 'self', name: 'Делаю сам', note: 'Смета и список товаров останутся в кабинете' }, { id: 'adept', name: 'Нужен дизайн-проект', note: 'Передадим расчёт в дизайн-проект' }, { id: 'track', name: 'Ремонт под ключ', note: 'Передадим расчёт в управление ремонтом' } ],
       samplePlan: { rooms: [ { name: 'Гостиная-кухня', area: 21.4 }, { name: 'Спальня', area: 13.2 }, { name: 'Прихожая', area: 6.3 }, { name: 'Санузел', area: 4.1 } ], bathrooms: 1, doors: 4, windows: 2 }
     },
@@ -240,13 +269,10 @@
           { n: 3, name: 'Панель, зелёный мрамор', box: [10, 44, 36, 17], items: [ { id: 307, match: 'exact' } ] },
           { n: 4, name: 'Стулья у острова', box: [30, 47, 17, 16], items: [ { id: 106, match: 'near' } ] }
         ] },
-        /* сверено глазами 02.11 по кадру: бумажная люстра, диван букле, круглый столик, паркет ёлочкой (прежние «подвесы» и «кресло»
-           стояли не на своих вещах) — товары похожие из каталога демо */
         k4: { src: IMG + 'slides/k4-living-1.jpg', objects: [
           { n: 1, name: 'Люстра из бумаги', box: [64, 18, 31, 15], items: [ { id: 205, match: 'near' } ] },
-          { n: 2, name: 'Диван, букле', box: [44, 59, 18, 14], items: [ { id: 203274, match: 'near' } ] },   /* точка — на подлокотнике, не на цветах */
-          { n: 3, name: 'Столик журнальный круглый', box: [58, 72, 40, 14], items: [ { id: 202770, match: 'near' } ] },
-          { n: 4, name: 'Пол, инженерная доска', box: [8, 78, 34, 16], items: [ { id: 301, match: 'near' } ] }
+          { n: 2, name: 'Кресло на ножке', box: [38, 60, 23, 26], items: [ { id: 101, match: 'exact' } ] },
+          { n: 3, name: 'Пол, инженерная доска', box: [8, 78, 34, 16], items: [ { id: 301, match: 'near' } ] }
         ] },
         k3: { src: IMG + 'slides/k3-bed-1.jpg', objects: [
           { n: 1, name: 'Люстра с хрустальной бахромой', box: [44, 26, 24, 22], items: [ { id: 201, match: 'near' } ] },
@@ -282,13 +308,16 @@
     ],
 
     /* Партнёры «на заказ» — делают под объект, в общем каталоге их нет
-       (перенесено с сайта, constants/custom-order-partners.ts) */
+       (перенесено с сайта, constants/custom-order-partners.ts).
+       Таня 06.11: «Кухни и мебель на заказ», первым — эксклюзивный мебельный партнёр: так он назван в таблице METOD,
+       контакт тот же, что у PILOTAGE; id как в executors-data.js, чтобы чат с партнёром был один. */
     customOrder: {
-      categories: ['Кухни на заказ', 'Двери на заказ', 'Мебель из металла на заказ'],
+      categories: ['Кухни и мебель на заказ', 'Двери на заказ', 'Мебель из металла на заказ'],
       partners: [
-        { id: 'kuhni-layt', name: 'КУХНИ ЛАЙТ', category: 'Кухни на заказ', note: '−15 %' },
-        { id: 'kuhni-ot-marata', name: 'КУХНИ ОТ МАРАТА', category: 'Кухни на заказ', note: '−10 %' },
-        { id: 'nordic-kitchens', name: 'NORDIC KITCHENS', category: 'Кухни на заказ', note: 'сертификат 100 т.р' },
+        { id: 'pilotage', name: 'ЭКСКЛЮЗИВНЫЙ МЕБЕЛЬНЫЙ ПАРТНЁР', category: 'Кухни и мебель на заказ', note: '−23 %' },
+        { id: 'kuhni-layt', name: 'КУХНИ ЛАЙТ', category: 'Кухни и мебель на заказ', note: '−15 %' },
+        { id: 'kuhni-ot-marata', name: 'КУХНИ ОТ МАРАТА', category: 'Кухни и мебель на заказ', note: '−10 %' },
+        { id: 'nordic-kitchens', name: 'NORDIC KITCHENS', category: 'Кухни и мебель на заказ', note: 'сертификат 100 т.р' },
         { id: 'klassicheskie-dveri-s-nalichnikom', name: 'КЛАССИЧЕСКИЕ ДВЕРИ С НАЛИЧНИКОМ', category: 'Двери на заказ', note: 'от 18 700 ₽' },
         { id: 'klassicheskie-dveri', name: 'КЛАССИЧЕСКИЕ ДВЕРИ', category: 'Двери на заказ', note: 'от 24 000 ₽' },
         { id: 'skrytye-dveri-pod-pokrasku', name: 'СКРЫТЫЕ ДВЕРИ ПОД ПОКРАСКУ', category: 'Двери на заказ', note: 'от 20 615 ₽' },
@@ -297,14 +326,14 @@
       ]
     },
 
-    /* Чаты: четыре канала, как на сайте (chats.tsx). Партнёрский — «первое касание»,
-       дальше переписка уходит во внешний мессенджер; чаты услуг открываются после оформления. */
+    /* Чаты: четыре канала, как на сайте (chats.tsx). Партнёрский — вся переписка внутри SOVEAPP (Вика 05.11);
+       чаты услуг открываются после оформления. */
     chats: [
       { kind: 'support', title: 'Поддержка SOVEAPP', sub: 'техвопросы · оплаты · аккаунт', accent: '#6FA8C9',
         seed: [ { text: 'Здравствуйте! Это поддержка SOVEAPP. Чем помочь?' },
                 { me: true, text: 'Как работает возврат генераций?' },
-                { text: 'Генерации и замены не сгорают. Не получилась генерация — она сама вернётся на баланс.' } ] },
-      { kind: 'partner', title: 'Партнёр', sub: 'первое касание · дальше во внешнем мессенджере', accent: '#C9C46A', locked: false, first: true, seed: [] },
+                { text: 'Подарочные генерации действуют 30 дней, купленные — бессрочно. По подписке METOD генерации начисляются 1:1.' } ] },
+      { kind: 'partner', title: 'Партнёр', sub: 'переписка по заказу · внутри SOVEAPP', accent: '#C9C46A', locked: false, first: true, seed: [] },
       { kind: 'designer', title: 'Дизайнер · дизайн-проект', sub: 'дизайн-проект · внутри проекта', accent: '#9B7FC9', locked: true,
         seed: [ { text: 'Чат с дизайнером открывается после оформления дизайн-проекта.' } ] },
       { kind: 'team', title: 'Команда · ремонт', sub: 'ход ремонта · внутри проекта', accent: '#C96F6F', locked: true,
@@ -312,7 +341,7 @@
     ],
 
     /* Доступ к просчёту расчёта — по документу «Доступ к просчёту капсул» (платформа и бот).
-       Оплата РУБЛЯМИ по счёту, не токенами. Цены задаются в админке платформы: у капсулы своя цена,
+       Оплата РУБЛЯМИ по счёту, не генерациями. Цены задаются в админке платформы: у капсулы своя цена,
        пустое поле → дефолт типа. ЗНАЧЕНИЯ НИЖЕ — ПРИМЕРЫ для прототипа, настоящих цен в документе нет. */
     scoutAccess: {
       pricesAreExamples: false, /* прочитано с платформы 21.09.2026: GET /api/v1/design_concepts/published */
@@ -329,6 +358,56 @@
   capsules.forEach(function (c) { c.type = c.designer ? 'designer' : 'sove'; c.version = 1; });
   data.capsule = function (id) { return capsules.filter(function (c) { return c.id === id; })[0] || null; };
   data.product = function (id) { id = Number(id); return products.filter(function (x) { return x.id === id; })[0] || null; };
+
+  /* Капсулы без ручной работы (Валерия 06.11: «без моей помощи»): сервер собирает их из sove.app и таблиц дизайнеров, /api/capsules/live.
+     Цена известной капсулы — как на sove.app; капсула «скоро» вышла на sove.app — статус снимается; новая капсула появляется сама.
+     Новая капсула — только каталог и товары: у неё нет паспорта для генераций, поэтому в Интерьере её нет.
+     Записанное выше — запасной вариант, если сервер недоступен. Ответ хранится в браузере и применяется сразу при загрузке, свежий приходит фоном. */
+  var LIVE_KEY = 'sove.capsules.live.v1', LIVE_TTL = 2 * 60 * 1000;
+  var NO_PHOTO = data.noPhoto = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600"><rect width="800" height="600" fill="#F0E9E3"/><text x="400" y="310" font-family="sans-serif" font-size="28" fill="#5B534E" text-anchor="middle">Фото уточняется</text></svg>');
+  function livePrice(v) { return typeof v === 'number' && v > 0 ? v : undefined; }
+  function liveCapsule(x) {
+    /* адрес вставляется в разметку: только https без кавычек и скобок */
+    var pics = (Array.isArray(x.images) ? x.images : []).filter(function (src) { return typeof src === 'string' && /^https:\/\/[^"'<>\s]+$/.test(src); }), cover = pics[0] || NO_PHOTO, designer = x.designer !== false;
+    var text = function (v) { return String(v || '').replace(/[<>"]/g, ''); };
+    return { id: x.id, code: text(x.code), name: text(x.name), style: text(x.style), pricePerM2: livePrice(x.price_per_m2), pricePerM2Premium: livePrice(x.price_premium_per_m2), soon: !livePrice(x.price_per_m2), designer: designer, auto: true,
+      type: designer ? 'designer' : 'sove', version: 1, concept: text(x.concept) || 'Авторская капсула дизайнера.', forWhom: text(x.for_whom), materials: [], cover: cover,
+      slides: [], gallery: (pics.length ? pics : [cover]).map(function (src) { return { room: 'Интерьер', src: src }; }), dna: [], wide: cover, wideFrom: '', widePos: '', palette: [], tags: [] };
+  }
+  function applyLive(list) {
+    var changed = false;
+    /* запись могла испортиться: плохая строка пропускается, остальной сайт работает на записанном выше */
+    if (!Array.isArray(list)) return false;
+    list.forEach(function (x) {
+      if (!x || typeof x !== 'object' || typeof x.id !== 'string' || !/^k[1-9]\d?$/.test(x.id)) return;
+      var c = data.capsule(x.id), price = livePrice(x.price_per_m2), premium = livePrice(x.price_premium_per_m2);
+      if (!c) { capsules.push(liveCapsule(x)); changed = true; return; }
+      if (c.auto) { var fresh = liveCapsule(x); if (JSON.stringify(fresh) !== JSON.stringify(c)) { Object.assign(c, fresh); changed = true; } return; }
+      if (price && c.pricePerM2 !== price) { c.pricePerM2 = price; changed = true; }
+      if (price && c.soon) { c.soon = false; changed = true; }
+      if (premium && c.pricePerM2Premium !== premium) { c.pricePerM2Premium = premium; changed = true; }
+    });
+    return changed;
+  }
+  var liveSaved = null;
+  try { liveSaved = JSON.parse(localStorage.getItem(LIVE_KEY) || 'null'); } catch (e) { liveSaved = null; }
+  if (!liveSaved || !Array.isArray(liveSaved.capsules) || typeof liveSaved.ts !== 'number') liveSaved = null;
+  try { if (liveSaved) applyLive(liveSaved.capsules); } catch (e) { liveSaved = null; }
+  /* force — не смотреть на срок хранения: страница капсулы, которой ещё нет в этом браузере. Promise: true, если что-то изменилось */
+  data.refreshCapsules = function (force) {
+    if (!/^https?:$/.test(location.protocol) || typeof fetch !== 'function') return Promise.resolve(false);
+    var age = liveSaved ? Date.now() - liveSaved.ts : -1;   /* дата записи из будущего (часы браузера) — считаем устаревшей, иначе обновление не придёт никогда */
+    if (!force && age >= 0 && age < LIVE_TTL) return Promise.resolve(false);
+    return fetch('/api/capsules/live', { headers: { Accept: 'application/json' } }).then(function (r) { return r.ok ? r.json() : null; }).then(function (d) {
+      if (!d || !Array.isArray(d.capsules) || !d.capsules.length) return false;
+      liveSaved = { ts: Date.now(), capsules: d.capsules };
+      try { localStorage.setItem(LIVE_KEY, JSON.stringify(liveSaved)); } catch (e) { /* без памяти браузера капсулы просто приходят каждый раз */ }
+      var changed = applyLive(d.capsules);
+      if (changed) window.dispatchEvent(new CustomEvent('sove:capsules'));
+      return changed;
+    }).catch(function () { return false; });
+  };
+  data.liveCapsules = data.refreshCapsules(false);
 
   window.SOVE_DATA = data;
 })();

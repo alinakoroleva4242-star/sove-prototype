@@ -3,17 +3,18 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Тарифы генераций — SOVEAPP</title>
-<meta name="description" content="Тарифы генераций SOVE: «Твоя комната», «Твоя квартира», «Квартира в 3 интерьерах», докупка генераций и замен, подписка METOD.">
+<title>Пополнить генерации — SOVEAPP</title>
+<meta name="description" content="Три тарифа по результату и докупка генераций: выберите, проверьте заказ и перейдите к оплате.">
 <link rel="icon" href="assets/img/logo-sg.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap">
-<link rel="stylesheet" href="assets/css/site.css?v=20261104150800">
-<link rel="stylesheet" href="assets/css/app-theme.css?v=20261104150800">
-<link rel="stylesheet" href="assets/css/pages/tokens.css?v=20261104150800">
+<link rel="stylesheet" href="assets/css/site.css?v=20261112172140">
+<link rel="stylesheet" href="assets/css/cap-card.css?v=20261112172140">
+<link rel="stylesheet" href="assets/css/app-theme.css?v=20261112172140">
+<link rel="stylesheet" href="assets/css/pages/tokens.css?v=20261112172140">
 </head>
-<body data-funnel-cta="К оплате" data-funnel-target="#order" data-page="tokens" data-title="Тарифы генераций">
+<body data-funnel-cta="К оплате" data-funnel-target="#order" data-page="tokens" data-title="Генерации">
 <a class="skip" href="#main">К содержанию</a>
 <div id="site-header"></div>
 
@@ -21,9 +22,9 @@
 
   <section class="wrap section--top">
     <div class="page-head tk-head">
-      <nav class="crumbs" aria-label="Вы здесь"><a href="index.html">Главная</a><span aria-hidden="true">/</span><span>Тарифы генераций</span></nav>
-      <h1 class="h1">Тарифы генераций</h1>
-      <p class="lead">Генерации — это план, бюджет, интерьер и замены материалов.</p>
+      <nav class="crumbs" aria-label="Вы здесь"><a href="index.html">Главная</a><span aria-hidden="true">/</span><span>Генерации</span></nav>
+      <h1 class="h1">Пополнить генерации</h1>
+      <p class="lead">Одна валюта — генерации ✦: каждое действие списывает одну. Чем больше тариф, тем дешевле генерация. <span id="tk-return-note" hidden>Фото и расчёты, с которых вы пришли, сохранены — после оплаты вернём вас на тот же экран.</span></p>
     </div>
   </section>
 
@@ -34,14 +35,26 @@
 
         <section class="tk-way tk-way--wide rule-top" aria-labelledby="tk-pkg-title">
           <div class="stack stack--2">
-            <span class="eyebrow">Тарифы по результату</span>
-            <h2 class="h3" id="tk-pkg-title">Тарифы</h2>
-            <p class="small muted tk-way__desc">Чем больше тариф, тем дешевле генерация: от 49 до 33 ₽.</p>
+            <span class="eyebrow">Тарифы</span>
+            <h2 class="h3" id="tk-pkg-title">Три тарифа по результату</h2>
+            <p class="small muted tk-way__desc">Состав — пример расхода на квартиру из 4 комнат. Генерации тратите как хотите, на любые квартиры; они не сгорают.</p>
           </div>
           <div class="tk-pkgs" id="tk-packages"></div>
           <div class="tk-way__foot">
-            <p class="small">Тратите, как хотите: на любые квартиры, генерации не сгорают.</p>
-            <a class="arrow-link" href="account.html?v=tokens">Сколько стоит действие</a>
+            <p class="small">Списываем только за готовое: не получилось — генерация возвращается на баланс.</p>
+            <a class="arrow-link" href="interior.html">Где тратятся генерации — Интерьер</a>
+          </div>
+        </section>
+
+        <section class="tk-way rule-top" aria-labelledby="tk-pack-title" id="tk-topup-way">
+          <div class="stack stack--2">
+            <span class="eyebrow">Докупка</span>
+            <h2 class="h3" id="tk-pack-title">Генерации по одной</h2>
+            <p class="small muted tk-way__desc" id="tk-pack-desc">Докупка дороже любого тарифа за генерацию — тариф всегда выгоднее.</p>
+          </div>
+          <div class="stack stack--2" id="tk-packs"></div>
+          <div class="tk-way__foot">
+            <p class="small" id="tk-topup-note">Докупка открывается после первого тарифа.</p>
           </div>
         </section>
 
@@ -49,30 +62,21 @@
           <div class="stack stack--2">
             <span class="eyebrow">Подписка на срок</span>
             <h2 class="h3" id="tk-metod-title">Подписка METOD</h2>
-            <p class="small muted tk-way__desc">Контакты всех поставщиков и закрытый клуб в Telegram. При оплате на 6 месяцев — «Твоя квартира» в подарок: 16 генераций и 8 замен.</p>
+            <p class="small muted tk-way__desc">Контакты всех поставщиков и закрытый клуб в Telegram. На 6 месяцев — тариф «Твоя квартира» в подарок: 25 генераций.</p>
           </div>
           <div class="stack stack--2" id="tk-plans"></div>
           <div class="tk-way__foot">
-            <p class="small">На 1 и 3 месяца подарка генераций нет.</p>
+            <p class="small">METOD на 1 и 3 месяца генераций не дарит.</p>
             <a class="arrow-link" id="tk-metod-link" href="metod.html">Что входит в METOD</a>
           </div>
-        </section>
-
-        <section class="tk-way rule-top" aria-labelledby="tk-pack-title">
-          <div class="stack stack--2">
-            <span class="eyebrow">Без тарифа</span>
-            <h2 class="h3" id="tk-pack-title">Докупка</h2>
-            <p class="small muted tk-way__desc" id="tk-pack-desc">Генерации и замены можно докупить в любой момент. За единицу дороже любого тарифа.</p>
-          </div>
-          <div class="stack stack--2" id="tk-packs"></div>
         </section>
 
         <div class="tk-help">
           <span class="eyebrow">Как выбрать</span>
           <div class="tk-help__cols">
-            <p class="small muted"><b>Твоя комната</b> — план, материалы одной зоны, бюджет, комната, обновление после замен и ещё один ракурс.</p>
-            <p class="small muted"><b>Твоя квартира</b> — план, материалы 4 зон, бюджет, 4 комнаты, 4 обновления и 2 ракурса.</p>
-            <p class="small muted"><b>Квартира в 3 интерьерах</b> — три интерьера на выбор для всей квартиры, для выбранного — обновления и ракурсы.</p>
+            <p class="small muted"><b>Твоя комната</b> — одна комната: план, материалы, бюджет, картинка комнаты и пара замен.</p>
+            <p class="small muted"><b>Твоя квартира</b> — все комнаты одной квартиры в одном интерьере.</p>
+            <p class="small muted"><b>Квартира в 3 интерьерах</b> — три интерьера на выбор и больше замен; самая дешёвая генерация.</p>
           </div>
         </div>
 
@@ -120,8 +124,9 @@
 </div>
 
 <div id="site-footer"></div>
-<script src="assets/js/data.js?v=20261104150800"></script>
-<script src="assets/js/site.js?v=20261104150800"></script>
-<script src="assets/js/pages/tokens.js?v=20261104150800"></script>
+<script src="assets/js/data.js?v=20261112172140"></script>
+<script src="assets/js/site.js?v=20261112172140"></script>
+<script src="assets/js/cap-card.js?v=20261112172140"></script>
+<script src="assets/js/pages/tokens.js?v=20261112172140"></script>
 </body>
 </html>

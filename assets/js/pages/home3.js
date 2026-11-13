@@ -1,440 +1,666 @@
-/* Главная приложения (index.html).
-   Первый экран — «Пример расчёта бюджета» по трём макетам Вики и саммари дизайн-ревью 30.10 (оно главнее, где расходятся):
-   фото ОДНОГО интерьера без надписей, карточка «Ваш ремонт» + сумма, тонкий ползунок площади, мелкая подпись про квартиру,
-   светлая плашка «Ваша выгода с подпиской METOD» и кнопка «Рассчитать свой ремонт». Цен «с подпиской / без подписки» нет.
-   Ниже: квадраты-сервисы, ленты капсул (раскладка — assets/js/home-lanes.js), «Акция месяца», вход для партнёров.
-   Варианты для сравнения командой: ?hero=a|b|c|d (фото) × ?card=1|2|3 (карточка). Выбор помнит браузер,
-   плашка выбора — в самом низу страницы и только с ?variants=1. По умолчанию A + 1. */
+/* Главная приложения: расчёт бюджета, разделы нынешнего сайта одной лентой.
+   Прежние варианты A/B/C сведены в одну страницу; там, где подача спорная (разбор рендера),
+   варианты переключаются прямо в блоке. */
 (function () {
   var S = window.SOVE, D = S.data, F = S.fmt, esc = F.esc;
   var root = document.getElementById('home3');
-  if (!root) return;
-  function $(id) { return document.getElementById(id); }
-  function setText(id, text) { var el = $(id); if (el) el.textContent = text; }
 
   /* иконки в духе Ionicons на сайте */
   var IC = {
+    sparkles: '<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8zM5 17l.8 2.2L8 20l-2.2.8L5 23l-.8-2.2L2 20l2.2-.8zM19 15l.6 1.6 1.6.6-1.6.6L19 19.5l-.6-1.6-1.6-.6 1.6-.6z"/>',
     bag: '<path d="M6 8h12l1 13H5zM9 8V6a3 3 0 0 1 6 0v2"/>',
     albums: '<rect x="4" y="8" width="16" height="12" rx="2"/><path d="M7 5h10M9 2h6"/>',
+    calc: '<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 7h8M8 11h3M13 11h3M8 15h3M13 15h3"/>',
+    wand: '<path d="M4 20l10-10M14 4l1 2 2 1-2 1-1 2-1-2-2-1 2-1zM19 9l.6 1.4 1.4.6-1.4.6L19 13l-.6-1.4-1.4-.6 1.4-.6z"/>',
+    build: '<path d="M14 6l4 4-9 9H5v-4zM12 8l4 4"/>',
+    ribbon: '<circle cx="12" cy="8" r="5"/><path d="M9 12l-2 9 5-3 5 3-2-9"/>',
     info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8v.5"/>',
     lock: '<rect x="6" y="11" width="12" height="9" rx="2"/><path d="M9 11V8a3 3 0 0 1 6 0v3"/>',
+    handshake: '<path d="M3 11l4-4h4l3 3M21 11l-4-4h-3M7 11l5 5 2-2M10 14l2 2 3-3"/>',
+    home: '<path d="M4 11l8-7 8 7v9h-5v-6H9v6H4z"/>',
     arrow: '<path d="M5 12h14M13 6l6 6-6 6"/>',
-    close: '<path d="M6 6l12 12M18 6L6 18"/>',
-    /* ряд преимуществ под кнопкой (макет Вики, вариант 2): стопка, молния, коробка */
-    layers: '<path d="M12 4l8 4-8 4-8-4z"/><path d="M4 12l8 4 8-4"/><path d="M4 16l8 4 8-4"/>',
-    bolt: '<path d="M13 3L5 13.5h6L10 21l8-10.5h-6z"/>',
-    cube: '<path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M4 7.5l8 4.5 8-4.5M12 12v9"/>'
+    key: '<circle cx="8" cy="12" r="4"/><path d="M12 12h9M18 12v3M21 12v2"/>',
+    back: '<path d="M15 5l-7 7 7 7"/>',
+    grid: '<rect x="3" y="4" width="7" height="7" rx="1.5"/><rect x="14" y="4" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>'
   };
   function ic(n, s) { return '<svg viewBox="0 0 24 24" width="' + (s || 20) + '" height="' + (s || 20) + '" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true">' + IC[n] + '</svg>'; }
-  function chev(d) { return '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="' + (d < 0 ? 'M15 5l-7 7 7 7' : 'M9 5l7 7-7 7') + '"/></svg>'; }
-  var calm = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  var IMG = { ai: 'assets/img/capsules/k6-main-1.jpg', market: 'assets/img/capsules/k2-main-2.jpg', capsules: 'assets/img/capsules/k1-kitchen.jpg', scout: 'assets/img/capsules/k4-main-1.jpg', adept: 'assets/img/capsules/k3-main-1.jpg', track: 'assets/img/capsules/k4-main-3.jpg', hero: 'assets/img/capsules/k1-main-1.jpg', metod: 'assets/img/capsules/k2-main-1.jpg' };
 
-  /* ---------- пример расчёта: один интерьер, одна сумма ---------- */
-  /* интерьер первого экрана — «Тёплая классика с терракотом» (у него размечены товары на кадре гостиной-кухни) */
-  var CAP = D.capsule('k4') || D.capsules.filter(function (c) { return !c.soon && !c.designer && c.pricePerM2; })[0];
-  /* одна сумма по Базовому (Вика 23.10): работы — новостройка без отделки, комплектация — капсула по ценам METOD */
-  var BASE_STATE = D.scout.states.filter(function (x) { return x.id === 'concrete'; })[0] || D.scout.states[0];
-  var AREA_MIN = 36, AREA_MAX = 84, AREA_DEF = 45;
-  /* во сколько раз комплект дороже без подписки: считаем по товарам капсул — отсюда «Ваша выгода» */
+  /* ---------- данные разделов нынешнего сайта ---------- */
+  var adeptFrom = Math.min.apply(null, D.adept.packages.map(function (p) { return p.rate; }));
+  var trackFrom = Math.min.apply(null, D.scout.states.map(function (s) { return s.rate; }));
+  var T = {
+    ai: { k: 'ИИ генерации', t: 'Генерации', d: 'Визуализации за секунды', href: 'sove-ai.html', ic: 'sparkles', img: IMG.ai },
+    fit: { k: 'Примерка', t: 'Вещь в вашей комнате', d: 'Фото комнаты — и товар встаёт в кадр', href: 'fit.html', ic: 'sparkles', img: 'assets/img/slides/k5-living-1.jpg' },
+    market: { k: 'Скидки партнёров', t: 'Каталог товаров', d: 'Закрытые цены партнёров', href: 'market.html', ic: 'bag', img: IMG.market },
+    capsules: { k: 'Вдохновение', t: 'Капсулы', d: 'Готовые интерьеры с названиями', href: 'capsules.html', ic: 'albums', img: IMG.capsules },
+    adept: { k: 'Адаптация капсулы', t: 'Дизайн-проект', d: 'Капсула в дизайн-проект', href: 'adept.html', ic: 'wand', img: IMG.adept, lock: true, price: 'от ' + F.rub(adeptFrom) + '/м²' },
+    track: { k: 'Ремонт под ключ', t: 'Управление ремонтом', d: 'От проекта до ключей', href: 'track.html', ic: 'build', img: IMG.track, lock: true, price: 'работы от ' + F.rub(trackFrom) + '/м²' },
+    metod: { k: 'Лента', t: 'Метод ремонта', d: 'Акции, подборки, концепции', href: 'feed.html', ic: 'ribbon', lock: true, img: IMG.metod, price: 'от ' + F.rub(D.metodPlans[0].price) + ' в месяц' },
+    about: { k: 'Экосистема', t: 'О\u00a0SOVEAPP', d: 'Как всё устроено', href: 'about.html', ic: 'info', img: 'assets/img/capsules/k5-main-1.jpg' }
+  };
+  var PART = [ { t: 'Стать партнёром', d: 'Поставщикам и брендам', href: 'partner.html', ic: 'handshake' }, { t: 'Разместить капсулу', d: 'Дизайнерам: заявки на дизайн-проект', href: 'partner.html?who=designer', ic: 'home' } ];
+
+  /* ---------- Расчёт бюджета на главной: кадр квартиры тянется за ползунком площади ---------- */
+  var capsK = D.capsules.filter(function (c) { return !c.soon && !c.designer && c.pricePerM2; });
+  var minKit = Math.min.apply(null, capsK.map(function (c) { return c.pricePerM2; })), maxKit = Math.max.apply(null, capsK.map(function (c) { return c.pricePerM2; }));
+  var rates = D.scout.states.map(function (x) { return x.rate; }), minRate = Math.min.apply(null, rates), maxRate = Math.max.apply(null, rates);
+  function mln(n) { return (Math.round(n / 100000) / 10).toFixed(1).replace('.', ','); }
+  /* во сколько раз комплект дороже без подписки: считаем по товарам капсул */
   var sumRetail = 0, sumMetod = 0;
   D.products.forEach(function (p) { if (p.capsules && p.capsules.length) { sumRetail += p.retail; sumMetod += p.metod; } });
   var noMetodK = sumMetod ? sumRetail / sumMetod : 1.2;
-  function mln(n) { return (Math.round(n / 100000) / 10).toFixed(1).replace('.', ','); }
-  function budget(a) { return mln((BASE_STATE.rate + CAP.pricePerM2) * a) + '\u00a0млн\u00a0₽'; }
-  function gain(a) { return 'до\u00a0' + F.num(Math.round((CAP.pricePerM2 * noMetodK - CAP.pricePerM2) * a / 10000) * 10000).replace(/ /g, '\u00a0') + '\u00a0₽'; }
-  /* подпись про квартиру — коротко, чтобы на телефоне шла одной мелкой строкой */
-  function flatName(a) { return a < 41 ? 'Студия' : a < 56 ? '1-комнатная' : a < 71 ? '2-комнатная' : '3-комнатная'; }
-  function clampArea(a) { a = Math.round(Number(a) || AREA_DEF); return Math.min(AREA_MAX, Math.max(AREA_MIN, a)); }
-
-  /* ---------- 7 фото одного интерьера ----------
-     Первый кадр — гостиная-кухня с разметкой товаров (D.ai.renderMarks), дальше широкий кадр и галерея капсулы
-     (облегчённые копии capsules/hc). k4-hall-1.jpg — тот же снимок, что k4-main-1.jpg (сверено по md5 02.11): второй раз не берём. */
-  var MARK = (D.ai.renderMarks || {})[CAP.id] || null;
-  /* метки товаров на кадре k4-living-1 сверены глазами 02.11 и поправлены в data.js (renderMarks.k4: люстра, диван, столик, пол).
-     OFF_MARKS — запасной выключатель для метки, которая встанет не на свою вещь: «товар@рамка» по адресу кадра */
-  var OFF_MARKS = {};   /* 02.11: разметку k4 в data.js поправили по кадру — прятать нечего; механизм оставлен на случай новых промахов */
-  function markOk(src, o) {
-    var off = [];
-    Object.keys(OFF_MARKS).forEach(function (k) { if (String(src).slice(-k.length) === k) off = OFF_MARKS[k]; });
-    var it = (o.items || [])[0];
-    return !!it && off.indexOf(it.id + '@' + (o.box || []).join(',')) < 0;
-  }
-  var DUP = { 'k4-hall-1': true, 'k4-main-3': true };   /* k4-main-3 снят с того же ракурса, что k4-living-1 (сверка 02.11: при листании выглядел повтором) */
-  var FRAMES = [];
-  if (MARK && MARK.src) FRAMES.push({ src: MARK.src, room: ((CAP.slides || []).filter(function (s) { return s.src === MARK.src; })[0] || {}).room || '',
-    marks: (MARK.objects || []).filter(function (o) { return markOk(MARK.src, o); }) });
-  if (CAP.wide) FRAMES.push({ src: CAP.wide, room: 'Гостиная' });
-  (CAP.gallery || []).forEach(function (g) {
-    var m = /capsules\/([a-z0-9-]+)\.jpg$/.exec(g.src);
-    if (!m || m[1] === CAP.wideFrom || DUP[m[1]]) return;
-    FRAMES.push({ src: 'assets/img/capsules/hc/' + m[1] + '.jpg', room: g.room });
+  /* Калькулятор на главной по макету Вики 23.10: сверху листалка капсул (1 / 6) с названием, ниже — пример расчёта
+     на выбранную капсулу, ползунок площади, выгода с подпиской METOD и «Просчитай свой ремонт». Кадры — широкие
+     снимки капсул (data.js, wide). */
+  var HC_ORDER = ['k4', 'k1', 'k2', 'k3', 'k5', 'k6'];
+  var hcCaps = HC_ORDER.map(function (id) { return D.capsule(id); }).filter(function (c) { return c && !c.soon && c.pricePerM2; });
+  /* Вика 23.10: листаются фото самой капсулы — широкий кадр и вся её галерея (облегчённые копии capsules/hc), потом следующая капсула */
+  var hcShots = [];
+  hcCaps.forEach(function (c, ci) {
+    var list = [c.wide || c.cover];
+    (c.gallery || []).forEach(function (g) { var m = /capsules\/([a-z0-9-]+)\.jpg$/.exec(g.src); if (m && m[1] !== c.wideFrom) list.push('assets/img/capsules/hc/' + m[1] + '.jpg'); });
+    list.forEach(function (src, i) { hcShots.push({ c: c, ci: ci, i: i, n: list.length, src: src, room: i ? ((c.gallery || []).filter(function (g) { return g.src.indexOf(src.split('/').pop()) >= 0; })[0] || {}).room : '' }); });
   });
-  if (!FRAMES.length) FRAMES.push({ src: CAP.cover, room: '' });
-  FRAMES = FRAMES.slice(0, 7);
+  var hcI = 0;
+  var CROWN = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true"><path d="M4 18h16M5 15l-1-8 5 4 3-6 3 6 5-4-1 8z"/></svg>';
+  var CHEV = function (d) { return '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="' + (d < 0 ? 'M15 5l-7 7 7 7' : 'M9 5l7 7-7 7') + '"/></svg>'; };
+  function scoutHTML() {
+    return '<section class="hc" id="scout-card" aria-label="Пример расчёта бюджета ремонта">' +
+      '<div class="hc-hero" id="hc-hero" aria-roledescription="карусель" aria-label="Капсулы SOVEAPP">' +
+        '<img class="hc-hero__img" id="hc-img" alt="">' +
+        '<span class="hc-hero__area" id="flat-badge"></span>' +
+        '<div class="hc-hero__foot"><b class="hc-hero__name" id="hc-name" aria-live="polite"></b>' +
+          '<span class="hc-hero__nav"><span class="hc-hero__n" id="hc-n"></span>' +
+          '<button type="button" class="hc-hero__b" data-hc="-1" aria-label="Предыдущее фото">' + CHEV(-1) + '</button>' +
+          '<button type="button" class="hc-hero__b hc-hero__b--on" data-hc="1" aria-label="Следующее фото">' + CHEV(1) + '</button></span></div>' +
+        '<span class="hc-hero__dots" id="hc-dots" aria-hidden="true">' + hcCaps.map(function () { return '<i></i>'; }).join('') + '</span>' +
+      '</div>' +
+      '<div class="hc-card"><span class="hc-card__k">Пример расчёта бюджета</span>' +
+      '<h1 class="hc-card__t">Ваш ремонт <b id="plan-sum"></b></h1>' +
+      '<span class="hc-card__sub" id="plan-area"></span>' +
+      '<label class="plan__range"><span class="plan__val" id="plan-val"></span>' +
+        '<input type="range" id="plan-range" min="36" max="84" step="1" value="45" aria-label="Площадь квартиры">' +
+      '</label>' +
+      '<a class="hc-save" href="metod.html"><span class="hc-save__ic">' + CROWN + '</span>' +
+        '<span class="hc-save__txt"><small>Ваша выгода с подпиской METOD</small><b id="hc-save"></b><em>Закрытые цены поставщиков и готовые решения</em></span>' +
+        '<span class="hc-save__i" aria-hidden="true">' + ic('info', 22) + '</span></a>' +
+      '<div class="fview__sw" role="group" aria-label="Цена с подпиской или без">' +
+        '<button type="button" class="fview__sw-b is-on" data-metod="1" aria-pressed="true">С подпиской METOD</button>' +
+        '<button type="button" class="fview__sw-b" data-metod="0" aria-pressed="false">Без подписки</button>' +
+      '</div>' +
+      '<span class="fview__nometod" id="plan-alt"></span>' +
+      '<a class="hc-go" id="plan-go" href="scout.html">Просчитай свой ремонт ' + ic('arrow', 20) + '</a></div></section>';
+  }
+  var withMetod = true;
+  function rub10k(n) { return F.rub(Math.round(n / 10000) * 10000); }
+  function flatName(a) { return a < 41 ? 'Студия' : a < 56 ? '1-комнатная квартира' : a < 71 ? '2-комнатная квартира' : '3-комнатная квартира'; }
 
-  /* ---------- варианты первого экрана для сравнения ---------- */
-  var HEROES = {
-    a: { t: 'карусель 7 фото с товарами', carousel: true, goods: true },
-    b: { t: 'карусель 7 фото без товаров', carousel: true, goods: false },
-    c: { t: 'одно фото с товарами', carousel: false, goods: true },
-    d: { t: 'одно фото без товаров', carousel: false, goods: false }
-  };
-  var CARDS = { 1: 'простая', 2: 'плашка и три преимущества', 3: 'декоративная, с волнами' };   /* во всех трёх — знак «Метод ремонта» вместо короны */
-  var VKEY = 'sove.proto.homeView';
-  function readView() {
-    var saved = {};
-    try { saved = JSON.parse(localStorage.getItem(VKEY) || '{}') || {}; } catch (e) { saved = {}; }
-    var qh = (S.ui.qs('hero') || '').toLowerCase(), qc = String(S.ui.qs('card') || '');
-    /* по умолчанию — B: карусель фото одного интерьера, сама листается, без точек товаров (Алина 03.11) */
-    /* сохранённый выбор — только в режиме выбора (?variants=1): обычная главная всегда открывается вариантом A + 1 (сверка 02.11) */
-    if (!S.ui.qs('variants')) saved = {};
-    var v = { hero: HEROES[qh] ? qh : (HEROES[saved.hero] ? saved.hero : 'b'), card: CARDS[qc] ? qc : (CARDS[saved.card] ? String(saved.card) : '1') };
-    if (HEROES[qh] || CARDS[qc]) saveView(v);   /* выбор из ссылки тоже запоминаем */
-    return v;
-  }
-  function saveView(v) { try { localStorage.setItem(VKEY, JSON.stringify(v)); } catch (e) {} }
-  /* адрес следует за выбором; в рамке телефона (phone.html) — и адрес рамки, иначе перезагрузка вернёт старый вариант */
-  function syncUrl(v) {
-    try {
-      var q = new URLSearchParams(location.search); q.set('hero', v.hero); q.set('card', v.card);
-      var rel = location.pathname.split('/').pop() + '?' + q.toString();
-      history.replaceState(history.state, '', rel + location.hash);
-      if (window.top !== window && /phone\.html$/.test(window.parent.location.pathname)) window.parent.history.replaceState(null, '', 'phone.html?p=' + encodeURIComponent(rel));
-    } catch (e) {}
-  }
+  function bindScout() {
+    var range = document.getElementById('plan-range'), img = document.getElementById('hc-img'), hero = document.getElementById('hc-hero');
+    var my = S.my.get(); if (my.area) range.value = Math.min(84, Math.max(36, my.area));
 
-  /* ---------- первый экран: разметка ---------- */
-  function frameAlt(f, i, n) { return 'Интерьер «' + CAP.name + '»' + (f.room ? ': ' + f.room.toLowerCase() : '') + (n > 1 ? ', фото ' + (i + 1) + ' из ' + n : ''); }
-  function heroHTML(v) {
-    var H = HEROES[v.hero], n = H.carousel ? FRAMES.length : 1, f = FRAMES[0];
-    return '<div class="hc-hero' + (H.carousel ? ' hc-hero--carousel' : '') + '" id="hc-hero"' + (H.carousel ? ' role="region" aria-roledescription="карусель"' : ' role="group"') + ' aria-label="Интерьер «' + esc(CAP.name) + '»">' +
-      '<img class="hc-hero__img is-wait" id="hc-img" src="' + f.src + '" alt="' + esc(frameAlt(f, 0, n)) + '" decoding="async" fetchpriority="high">' +
-      (H.goods ? '<div class="hc-marks" id="hc-marks"></div>' +
-        /* значок, а не надпись на фото: список товаров этого интерьера — блок «Товары капсулы» на её странице */
-        '<a class="hc-goods" href="capsule.html?id=' + CAP.id + '#cap-goods" aria-label="Товары интерьера" title="Товары интерьера">' + ic('bag', 20) + '</a>' +
-        '<div class="hc-pop" id="hc-pop" role="dialog" aria-label="Товар в кадре" hidden></div>' : '') +
-      (H.carousel ? '<span class="hc-nav">' +
-          '<button type="button" class="hc-nav__b" data-hc="-1" aria-label="Предыдущее фото">' + chev(-1) + '</button>' +
-          '<button type="button" class="hc-nav__b hc-nav__b--on" data-hc="1" aria-label="Следующее фото">' + chev(1) + '</button></span>' +
-        '<span class="hc-pager" id="hc-pager" aria-hidden="true">' + FRAMES.map(function (x, i) { return '<i' + (i ? '' : ' class="is-on"') + '></i>'; }).join('') + '</span>' : '') +
-      '</div>';
-  }
-  /* логотип «Метод ремонта» вместо короны (Алина 30.10: «на баннере можно тонко лого Метод ремонта вместо короны»;
-     файл «Лого метод.png» из папки логотипов на Диске, прислала Алина 02.11) — красится цветом акцента через маску.
-     Валерия 02.11: «надо на главной» — знак во всех трёх вариантах карточки, короны на главной нет */
-  var METOD_MARK = '<span class="hc-mark3" aria-hidden="true"><i class="hc-mark3__logo"></i></span>';
-  var WAVE = '<svg class="hc-wave" viewBox="0 0 220 120" preserveAspectRatio="none" aria-hidden="true"><path d="M0 92C46 70 78 104 124 78S190 22 220 30"/><path d="M0 104C52 84 86 114 132 90S196 40 220 46"/><path d="M28 120C72 100 110 118 150 98S204 62 220 66"/></svg>';
-  function cardHTML(v) {
-    var c = v.card;
-    var head = '<span class="hc-card__k">Пример расчёта бюджета</span>' +
-      '<div class="hc-card__head"><h1 class="hc-card__t">Ваш ремонт <b class="hc-sum" id="plan-sum"></b></h1>' +
-        '<span class="hc-card__m2" id="plan-m2"></span></div>' +
-      '<input type="range" class="hc-range" id="plan-range" min="' + AREA_MIN + '" max="' + AREA_MAX + '" step="1" value="' + AREA_DEF + '" aria-label="Площадь квартиры, м²">' +
-      '<p class="hc-card__sub" id="plan-area"></p>';
-    var save;
-    if (c === '2') {
-      save = '<a class="hc-save hc-save--2" href="feed.html">' + METOD_MARK +
-        '<span class="hc-save__lbl">Выгода<br>с подпиской METOD</span>' +
-        '<span class="hc-save__val"><b id="hc-save"></b><em>Закрытые цены поставщиков и&nbsp;готовые решения дизайнеров</em></span></a>';
-    } else if (c === '3') {
-      save = '<a class="hc-save hc-save--3" href="feed.html" aria-label="Выгода с подпиской METOD — подробнее о подписке">' + METOD_MARK +
-        '<span class="hc-save__txt"><small>Выгода с подпиской METOD</small><b id="hc-save"></b><em>Закрытые цены поставщиков и&nbsp;готовые решения дизайнеров</em></span>' +
-        '<span class="hc-save__i" aria-hidden="true">' + ic('info', 20) + '</span></a>';
-    } else {
-      save = '<a class="hc-save hc-save--1" href="feed.html">' + METOD_MARK +
-        '<span class="hc-save__txt"><small>Ваша выгода с подпиской METOD</small><b id="hc-save"></b><em>Закрытые цены поставщиков и&nbsp;готовые решения дизайнеров</em></span></a>';
-    }
-    var go = '<a class="hc-go" id="plan-go" href="scout.html?capsule=' + CAP.id + '&amp;state=' + BASE_STATE.id + '">Рассчитать свой ремонт ' + ic('arrow', 20) + '</a>';
-    var plus = c === '2' ? '<ul class="hc-plus">' +
-      /* неразрывный пробел после «и» и в «под ключ»: на узких экранах союз не висит в конце строки */
-      '<li><i>' + ic('layers', 18) + '</i><span><b>Бюджет</b> под&nbsp;ключ</span></li>' +
-      '<li><i>' + ic('bolt', 18) + '</i><span><b>Реальные</b> цены партнёров</span></li>' +
-      '<li><i>' + ic('cube', 18) + '</i><span><b>Экономия</b> времени и&nbsp;бюджета</span></li></ul>' : '';
-    return '<div class="hc-card hc-card--' + c + '">' + (c === '3' ? WAVE : '') + head + save + go + plus + '</div>';
-  }
-  function firstHTML(v) {
-    return '<section class="hc hc--h' + v.hero + ' hc--c' + v.card + '" id="scout-card" aria-label="Пример расчёта бюджета ремонта">' +
-      heroHTML(v) + cardHTML(v) + '</section>';
-  }
-
-  /* ---------- первый экран: поведение ---------- */
-  var dims = {};   /* размеры кадров: нужны, чтобы точки товаров легли на вещи при обрезке object-fit: cover */
-  /* куда поставить точки: перебираем сдвиг кадра (object-position) и выбираем тот, при котором видно больше всего
-     размеченных вещей; точка стоит внутри рамки товара, не у края и не под кнопками на фото */
-  function fitMarks(objs, nw, nh, W, H, avoid) {
-    var s = Math.max(W / nw, H / nh), rw = nw * s, rh = nh * s, M = 24, best = null;
-    var steps = []; for (var t = 0; t <= 20; t++) steps.push(t / 20);
-    var xs = rw > W + 1 ? steps : [0.5], ys = rh > H + 1 ? steps : [0.5];
-    function blocked(x, y) { return avoid.some(function (r) { return x > r[0] && x < r[2] && y > r[1] && y < r[3]; }); }
-    xs.forEach(function (px) {
-      ys.forEach(function (py) {
-        var ox = (W - rw) * px, oy = (H - rh) * py, pts = [], cost = 0;
-        objs.forEach(function (o, k) {
-          var b = o.box || [0, 0, 0, 0];
-          var x0 = ox + b[0] / 100 * rw, y0 = oy + b[1] / 100 * rh, bw = b[2] / 100 * rw, bh = b[3] / 100 * rh;
-          var cx = x0 + bw / 2, cy = y0 + bh / 2;
-          var lx = Math.max(x0 + bw * .2, M), hx = Math.min(x0 + bw * .8, W - M), ly = Math.max(y0 + bh * .2, M), hy = Math.min(y0 + bh * .8, H - M);
-          if (lx > hx || ly > hy) return;
-          var cand = [[Math.min(Math.max(cx, lx), hx), Math.min(Math.max(cy, ly), hy)]];
-          for (var i = 0; i <= 4; i++) for (var j = 0; j <= 4; j++) cand.push([lx + (hx - lx) * i / 4, ly + (hy - ly) * j / 4]);
-          var pick = null;
-          cand.forEach(function (p) {
-            if (blocked(p[0], p[1])) return;
-            if (pts.some(function (q) { return Math.abs(q.x - p[0]) < 30 && Math.abs(q.y - p[1]) < 30; })) return;
-            var d = Math.sqrt((p[0] - cx) * (p[0] - cx) + (p[1] - cy) * (p[1] - cy));
-            if (!pick || d < pick.d) pick = { x: p[0], y: p[1], d: d };
-          });
-          if (!pick) return;
-          pts.push({ k: k, x: pick.x, y: pick.y }); cost += pick.d / Math.max(bw, bh, 1);
-        });
-        var score = pts.length * 1000 - cost * 10 - Math.abs(px - .5) - Math.abs(py - .5);
-        if (!best || score > best.score) best = { score: score, px: px, py: py, pts: pts };
-      });
-    });
-    return best;
-  }
-
-  function mountHero(v) {
-    var H = HEROES[v.hero], hero = $('hc-hero'), img = $('hc-img');
-    var noop = { destroy: function () {}, layout: function () {} };
-    if (!hero || !img) return noop;
-    var marksBox = $('hc-marks'), pop = $('hc-pop');
-    var list = H.carousel ? FRAMES : FRAMES.slice(0, 1);
-    var idx = 0, loadId = 0, ready = {}, timer = null, hold = 0, hover = false, alive = true, popFor = -1;
-    function frame() { return list[idx]; }
-    function controlsRects() {
-      var hr = hero.getBoundingClientRect();
-      return [].slice.call(hero.querySelectorAll('.hc-goods, .hc-nav, .hc-pager')).map(function (el) {
-        var r = el.getBoundingClientRect(), pad = 18;
-        return [r.left - hr.left - pad, r.top - hr.top - pad, r.right - hr.left + pad, r.bottom - hr.top + pad];
-      });
-    }
-    function layout() {
-      if (!alive) return;
-      var f = frame();
-      if (!marksBox || !f.marks || !f.marks.length) { if (marksBox) marksBox.innerHTML = ''; img.style.objectPosition = ''; return; }
-      var d = dims[f.src] || { w: img.naturalWidth, h: img.naturalHeight };
-      var W = hero.clientWidth, Hh = hero.clientHeight;
-      if (!d.w || !d.h || !W || !Hh) return;
-      var best = fitMarks(f.marks, d.w, d.h, W, Hh, controlsRects());
-      if (!best) return;
-      img.style.objectPosition = (best.px * 100).toFixed(1) + '% ' + (best.py * 100).toFixed(1) + '%';
-      marksBox.innerHTML = best.pts.map(function (pt) {
-        var o = f.marks[pt.k], p = D.product(o.items[0].id);
-        return '<button type="button" class="hc-dot' + (pt.k === popFor ? ' is-on' : '') + '" data-mark="' + pt.k + '" style="left:' + pt.x.toFixed(1) + 'px;top:' + pt.y.toFixed(1) + 'px"' +
-          ' aria-label="' + esc(o.name + (p ? ' — ' + p.name : '')) + '" aria-expanded="' + (pt.k === popFor) + '"><i></i></button>';
-      }).join('');
-      placePop();
-    }
-    /* карточка товара не закрывает саму вещь: точка в нижней половине кадра — карточка сверху, в верхней — снизу */
-    function placePop() {
-      if (!pop || popFor < 0) return;
-      var dot = hero.querySelector('.hc-dot[data-mark="' + popFor + '"]');
-      pop.classList.toggle('hc-pop--top', !!dot && parseFloat(dot.style.top) > hero.clientHeight / 2);
-    }
-    function onLoad() {
-      if (!alive) return;
-      var src = img.getAttribute('src');
-      ready[src] = true;
-      if (img.naturalWidth) dims[src] = { w: img.naturalWidth, h: img.naturalHeight };
+    function shot() { return hcShots[hcI]; }
+    function cap() { return shot().c; }
+    /* одна сумма по Базовому тарифу (Вика 23.10): работы — новостройка без отделки, комплектация — капсула по ценам METOD */
+    var BASE_STATE = D.scout.states.filter(function (x) { return x.id === 'concrete'; })[0] || D.scout.states[0];
+    function sum(c, a, metod) { var k = metod ? c.pricePerM2 : c.pricePerM2 * noMetodK; return mln((BASE_STATE.rate + D.scout.roughRate(BASE_STATE.id) + k) * a) + '\u00a0млн\u00a0₽'; }
+    /* кадр, название и сумма меняются вместе — только когда фото уже загружено (на телефоне по LTE иначе название
+       убегает вперёд картинки); следующие кадры подгружаем заранее */
+    var loadId = 0, ready = {};
+    function preload(i) { var sh = hcShots[(i + hcShots.length) % hcShots.length]; if (ready[sh.src]) return; var p = new Image(); p.onload = function () { ready[sh.src] = true; }; p.src = sh.src; }
+    function apply(sh) {
+      var c = sh.c;
+      img.src = sh.src; img.alt = 'Капсула «' + c.name + '»' + (sh.room ? ', ' + sh.room.toLowerCase() : '');
+      img.classList.remove('is-in'); void img.offsetWidth; img.classList.add('is-in');
       hero.classList.remove('is-loading');
-      layout();
-      if (img.classList.contains('is-wait')) { img.classList.remove('is-wait'); img.classList.add('is-in'); }
+      document.getElementById('hc-name').textContent = c.name;
+      document.getElementById('hc-n').textContent = (sh.i + 1) + '\u00a0/\u00a0' + sh.n;
+      document.querySelectorAll('#hc-dots i').forEach(function (d, i) { d.classList.toggle('is-on', i === sh.ci); });
+      update(); preload(hcI + 1); preload(hcI + 2); preload(hcI - 1);
     }
-    img.addEventListener('load', onLoad);
-    img.addEventListener('error', function () { hero.classList.remove('is-loading'); img.classList.remove('is-wait'); });
-    if (img.complete && img.naturalWidth) onLoad();
-
-    /* карточка товара по нажатию на точку — та же, что была у разбора рендера на главной */
-    function closePop(back) {
-      if (!pop || pop.hidden) return;
-      pop.hidden = true; pop.innerHTML = ''; hero.classList.remove('has-pop');
-      var was = popFor; popFor = -1;
-      [].forEach.call(hero.querySelectorAll('.hc-dot'), function (b) { b.classList.remove('is-on'); b.setAttribute('aria-expanded', 'false'); });
-      if (back) { var b = hero.querySelector('.hc-dot[data-mark="' + was + '"]'); if (b) b.focus(); }
-    }
-    function openPop(k) {
-      var o = (frame().marks || [])[k], p = o && D.product(o.items[0].id);
-      if (!p || !pop) return;
-      var mine = (p.capsules || []).indexOf(CAP.id) >= 0, inMy = S.my.hasProduct(p.id);
-      /* точное совпадение — «из этого интерьера» (фото и есть эта капсула), близкое — честно называем похожим */
-      var from = o.items[0].match === 'exact' && mine ? ' · из этого интерьера' : ' · похожий в каталоге';
-      pop.innerHTML = '<a class="rnd__prod" href="product.html?id=' + p.id + '"><img src="' + p.img + '" alt="">' +
-        '<span class="rnd__pbody"><b>' + esc(p.name) + '</b>' +
-        '<i>' + F.rub(p.metod) + ' с METOD' + (p.retail > p.metod ? ' <s>' + F.rub(p.retail) + '</s>' : '') + '</i>' +
-        '<u>' + esc(o.name) + from + '</u></span></a>' +
-        '<button type="button" class="btn btn--ghost btn--sm rnd__add' + (inMy ? ' is-on' : '') + '" data-my-add="' + p.id + '" aria-pressed="' + inMy + '">' + (inMy ? 'В моём ремонте' : 'В мой ремонт') + '</button>' +
-        '<button type="button" class="hc-pop__x" data-pop-x aria-label="Закрыть карточку товара">' + ic('close', 18) + '</button>';
-      popFor = k; placePop();
-      pop.hidden = false; hero.classList.add('has-pop');
-      [].forEach.call(hero.querySelectorAll('.hc-dot'), function (b) { var on = Number(b.getAttribute('data-mark')) === k; b.classList.toggle('is-on', on); b.setAttribute('aria-expanded', String(on)); });
-    }
-
-    function syncDots() { [].forEach.call(hero.querySelectorAll('.hc-pager i'), function (d, i) { d.classList.toggle('is-on', i === idx); }); }
-    function preload(n) {
-      var f = list[(n + list.length) % list.length];
-      if (ready[f.src]) return;
+    function showCap() {
+      var sh = shot(), id = ++loadId;
+      if (ready[sh.src]) { apply(sh); return; }
+      hero.classList.add('is-loading');
       var p = new Image();
-      p.onload = function () { ready[f.src] = true; dims[f.src] = { w: p.naturalWidth, h: p.naturalHeight }; };
-      p.src = f.src;
+      p.onload = p.onerror = function () { ready[sh.src] = true; if (id === loadId) apply(sh); };
+      p.src = sh.src;
     }
-    function show(n) {
-      idx = (n + list.length) % list.length;
-      var f = frame(), id = ++loadId;
-      closePop(false);
-      if (marksBox) marksBox.innerHTML = '';
-      function swap() {
-        if (!alive || id !== loadId) return;
-        img.style.objectPosition = '';
-        img.classList.remove('is-in', 'is-wait'); void img.offsetWidth;
-        img.src = f.src; img.alt = frameAlt(f, idx, list.length);
-        img.classList.add('is-in');
-        syncDots();
-        if (img.complete && img.naturalWidth) onLoad();
-        preload(idx + 1); preload(idx + 2); preload(idx - 1);
-      }
-      if (ready[f.src]) swap();
-      else {
-        /* кадр меняется, только когда фото уже загружено: на телефоне по LTE иначе мелькает пустое место */
-        hero.classList.add('is-loading');
-        var p = new Image();
-        p.onload = p.onerror = function () { ready[f.src] = true; if (p.naturalWidth) dims[f.src] = { w: p.naturalWidth, h: p.naturalHeight }; swap(); };
-        p.src = f.src;
-      }
-    }
-    function touch() { hold = Date.now() + 12000; }
-
-    hero.addEventListener('click', function (e) {
-      var nav = e.target.closest('[data-hc]');
-      if (nav) { touch(); show(idx + Number(nav.getAttribute('data-hc'))); return; }
-      var dot = e.target.closest('[data-mark]');
-      if (dot) { touch(); var k = Number(dot.getAttribute('data-mark')); if (k === popFor) closePop(false); else openPop(k); return; }
-      if (e.target.closest('[data-pop-x]')) { closePop(true); return; }
-      if (popFor >= 0 && !e.target.closest('.hc-pop') && !e.target.closest('.hc-goods')) closePop(false);
-    });
-    hero.addEventListener('keydown', function (e) {
-      if (e.key === 'Escape' && popFor >= 0) { closePop(true); return; }
-      if (H.carousel && (e.key === 'ArrowRight' || e.key === 'ArrowLeft') && e.target.closest('.hc-nav')) { touch(); show(idx + (e.key === 'ArrowRight' ? 1 : -1)); }
-    });
-    if (H.carousel) {
-      /* фото листаются сами каждые 3 с (Алина 03.11); после нажатия — пауза 12 с; при «меньше движения», наведении и открытой карточке товара — стоят */
-      timer = setInterval(function () {
-        if (!alive || calm || hover || document.hidden || Date.now() < hold || popFor >= 0 || hero.classList.contains('is-loading')) return;
-        show(idx + 1);
-      }, 3000);
-      hero.addEventListener('mouseenter', function () { hover = true; });
-      hero.addEventListener('mouseleave', function () { hover = false; });
-      /* свайп по кадру листает фото этого интерьера, страница вбок не едет */
-      var x0 = null, y0 = null;
-      hero.addEventListener('touchstart', function (e) {
-        if (e.target.closest('.hc-pop, .hc-dot, .hc-goods, .hc-nav')) { x0 = null; return; }
-        x0 = e.touches[0].clientX; y0 = e.touches[0].clientY;
-      }, { passive: true });
-      hero.addEventListener('touchend', function (e) {
-        if (x0 === null) return;
-        var dx = e.changedTouches[0].clientX - x0, dy = e.changedTouches[0].clientY - y0; x0 = null;
-        if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) { touch(); show(idx + (dx < 0 ? 1 : -1)); }
-      });
-      preload(1); preload(list.length - 1);
-    }
-    return {
-      layout: layout,
-      destroy: function () { alive = false; if (timer) clearInterval(timer); }
-    };
-  }
-
-  /* все суммы, которые может показать ползунок: по самой широкой подбираем кегль заголовка */
-  var SUMS = [];
-  for (var sa = AREA_MIN; sa <= AREA_MAX; sa++) { if (SUMS.indexOf(budget(sa)) < 0) SUMS.push(budget(sa)); }
-  /* сдвинутый ползунок помним в этой вкладке (перезагрузка, смена варианта в плашке выбора), но в «Мой ремонт»
-     не пишем: S.my.set меняет и площадь активной квартиры. В «Мой ремонт» площадь уходит только по кнопке «Рассчитать». */
-  var AREA_DRAFT = 'homeArea';
-  function startArea() {
-    var base = (S.my.get() || {}).area || null, d = null;
-    try { d = S.draft.get(AREA_DRAFT); } catch (e) { d = null; }
-    /* площадь в «Моём ремонте» с тех пор поменялась (расчёт, план) — она главнее старого положения ползунка */
-    if (d && d.a && (d.base || null) === base) return clampArea(d.a);
-    return clampArea(base || AREA_DEF);
-  }
-  function rememberArea(a) {
-    try { S.draft.set(AREA_DRAFT, { a: a, base: (S.my.get() || {}).area || null }); } catch (e) {}
-  }
-
-  function mountCard() {
-    var range = $('plan-range'), go = $('plan-go');
-    if (!range) return { fit: function () {}, flush: function () {} };
-    range.value = startArea();
-    /* заголовок с суммой держим в одну строку. Кегль подбираем один раз — по самой широкой сумме и площади —
-       при загрузке, смене ширины и загрузке шрифтов, а не на каждое движение ползунка: иначе строка дрожит на полпикселя */
-    function widestSum(el) {
-      var probe = el.cloneNode(false), best = SUMS[0], bw = -1;
-      probe.removeAttribute('id'); probe.setAttribute('aria-hidden', 'true');
-      probe.style.cssText = 'position:absolute;left:0;top:0;visibility:hidden;white-space:nowrap;pointer-events:none';
-      el.parentNode.appendChild(probe);
-      SUMS.forEach(function (s) { probe.textContent = s; var w = probe.getBoundingClientRect().width; if (w > bw) { bw = w; best = s; } });
-      el.parentNode.removeChild(probe);
-      return best;
-    }
-    function fitHead() {
-      var head = root.querySelector('.hc-card__head'), t = head && head.querySelector('.hc-card__t'), sum = $('plan-sum'), m2 = $('plan-m2');
-      if (!t || !sum) return;
-      var keepSum = sum.textContent, keepM2 = m2 ? m2.textContent : '';
-      t.style.fontSize = '';
-      sum.textContent = widestSum(sum);
-      if (m2) m2.textContent = AREA_MAX + '\u00a0м²';   /* цифры площади моноширинные: любая двузначная занимает столько же */
-      var size = parseFloat(getComputedStyle(t).fontSize) || 28;
-      /* заголовок сжимается в строке рядом с площадью, поэтому меряем переполнение его самого, а не всей строки */
-      while (size > 18 && (t.scrollWidth > t.clientWidth + 1 || head.scrollWidth > head.clientWidth + 1)) { size -= 0.5; t.style.fontSize = size + 'px'; }
-      sum.textContent = keepSum;
-      if (m2) m2.textContent = keepM2;
-    }
-    var keep = 0;
     function update() {
-      var a = clampArea(range.value);
-      setText('plan-sum', budget(a));
-      setText('plan-m2', a + '\u00a0м²');
-      setText('plan-area', flatName(a) + ' · Базовый, ' + BASE_STATE.note);
-      setText('hc-save', gain(a));
-      range.style.setProperty('--fill', ((a - AREA_MIN) / (AREA_MAX - AREA_MIN) * 100).toFixed(1) + '%');
-      range.setAttribute('aria-valuetext', a + ' м², ремонт ' + budget(a).replace(/\u00a0/g, ' '));
-      if (go) go.href = 'scout.html?area=' + a + '&capsule=' + CAP.id + '&state=' + BASE_STATE.id;
+      var a = Number(range.value), c = cap();
+      document.getElementById('plan-sum').textContent = sum(c, a, withMetod);
+      document.getElementById('plan-alt').textContent = withMetod ? 'Без подписки — ' + sum(c, a, false) : 'С подпиской METOD — ' + sum(c, a, true);
+      document.getElementById('plan-area').textContent = flatName(a) + ' · ' + a + ' м² · Базовый, ' + BASE_STATE.note;
+      document.getElementById('hc-save').textContent = 'до ' + rub10k((c.pricePerM2 * noMetodK - c.pricePerM2) * a);
+      document.getElementById('flat-badge').textContent = a + ' м²';
+      var val = document.getElementById('plan-val');
+      if (val) {
+        val.textContent = a + ' м²';
+        var k = (a - 36) / (84 - 36);
+        val.style.left = 'calc(' + (k * 100).toFixed(1) + '% + ' + (11 - k * 22).toFixed(1) + 'px)';  /* поправка на ширину бегунка */
+      }
+      range.style.setProperty('--fill', ((a - 36) / (84 - 36) * 100).toFixed(1) + '%');
+      document.getElementById('plan-go').href = 'scout.html?area=' + a + '&capsule=' + c.id + '&state=' + BASE_STATE.id;
+      fitHead();
     }
-    range.addEventListener('input', function () {
+    /* заголовок с суммой держим в одну строку: подбираем самый крупный кегль, который влезает */
+    function fitHead() {
+      var head = document.querySelector('.hc-card__t'); if (!head) return;
+      var size = 30; head.style.fontSize = size + 'px';
+      while (size > 16 && head.scrollWidth > head.clientWidth + 1) { size -= 0.5; head.style.fontSize = size + 'px'; }
+    }
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitHead);
+    window.addEventListener('resize', fitHead);
+    function step(d) { hcI = (hcI + d + hcShots.length) % hcShots.length; showCap(); }
+    /* фото перещёлкиваются сами каждые 4,5 с; после нажатия — пауза 12 с; при «меньше движения» и наведении — стоят */
+    var calm = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches, hold = 0, hover = false;
+    function touch() { hold = Date.now() + 12000; }
+    setInterval(function () { if (calm || hover || document.hidden || Date.now() < hold || hero.classList.contains('is-loading')) return; step(1); }, 4500);
+    hero.addEventListener('mouseenter', function () { hover = true; }); hero.addEventListener('mouseleave', function () { hover = false; });
+    hero.addEventListener('click', function (e) { var b = e.target.closest('[data-hc]'); if (b) { touch(); step(Number(b.getAttribute('data-hc'))); } });
+    /* свайп по кадру — листаем капсулы, страница вбок не едет */
+    var x0 = null;
+    hero.addEventListener('touchstart', function (e) { x0 = e.touches[0].clientX; }, { passive: true });
+    hero.addEventListener('touchend', function (e) { if (x0 === null) return; var dx = e.changedTouches[0].clientX - x0; x0 = null; touch(); if (Math.abs(dx) > 40) step(dx < 0 ? 1 : -1); });
+
+    var sw = document.querySelector('.hc .fview__sw');
+    sw.addEventListener('click', function (e) {
+      var btn = e.target.closest('[data-metod]'); if (!btn) return;
+      withMetod = btn.getAttribute('data-metod') === '1';
+      sw.querySelectorAll('.fview__sw-b').forEach(function (b) { b.classList.toggle('is-on', b === btn); b.setAttribute('aria-pressed', b === btn); });
       update();
-      clearTimeout(keep); keep = setTimeout(function () { keep = 0; rememberArea(clampArea(range.value)); }, 250);
     });
-    range.addEventListener('change', function () { clearTimeout(keep); keep = 0; rememberArea(clampArea(range.value)); });
-    if (go) go.addEventListener('click', function () { var a = clampArea(range.value); S.my.set({ area: a }); rememberArea(a); });
-    update();
-    fitHead();
-    /* flush — при смене варианта в плашке выбора: положение ползунка, сдвинутого только что, не теряется */
-    return { fit: fitHead, flush: function () { if (keep) { clearTimeout(keep); keep = 0; rememberArea(clampArea(range.value)); } } };
+    range.addEventListener('input', update);
+    document.getElementById('plan-go').addEventListener('click', function () { S.my.set({ area: Number(range.value) }); });
+    showCap();
   }
 
-  var view = readView(), cur = null;
-  function mountFirst(v) {
-    var hero = mountHero(v), card = mountCard();
-    return { destroy: function () { card.flush(); hero.destroy(); }, layout: function () { card.fit(); hero.layout(); } };
+  /* ---------- общие кусочки ---------- */
+  function tile(x, cls) {
+    return '<a class="tile' + (x.dark ? ' tile--dark' : '') + (cls ? ' ' + cls : '') + '" href="' + x.href + '">' + (x.img ? '<img src="' + x.img + '" alt="" loading="lazy">' : '') +
+      (x.lock ? '<span class="tile__lock">' + ic('lock', 14) + '</span>' : '') +
+      '<span class="tile__k">' + esc(x.k) + '</span><span class="tile__t">' + ic(x.ic, 20) + esc(x.t) + '</span><span class="tile__d">' + esc(x.d) + '</span></a>';
   }
-
-  /* ---------- квадраты-сервисы: названия и подписи с родной главной сайта (apps/web/src/app/index.tsx, SECTIONS) ---------- */
-  var SECS = [
-    { id: 'ai', t: 'Генерации', d: 'ИИ визуализации за секунды', href: 'sove-ai.html' },
-    { id: 'market', t: 'Каталог товаров', d: 'Закрытые акции и цены от партнёров', href: 'market.html' },
-    { id: 'capsules', t: 'Капсулы', d: 'Готовые решения, из которых собираешь своё', href: 'capsules.html' },
-    { id: 'scout', t: 'Бюджетный просчёт', d: 'Бюджет и спецификация под твою капсулу', href: 'scout.html' },
-    { id: 'adept', t: 'Дизайн-проект', d: 'Адаптация капсулы в дизайн-проект', href: 'adept.html', lock: true },
-    { id: 'track', t: 'Управление ремонтом', d: 'Бюджет — проект — реализация', href: 'track.html', lock: true },
-    { id: 'metod', t: 'Метод ремонта', d: 'Акции, подборки, концепции закрытого канала METOD', href: 'feed.html', lock: true },   /* созвон 28.10: плитка METOD ведёт в ленту «Метод ремонта» */
-    { id: 'about', t: 'Об экосистеме', d: 'Как устроена экосистема выгодного ремонта', href: 'about.html' }
+  /* поиск товара и камера — в каждой версии главной */
+  function searchHTML() {
+    return '<form class="search hsearch" role="search" action="market.html" method="get"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5 21 21"/></svg>' +
+      '<label class="vh" for="home-q">Поиск товара</label><input id="home-q" name="q" type="search" placeholder="Найти товар" autocomplete="off" enterkeyhint="search">' +
+      '<a class="hsearch__cam" href="ai.html?mode=photo" aria-label="Найти товар по фото" title="Найти товар по фото"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></a></form>';
+  }
+  /* карусель капсул — выбор интерьера для баннера дизайн-проекта, стоит под ним */
+  function capsLane() {
+    var caps = D.capsules.filter(function (c) { return !c.soon; }).slice(0, 6);
+    return '<section class="feed feed--caps"><div class="feed__head"><h2 class="h2">Выберите интерьер</h2><a class="btn btn--link" href="capsules.html">Все интерьеры</a></div><div class="lane" id="caps-lane">' +
+      caps.map(function (c, i) {
+        return '<button class="capc" type="button" data-cap="' + c.id + '" aria-pressed="' + (i === 0 ? 'true' : 'false') + '">' +
+          '<span class="capc__pic"><img src="' + c.cover + '" alt="" loading="lazy"><b>' + esc(c.name) + '</b></span>' +
+          '<span>от ' + F.rub(c.pricePerM2) + '/м²</span></button>';
+      }).join('') +
+      '</div></section>';
+  }
+  /* вход в воронку дизайн-проекта: баннер монтируется после отрисовки */
+  function adeptSlot() { return '<section class="feed feed--adept"><div id="home-adept"></div></section>'; }
+  /* маркет внизу главной: товары сеткой, а не каруселью — это главный раздел */
+  /* подпись с ценой у краёв кадра обрезается — прижимаем её внутрь рамки */
+  function boxCls(o) {
+    return (o.box[1] + o.box[3] > 88 ? ' is-low' : '') +
+      (o.box[0] < 12 ? ' is-left' : o.box[0] + o.box[2] > 88 ? ' is-right' : '');
+  }
+  /* разбор рендера: кадр с рамками на предметах, выбор своего кадра или чужого */
+  function renderBlock() {
+    var R = D.ai.renderSample, OBJ = R.objects;
+    function pm(o) { var p = D.product(o.items[0].id); return p ? p.metod : 0; }
+    function pr(o) { var p = D.product(o.items[0].id); return p ? p.retail : 0; }
+    var sum = OBJ.reduce(function (a, o) { return a + pm(o); }, 0);
+    var ret = OBJ.reduce(function (a, o) { return a + pr(o); }, 0);
+    var MARKS = D.ai.renderMarks || {};
+    /* кадр для ленты берём тот, на котором размечены предметы, иначе первый слайд капсулы */
+    function capSrc(c) { return (MARKS[c.id] || {}).src || c.slides[0].src; }
+    var caps = D.capsules.filter(function (c) { return !c.soon && c.slides && c.slides.length; });
+    return '<section class="feed feed--render"><div class="rnd">' +
+      '<div class="rnd__head"><span class="rnd__k">Есть проект от дизайнера?</span>' +
+      '<b class="rnd__t">Принесите рендеры — проверим смету</b>' +
+      '<span class="rnd__d">Найдём те же вещи у партнёров и покажем, где переплата</span></div>' +
+      '<div class="rnd__stage"><img src="' + R.src + '" alt="Рендер интерьера с отмеченными предметами">' +
+        OBJ.map(function (o, i) {
+          return '<button type="button" class="rnd__box' + boxCls(o) + '" data-obj="' + i + '" aria-label="' + esc(o.name) + ', ' + F.rub(pm(o)) + '"' +
+            ' style="--x:' + o.box[0] + '%;--y:' + o.box[1] + '%;--w:' + o.box[2] + '%;--h:' + o.box[3] + '%;--i:' + i + '">' +
+            '<i>' + o.n + '</i><em>' + F.rub(pm(o)) + '</em></button>';
+        }).join('') +
+        '<span class="rnd__sum" data-full="' + OBJ.length + ' предмета · ' + F.rub(sum) + ' с METOD">' + OBJ.length + ' предмета · ' + F.rub(sum) + ' с METOD <s>' + F.rub(ret) + '</s></span>' +
+      '</div>' +
+      '<div class="rnd__card" id="rnd-card"><span class="rnd__hint">Наведите на предмет — покажем, что это за вещь и почём</span></div>' +
+      '<div class="rnd__pick"><label class="rnd__own"><input type="file" accept="image/*" hidden data-render-file><b>Мой рендер</b><span>из галереи или камерой</span></label>' +
+        '<button type="button" class="rnd__ex is-on" data-cap="' + R.capsule + '" data-src="' + R.src + '"><img src="' + R.src + '" alt="" loading="lazy"><span>' + esc(capName(R.capsule)) + '</span></button>' +
+        caps.filter(function (c) { return c.id !== R.capsule; }).map(function (c) {
+          return '<button type="button" class="rnd__ex" data-cap="' + c.id + '" data-src="' + capSrc(c) + '"><img src="' + capSrc(c) + '" alt="" loading="lazy"><span>' + esc(c.name) + '</span></button>';
+        }).join('') +
+      '</div>' +
+      '<div class="rnd__foot"><a class="btn btn--primary btn--block" href="ai.html?mode=render">Проверить смету</a>' +
+      '<span class="rnd__note">каждое действие — одна генерация</span></div>' +
+      '</div></section>';
+  }
+  /* разбор рендера, вариант B: один предмет опознан бесплатно, остальные — по кнопке */
+  function renderOne() {
+    var R = D.ai.renderSample, OBJ = R.objects, o = OBJ[1];
+    var p = D.product(o.items[0].id);
+    var cap = p && p.capsules && p.capsules.length ? D.capsule(p.capsules[0]) : null;
+    return '<section class="feed feed--render"><div class="rnd rnd--one">' +
+      '<div class="rnd__head"><span class="rnd__k">Генерации · разбор рендера</span>' +
+      '<b class="rnd__t">Один предмет узнаём бесплатно</b>' +
+      '<span class="rnd__d">Загрузите рендер — покажем вещь и цену у партнёров. Полный разбор кадра — по генерациям.</span></div>' +
+      '<div class="rnd__stage"><img src="' + R.src + '" alt="Рендер интерьера, один предмет отмечен">' +
+        '<span class="rnd__box is-on" style="--x:' + o.box[0] + '%;--y:' + o.box[1] + '%;--w:' + o.box[2] + '%;--h:' + o.box[3] + '%"><i>1</i></span>' +
+        '<span class="rnd__sum">в кадре ещё ' + (OBJ.length - 1) + ' предмета</span></div>' +
+      (p ? '<div class="rnd__card"><a class="rnd__prod" href="product.html?id=' + p.id + '"><img src="' + p.img + '" alt="">' +
+        '<span class="rnd__pbody"><b>' + esc(p.name) + '</b>' +
+        '<i>' + F.rub(p.metod) + ' с METOD <s>' + F.rub(p.retail) + '</s></i>' +
+        '<u>' + esc(o.name) + (cap ? ' · из капсулы «' + esc(cap.name) + '»' : '') + '</u></span></a>' +
+        '<button type="button" class="btn btn--ghost btn--sm rnd__add" data-my-add="' + p.id + '">' +
+        (S.my.hasProduct(p.id) ? 'В моём ремонте' : 'В мой ремонт') + '</button></div>' : '') +
+      '<div class="rnd__foot"><a class="btn btn--primary btn--block" href="ai.html?mode=render">Полный разбор кадра</a>' +
+      '<a class="btn btn--link" href="ai.html?mode=photo">Поиск по фото предмета — бесплатно</a></div>' +
+      '</div></section>';
+  }
+  /* разбор рендера, вариант C: полосу ведут по кадру, под ней проявляются вещи и цены */
+  function renderXray() {
+    var R = D.ai.renderSample, OBJ = R.objects;
+    return '<section class="feed feed--render"><div class="rnd rnd--xray">' +
+      '<div class="rnd__head"><span class="rnd__k">Генерации · разбор рендера</span>' +
+      '<b class="rnd__t">Потяните полосу — увидите цены</b>' +
+      '<span class="rnd__d">Так же разберём ваш рендер: найдём вещи у партнёров и соберём смету</span></div>' +
+      '<div class="rnd__stage" id="xr-stage"><img class="xr__gray" src="' + R.src + '" alt="Рендер интерьера">' +
+        '<img class="xr__color" id="xr-color" src="' + R.src + '" alt="" aria-hidden="true">' +
+        OBJ.map(function (o, i) {
+          var p = D.product(o.items[0].id);
+          return '<span class="rnd__box xr__box" data-i="' + i + '" data-top="' + o.box[1] + '" data-bot="' + (o.box[1] + o.box[3]) + '"' +
+            ' style="--x:' + o.box[0] + '%;--y:' + o.box[1] + '%;--w:' + o.box[2] + '%;--h:' + o.box[3] + '%">' +
+            '<em>' + (p ? F.rub(p.metod) : '') + '</em></span>';
+        }).join('') +
+        '<span class="xr__line" id="xr-line"><i></i><b class="xr__grip" aria-hidden="true"></b></span>' +
+        '<span class="rnd__sum" id="xr-sum"></span>' +
+      '</div>' +
+      '<div class="rnd__foot"><a class="btn btn--primary btn--block" href="ai.html?mode=render">Разобрать мой рендер</a>' +
+      '<span class="rnd__note">поиск по фото предмета — бесплатно</span></div>' +
+      '</div></section>';
+  }
+  /* три подачи разбора рендера живут в одном блоке: переключатель стоит прямо над карточкой */
+  var RVIEWS = [
+    { id: 'frames', t: 'Рамки', make: renderBlock },
+    { id: 'one', t: 'Один предмет', make: renderOne },
+    { id: 'xray', t: 'Рентген', make: renderXray }
   ];
-  /* Вика 25.09: подписывать квадраты функцией, понятной без расшифровки.
-     Саммари дизайн-ревью 30.10: квадрат специалистов называется «Строители, дизайнеры и мастера» (ведёт в маркет исполнителей) */
+  function capName(id) { var c = D.capsule(id); return c ? c.name : ''; }
+  function renderTabs() {
+    return '<div class="rsw"><span class="rsw__label">Разбор рендера — вариант подачи</span>' +
+      '<div class="rsw__tabs" role="tablist" aria-label="Как показываем разбор рендера">' +
+      RVIEWS.map(function (v, i) {
+        return '<button type="button" class="rsw__tab' + (i ? '' : ' is-on') + '" role="tab" aria-selected="' + (i ? 'false' : 'true') + '" data-rv="' + v.id + '">' + esc(v.t) + '</button>';
+      }).join('') + '</div>' +
+      RVIEWS.map(function (v, i) {
+        return '<div class="rsw__pane' + (i ? ' is-off' : '') + '" data-rv="' + v.id + '">' + v.make() + '</div>';
+      }).join('') + '</div>';
+  }
+  function renderArea() {
+    var gen = myRender();
+    if (gen) return renderStatus(gen);
+    return renderTabs();
+  }
+  /* если разбор рендера уже запущен или готов — на главной показываем его состояние */
+  function myRender() {
+    var list = (S.gens && S.gens.list) ? S.gens.list().filter(function (g) { return g.kind === 'render'; }) : [];
+    return list.length ? list[0] : null;
+  }
+  function renderStatus(gen) {
+    var objs = (gen.result && gen.result.objects) || D.ai.renderSample.objects;
+    var total = objs.length;
+    var mine = S.my.get().productIds || [];
+    var done = objs.filter(function (o) {
+      return (o.items || []).some(function (it) { return mine.indexOf(it.id) >= 0; });
+    }).length;
+    var running = gen.status === 'running';
+    return '<section class="feed feed--render"><div class="rnd rnd--cont">' +
+      '<div class="rnd__row"><img class="rnd__mini" src="' + (gen.src || D.ai.renderSample.src) + '" alt="">' +
+      '<span class="rnd__rbody"><span class="rnd__k">' + (running ? 'Разбор идёт' : 'Ваш разбор') + '</span>' +
+      '<b>' + esc(gen.title || 'Рендер интерьера') + '</b>' +
+      '<i>' + (running ? 'ищем предметы и цены — это занимает около минуты'
+                       : 'из ' + total + ' предметов ' + done + ' уже в вашем ремонте') + '</i>' +
+      '<span class="rnd__bar"><em style="width:' + (running ? 40 : Math.round(done / total * 100)) + '%"></em></span></span></div>' +
+      '<div class="rnd__foot">' +
+      (running ? '<a class="btn btn--ghost btn--block" href="generations.html">Посмотреть, как идёт</a>'
+               : '<a class="btn btn--primary btn--block" href="generation.html?id=' + gen.id + '">Открыть смету</a>' +
+                 '<a class="btn btn--link" href="market.html">Дособрать в маркете</a>') +
+      '</div></div></section>';
+  }
+  /* Управление ремонтом ещё не запущен: баннер со словом «Скоро» ведёт на ознакомительную страницу */
+  function trackSoon() {
+    return '<section class="feed feed--track"><a class="soon" href="track.html">' +
+      '<span class="soon__pic"><img src="' + IMG.track + '" alt="" loading="lazy"><span class="soon__flag">Скоро</span></span>' +
+      '<span class="soon__body"><span class="soon__k">Ремонт под ключ</span><b>Ремонт по вашему проекту — под присмотром</b>' +
+      '<span class="soon__d">Сметы, график работ, приёмка этапов и один ответственный. Готовим запуск — посмотрите, как будет устроено.</span>' +
+      '<span class="btn btn--ghost btn--sm">Как это будет</span></span></a></section>';
+  }
+  /* блок партнёров — общий хвост лентой */
+  /* Партнёрам: пустое место в интерьере и пустая карточка в ленте капсул —
+     по тапу видно, как туда встаёт товар поставщика или капсула дизайнера */
+  function ownCapShot() {
+    var c = D.capsules.filter(function (x) { return x.designer && x.slides && x.slides.length; })[0];
+    if (!c) return D.ai.renderSample.src;
+    var bed = c.slides.filter(function (sl) { return /bed/.test(sl.src); })[0];
+    return (bed || c.slides[0]).src;
+  }
+  function partnersSlot() {
+    var R = D.ai.renderSample;
+    var SLOT = [56, 38, 40, 50];                                 /* свободный угол кадра — туда и встаёт вещь партнёра */
+    var caps = D.capsules.filter(function (c) { return !c.soon && c.slides && c.slides.length; }).slice(0, 3);
+    var clients = 3000;
+    return '<div class="prt" id="prt">' +
+        '<div class="prt__card" data-prt="good">' +
+          '<div class="prt__stage"><img class="prt__bg" src="' + R.src + '" alt="Интерьер капсулы" loading="lazy">' +
+            '<span class="prt__slot" style="--x:' + SLOT[0] + '%;--y:' + SLOT[1] + '%;--w:' + SLOT[2] + '%;--h:' + SLOT[3] + '%">' +
+              '<button type="button" class="prt__plus" data-slot aria-label="Как сюда попадает товар партнёра">+</button></span>' +
+          '</div>' +
+          '<div class="prt__body"><span class="prt__k">Поставщикам и брендам</span>' +
+            '<b>Ваш товар — внутри готовых интерьеров</b>' +
+            '<i>Не строка в каталоге, а вещь в капсуле, которую собирают клиенты: ' + F.num(clients) + '+ смотрят капсулы каждый месяц</i>' +
+            '<a class="btn btn--dark btn--sm" href="partner.html">Стать партнёром</a></div>' +
+        '</div>' +
+        '<div class="prt__card" data-prt="caps">' +
+          '<div class="prt__lane">' +
+            caps.map(function (c) { return '<span class="prt__cap"><img src="' + c.slides[0].src + '" alt="" loading="lazy"><em>' + esc(c.name) + '</em></span>'; }).join('') +
+            '<button type="button" class="prt__cap prt__cap--empty" data-capslot aria-label="Как разместить свою капсулу">' +
+              '<img src="' + ownCapShot() + '" alt="" loading="lazy"><b aria-hidden="true">+</b><em>ваша</em></button>' +
+          '</div>' +
+          '<div class="prt__body"><span class="prt__k">Дизайнерам</span>' +
+            '<b>Ваша капсула — в общем каталоге интерьеров</b>' +
+            '<i>Интерьер попадает в каталог, а заявки на проект приходят вам</i>' +
+            '<a class="btn btn--dark btn--sm" href="partner.html?who=designer">Разместить капсулу</a></div>' +
+        '</div>' +
+      '</div>' +
+      '<a class="prt__about" href="about.html"><span><b>О SOVEAPP</b><i>как устроена экосистема</i></span>' + ic('arrow', 18) + '</a>';
+  }
+
+
+  function partnersHTML() {
+    return '<section class="feed feed--partners"><div class="feed__head"><h2 class="h2">Партнёрам</h2></div>' +
+      partnersSlot() + '</section>';
+  }
+
+  /* ---------- разделы: названия и подписи дословно с родной главной сайта
+       (apps/web/src/app/index.tsx, массив SECTIONS) ---------- */
+  var NAV = [
+    { id: 'ai', k: 'ИИ генерации', t: 'Генерации', d: 'ИИ визуализации за секунды', href: 'sove-ai.html', ic: 'sparkles', img: 'assets/img/capsules/k3-main-3.jpg', group: 'Попробуй сразу', free: true },
+    { id: 'market', k: 'Товары со скидками', t: 'Каталог товаров', d: 'Закрытые акции и цены от партнёров', href: 'market.html', ic: 'bag', img: 'assets/img/capsules/k7-main-2.jpg', group: 'Попробуй сразу', free: true },
+    { id: 'capsules', k: 'Вдохновение', t: 'Капсулы', d: 'Готовые решения, из которых собираешь своё', href: 'capsules.html', ic: 'albums', img: 'assets/img/capsules/k3-main-2.jpg', group: 'Вдохновись и прикинь' },
+    { id: 'scout', k: 'Расчёт бюджета', t: 'Бюджетный просчёт', d: 'Бюджет и спецификация под твою капсулу', href: 'scout.html', ic: 'calc', img: 'assets/img/capsules/k6-main-1.jpg', group: 'Вдохновись и прикинь' },
+    { id: 'adept', k: 'Адаптация капсулы', t: 'Дизайн-проект', d: 'Адаптация капсулы в дизайн-проект', href: 'adept.html', ic: 'wand', img: IMG.adept, lock: true, group: 'Сделай по-настоящему' },
+    { id: 'track', k: 'Ремонт под ключ', t: 'Управление ремонтом', d: 'Бюджет — проект — реализация', href: 'track.html', ic: 'build', img: 'assets/img/capsules/k3-hall-1.jpg', lock: true, group: 'Сделай по-настоящему' },
+    { id: 'metod', k: 'Лента', t: 'Метод ремонта', d: 'Акции, подборки, концепции закрытого канала METOD', href: 'feed.html', ic: 'ribbon', img: 'assets/img/capsules/k3-bed-2.jpg', lock: true, group: 'Клуб и доверие' },   /* созвон 28.10: плитка METOD ведёт в ленту «Метод ремонта» (feed.html) */
+    { id: 'about', k: 'Экосистема', t: 'Об экосистеме', d: 'Как устроена экосистема выгодного ремонта', href: 'about.html', ic: 'info', img: 'assets/img/capsules/k3-hall-2.jpg', group: 'Клуб и доверие' }
+  ];
+  function groups() {
+    var out = [], seen = {};
+    NAV.forEach(function (x) { if (!seen[x.group]) { seen[x.group] = 1; out.push(x.group); } });
+    return out;
+  }
+
+  /* ---------- мини-каталог маркета на главной ---------- */
+  function marketGrid() {
+    /* берём по кругу из разных категорий и подкатегорий: иначе наверх лезут одни светильники,
+       потому что скидка 30 % есть только у них */
+    var pool = D.products.filter(function (p) { return p.white; });
+    var byCat = {}, cats = [];
+    pool.slice().sort(function (a, b) { return b.discount - a.discount; }).forEach(function (p) {
+      if (!byCat[p.category]) { byCat[p.category] = []; cats.push(p.category); }
+      byCat[p.category].push(p);
+    });
+    var white = [], lastSub = {}, guard = 0;
+    while (white.length < 6 && guard++ < 400) {
+      var moved = false;
+      cats.forEach(function (c) {
+        if (white.length >= 6) return;
+        var list = byCat[c];
+        var i = 0;
+        while (i < list.length && list[i].subcat === lastSub[c]) i++;   /* не две подряд из одной полки */
+        if (i >= list.length) i = 0;
+        if (!list.length) return;
+        var p = list.splice(i, 1)[0];
+        lastSub[c] = p.subcat; white.push(p); moved = true;
+      });
+      if (!moved) break;
+    }
+    var save = white.reduce(function (s2, p) { return Math.max(s2, p.retail - p.metod); }, 0);
+    return '<section class="feed feed--market"><div class="feed__head"><h2 class="h2">Каталог товаров</h2><a class="btn btn--link" href="market.html">Весь каталог</a></div>' +
+      '<p class="feed__note">Цена поставщика и ваша цена с подпиской METOD' + (save ? ': выгода до ' + F.rub(save) + ' на одной вещи' : '') + '</p>' +
+      '<div class="mk-grid">' + white.map(function (p) { return S.ui.productCard(p); }).join('') + '</div>' +
+      '<a class="btn btn--ghost btn--block mk-more" href="market.html">Показать весь каталог</a></section>';
+  }
+
+  /* Акции партнёров — платное продвижение, помечено по 289-ФЗ. Три подачи на выбор. */
+  var AKEY = 'sove.proto.promoView';
+  var avid = 'lane';
+  try { var av = localStorage.getItem(AKEY); if (av) avid = av; } catch (e) {}
+
+  function promoCard(p) {
+    return '<a class="promo-c" href="product.html?id=' + p.id + '">' +
+      '<span class="promo-c__pic"><img src="' + p.img + '" alt="" loading="lazy">' +
+        '<i class="promo-c__star">★</i><i class="promo-c__off">−' + p.discount + ' %</i></span>' +
+      '<b>' + esc(p.name) + '</b>' +
+      '<span class="promo-c__price">' + F.rub(p.metod) + '<s>' + F.rub(p.retail) + '</s></span>' +
+      '<i class="promo-c__adv">Продвижение · до ' + esc(D.promo[p.id].until) + '</i></a>';
+  }
+  /* подача 1 — карусель со стрелками */
+  function promoLane(list) {
+    return '<div class="promo-wrap">' +
+      '<button type="button" class="promo-nav promo-nav--prev" data-promo="-1" aria-label="Предыдущие акции">' + ic('back', 16) + '</button>' +
+      '<button type="button" class="promo-nav promo-nav--next" data-promo="1" aria-label="Следующие акции">' + ic('arrow', 16) + '</button>' +
+      '<div class="promo-row" id="promo-row">' + list.map(promoCard).join('') + '</div></div>';
+  }
+  /* подача 2 — как в каталоге: сетка обычных карточек товара */
+  function promoGrid(list) {
+    return '<div class="mk-grid promo-grid">' + list.slice(0, 4).map(function (p) { return S.ui.productCard(p); }).join('') + '</div>' +
+      '<a class="btn btn--ghost btn--block mk-more" href="market.html?promo=1">Все акции партнёров</a>';
+  }
+  /* подача 3 — один товар крупно, остальные мелко */
+  function promoHero(list) {
+    var top = list[0], rest = list.slice(1, 4);
+    if (!top) return '';
+    return '<a class="promo-hero" href="product.html?id=' + top.id + '">' +
+        '<span class="promo-hero__pic"><img src="' + top.img + '" alt="" loading="lazy"></span>' +
+        '<span class="promo-hero__b"><i class="promo-hero__brand">' + esc(top.brand || 'партнёр') + '</i>' +
+          '<b>' + esc(top.name) + '</b>' +
+          '<span class="promo-c__price">' + F.rub(top.metod) + '<s>' + F.rub(top.retail) + '</s></span>' +
+          '<i class="promo-c__adv">Продвижение · до ' + esc(D.promo[top.id].until) + '</i></span>' +
+        '<i class="promo-hero__off">−' + top.discount + ' %</i></a>' +
+      '<div class="promo-mini">' + rest.map(function (p) {
+        return '<a class="promo-mini__b" href="product.html?id=' + p.id + '">' +
+          '<span class="promo-mini__pic"><img src="' + p.img + '" alt="" loading="lazy"><i>−' + p.discount + ' %</i></span>' +
+          '<b>' + esc(p.name) + '</b></a>';
+      }).join('') + '</div>';
+  }
+  var AVIEWS = [
+    { id: 'lane', t: 'Карусель', make: promoLane },
+    { id: 'grid', t: 'Каталогом', make: promoGrid },
+    { id: 'hero', t: 'Один крупно', make: promoHero }
+  ];
+  function promoBody() {
+    var list = D.promoList().slice(0, 6);
+    var v = AVIEWS.filter(function (x) { return x.id === avid; })[0] || AVIEWS[0];
+    return v.make(list);
+  }
+  function promoShelf() {
+    if (!D.promoList().length) return '';
+    return '<section class="feed feed--promo"><div class="feed__head"><h2 class="h2">Акции партнёров</h2>' +
+      '<a class="btn btn--link" href="market.html?promo=1">Все акции</a></div>' +
+      '<p class="feed__note">Партнёры подняли эти позиции — цена держится до конца недели. Это продвижение, отмечаем честно.</p>' +
+      '<div class="prt-sw" role="group" aria-label="Подача акций">' + AVIEWS.map(function (v) {
+        return '<button type="button" class="prt-sw__b' + (v.id === avid ? ' is-on' : '') + '" data-av="' + v.id + '">' + esc(v.t) + '</button>';
+      }).join('') + '</div>' +
+      '<div id="promo-body">' + promoBody() + '</div></section>';
+  }
+
+  /* стрелки и подсветка краёв: листаем по одной карточке */
+  function bindPromo() {
+    var row = document.getElementById('promo-row'); if (!row) return;
+    var wrap = row.parentNode;
+    function edges() {
+      var max = row.scrollWidth - row.clientWidth - 1;
+      wrap.classList.toggle('at-start', row.scrollLeft <= 1);
+      wrap.classList.toggle('at-end', row.scrollLeft >= max);
+    }
+    row.addEventListener('scroll', edges, { passive: true });
+    wrap.addEventListener('click', function (e) {
+      var b = e.target.closest('[data-promo]'); if (!b) return;
+      var card = row.firstElementChild; if (!card) return;
+      var step = card.getBoundingClientRect().width + 12;
+      row.scrollBy({ left: step * Number(b.getAttribute('data-promo')), behavior: 'smooth' });
+    });
+    edges();
+  }
+
+  /* ---------- разделы: три подачи ---------- */
+  /* состав и названия разделов — как на родной главной сайта, вместе с маркетом */
+  var SECS = NAV.slice();
+
+  /* Партнёры — два входа: поставщикам и дизайнерам.
+     В варианте «Список» они стоят блоком под маркетом, в «Двух главных» — рядом с разделами. */
+  /* фото от команды: образец камня, чертёж планировки, каска */
+  var PARTNERS = [
+    { id: 'sup', t: 'Поставщикам', d: 'Товары и цены в каталог METOD', href: 'partner.html', ic: 'handshake', img: 'assets/img/partners/sup.jpg' },
+    { id: 'des', t: 'Дизайнерам', d: 'Капсула в общий каталог интерьеров', href: 'partner.html?who=designer', ic: 'home', img: 'assets/img/partners/des.jpg' },
+    { id: 'bld', t: 'Строителям', d: 'Объекты и бригады в управлении ремонтом', href: 'partner.html?who=builder', ic: 'build', img: 'assets/img/partners/bld.jpg' }
+  ];
+
+  var PKEY = 'sove.proto.prtView';
+  var pvid = 'tiles';
+  try { var pv = localStorage.getItem(PKEY); if (pv) pvid = pv; } catch (e) {}
+
+  /* подача 1 — плитки с фото */
+  function prtTiles() {
+    return '<div class="prt2">' + PARTNERS.map(function (x) {
+      return '<a class="prt2__b" href="' + x.href + '">' +
+        '<img src="' + x.img + '" alt="" loading="lazy">' +
+        '<span class="prt2__t"><i>' + ic(x.ic, 15) + '</i><b>' + esc(x.t) + '</b><em>' + esc(x.d) + '</em></span></a>';
+    }).join('') + '</div>';
+  }
+  /* подача 2 — строки с миниатюрами */
+  function prtRows() {
+    return '<div class="prtr">' + PARTNERS.map(function (x) {
+      return '<a class="prtr__b" href="' + x.href + '">' +
+        '<span class="prtr__pic"><img src="' + x.img + '" alt="" loading="lazy"></span>' +
+        '<span class="prtr__body"><b>' + esc(x.t) + '</b><i>' + esc(x.d) + '</i></span>' +
+        '<span class="prtr__go">' + ic('arrow', 16) + '</span></a>';
+    }).join('') + '</div>';
+  }
+  /* подача 3 — компактные кнопки без фото */
+  function prtChips() {
+    /* три маленькие кнопки с фото в один ряд */
+    return '<div class="prtc">' + PARTNERS.map(function (x) {
+      return '<a class="prtc__b" href="' + x.href + '">' +
+        '<span class="prtc__pic"><img src="' + x.img + '" alt="" loading="lazy">' +
+          '<i class="prtc__ico">' + ic(x.ic, 13) + '</i></span>' +
+        '<b>' + esc(x.t) + '</b></a>';
+    }).join('') + '</div>';
+  }
+
+  var PVIEWS = [
+    { id: 'tiles', t: 'Плитки', make: prtTiles },
+    { id: 'rows', t: 'Строки', make: prtRows },
+    { id: 'chips', t: 'Кнопки', make: prtChips }
+  ];
+  function partnersBody() {
+    var v = PVIEWS.filter(function (x) { return x.id === pvid; })[0] || PVIEWS[0];
+    return v.make();
+  }
+  /* партнёры теми же квадратами — для подачи «Квадраты» */
+  function partnersSquares() {
+    /* фото, а не значки: по рендеру Вики партнёрские карточки живые */
+    /* Вика 04.11: «добавить фразу „вход в личный кабинет“» — ссылка справа от заголовка, как на её образце */
+    return '<section class="feed feed--prt2"><div class="feed__head"><h3 class="h3">Партнёрам</h3><a class="btn btn--link" href="partner-cabinet.html">Вход в личный кабинет</a></div>' +
+      '<div class="prt-ph">' + PARTNERS.map(function (x) {
+        return '<a class="prt-ph__b" href="' + x.href + '">' +
+          '<span class="prt-ph__pic"><img src="' + x.img + '" alt="" loading="lazy"></span>' +
+          '<b>' + esc(x.t) + '</b></a>';
+      }).join('') + '</div></section>';
+  }
+
+
+
+
+  function partnersBlock() {
+    return '<section class="feed feed--prt2"><div class="feed__head"><h2 class="h2">Партнёрам</h2></div>' +
+      '<p class="feed__note">Поставщики дают закрытые цены, дизайнеры — капсулы, строители берут объекты. Заявка в четыре шага.</p>' +
+      '<div class="prt-sw" role="group" aria-label="Подача блока партнёров">' + PVIEWS.map(function (v) {
+        return '<button type="button" class="prt-sw__b' + (v.id === pvid ? ' is-on' : '') + '" data-pv="' + v.id + '">' + esc(v.t) + '</button>';
+      }).join('') + '</div>' +
+      '<div id="prt-body">' + partnersBody() + '</div></section>';
+  }
+
+  function sbtn(x) {
+    return '<a class="sbtn" href="' + x.href + '">' +
+      '<span class="sbtn__pic"><img src="' + x.img + '" alt="" loading="lazy">' +
+        '<i class="sbtn__ico">' + ic(x.ic, 15) + '</i></span>' +
+      '<span class="sbtn__b"><b>' + esc(x.t) + (x.lock ? '<i class="sbtn__lock">' + ic('lock', 11) + '</i>' : '') + '</b>' +
+        '<i>' + esc(x.price || x.d) + '</i></span>' +
+      '<span class="sbtn__go">' + ic('arrow', 16) + '</span></a>';
+  }
+
+  /* разделы идут группами с подписями — как на родной главной сайта */
+  function byGroup(list) {
+    var out = [], by = {};
+    list.forEach(function (x) {
+      if (!by[x.group]) { by[x.group] = { name: x.group, items: [] }; out.push(by[x.group]); }
+      by[x.group].items.push(x);
+    });
+    return out;
+  }
+  function groupLabel(g) {
+    var free = g.items.every(function (x) { return x.free; });
+    return '<span class="grp__label">' + esc(g.name) + (free ? ' · бесплатно' : '') + '</span>';
+  }
+  function secButtons(inSheet) {
+    return byGroup(SECS).map(function (g) {
+      return '<section class="grp grp--btns">' + groupLabel(g) +
+        '<div class="sbtns' + (inSheet ? ' sbtns--sheet' : '') + '">' + g.items.map(sbtn).join('') + '</div></section>';
+    }).join('');
+  }
+
+  /* вариант 2 — те же полки, внутри сетка карточек */
+  /* три подачи значка на карточке: ?ico=a кружок с новым значком, b значок у названия,
+     c слово-функция плашкой. Выбор временный, для показа команде. */
+  var ICO = (new URLSearchParams(location.search).get('ico')) || 'a';
+
+  function tcard(x) {
+    var lock = x.lock ? '<i class="tgrid__lock">' + ic('lock', 11) + '</i>' : '';
+    var onPic = ICO === 'a' ? '<i class="tgrid__ico">' + sqIc(x.id, 16) + '</i>'
+      : ICO === 'c' ? '<i class="tgrid__word">' + esc(SQ_FN[x.id] || x.k || x.t) + '</i>' : '';
+    var byName = ICO === 'b' ? '<i class="tgrid__mini">' + sqIc(x.id, 15) + '</i>' : '';
+    return '<a class="tgrid__b" href="' + x.href + '">' +
+      '<span class="tgrid__pic"><img src="' + x.img + '" alt="" loading="lazy">' +
+        onPic + lock + '</span>' +
+      '<span class="tgrid__t"><b>' + byName + esc(x.t) + '</b><i>' + esc(x.price || x.d) + '</i></span></a>';
+  }
+  /* Вика 25.09: пока люди не знают брендовых имён, подписывать квадраты функцией
+     («ИИ-генерации», «Калькулятор»), а фирменное имя показывать при наведении.
+     Переключатель ниже позволяет посмотреть оба порядка. */
+  /* подписи по-русски и по смыслу: человеку должно быть понятно без расшифровки */
   var SQ_FN = {
     ai: 'Генерации', market: 'Каталог товаров', capsules: 'Интерьерные решения', scout: 'Бюджетный просчёт',
-    adept: 'Дизайн-проект', track: 'Управление ремонтом', metod: 'Метод ремонта', about: 'Строители, дизайнеры и мастера'
+    adept: 'Дизайн-проект', track: 'Управление ремонтом', metod: 'Метод ремонта', about: 'Исполнители',
+    sup: 'Поставщикам', des: 'Дизайнерам', bld: 'Строителям'
   };
-  /* значки по образцу Вики (скриншот прототипа 12.10): предметные, линия тонкая и одинаковой толщины */
+
+
+  /* Свой набор для квадратов: линейные знаки, по одному на раздел.
+     В общем наборе у управления ремонтом и Строителей был один и тот же карандаш — здесь развели. */
+  /* Набор значков по образцу Вики (скриншоты 12.10): предметные, не метафоры —
+     вихрь генерации, тележка, кресло с торшером, калькулятор, план квартиры,
+     инструменты, звезда за ограждением, звенья цепи. */
+  /* Значки по образцу Вики (скриншот прототипа 12.10): предметные, а не метафоры.
+     Линия тонкая и одинаковой толщины, рисунок вписан в поле 24×24 с полями. */
+  /* Значки по образцу Вики (скриншот прототипа 12.10): предметные, а не метафоры.
+     Линии не должны сходиться ближе толщины штриха — иначе на 42 px всё сливается. */
   var SQ_IC = {
     ai: '<path d="M13.7 12.0A7.4 7.4 0 0 1 15.4 20.8" fill="#f8eeec"/><path d="M12.8 13.5A7.4 7.4 0 0 1 6.1 19.3" fill="#a75f42"/><path d="M11.2 13.5A7.4 7.4 0 0 1 2.7 10.6" fill="#f8eeec"/><path d="M10.3 12.0A7.4 7.4 0 0 1 8.6 3.2" fill="#a75f42"/><path d="M11.1 10.5A7.4 7.4 0 0 1 17.9 4.7" fill="#f8eeec"/><path d="M12.8 10.5A7.4 7.4 0 0 1 21.3 13.4" fill="#a75f42"/>',
     market: '<path d="M2.6 4.2h2.2l2.6 10h9.4l2.2-7.2H6.4" fill="#a75f42"/><path d="M8.6 10.6h8.2"/><circle cx="9.6" cy="19.2" r="1.4"/><circle cx="16.8" cy="19.2" r="1.4"/>',
@@ -443,92 +669,231 @@
     adept: '<path d="M3.6 4.6h9.8v4.6h7v10.2H3.6z" fill="#f8eeec"/><path d="M13.6 13.4h7v6.2h-7z" fill="#a75f42"/><path d="M3.6 13.4h3.4M10.8 13.4h2.6" stroke="#a75f42"/><path d="M9.8 4.6v2.8M9.8 10.6v9" stroke="#a75f42"/>',
     track: '<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94z" fill="#a75f42"/>',
     metod: '<path d="m12 5 1.9 3.9 4.3.6-3.1 3 .7 4.3L12 14.8l-3.8 2 .7-4.3-3.1-3 4.3-.6z" fill="#a75f42"/><path d="M3.6 5v14M20.4 5v14"/>',
-    /* Вика 21.10: дом и башенный кран — квадрат специалистов */
-    about: '<path d="M2.8 20.6V8.2h8v12.4" fill="#f8eeec"/><path d="M5 11.4h3.6M5 14.6h3.6M5 17.8h3.6"/><path d="M2 20.6h20"/><path d="M19.6 20.6V8.4"/><path d="M10.8 4.2h10.8"/><rect x="17.6" y="5.8" width="4" height="2.6" rx=".6" fill="#a75f42"/><path d="M13.6 4.2v4M12.6 8.2h2"/>'
+    /* Вика 21.10: «Экосистема» стала «Строительные компании» — дом и башенный кран */
+    about: '<path d="M2.8 20.6V8.2h8v12.4" fill="#f8eeec"/><path d="M5 11.4h3.6M5 14.6h3.6M5 17.8h3.6"/><path d="M2 20.6h20"/><path d="M19.6 20.6V8.4"/><path d="M10.8 4.2h10.8"/><rect x="17.6" y="5.8" width="4" height="2.6" rx=".6" fill="#a75f42"/><path d="M13.6 4.2v4M12.6 8.2h2"/>',
+    sup: '<rect x="8.4" y="3.6" width="7.6" height="16.8" rx="1.8" fill="#a75f42"/><path d="M10.4 8h3.6M10.4 11.4h3.6M10.4 14.8h3.6"/><path d="M6.6 5.6 3.8 16.8a1.8 1.8 0 0 0 1.3 2.2l1.3.3"/><path d="m17.8 5.6 2.8 11.2a1.8 1.8 0 0 1-1.3 2.2l-1.3.3"/>',
+    des: '<path d="M5.4 5.6a2 2 0 0 1 2-2h8.8v13.2H7.4a2 2 0 0 0-2 2z" fill="#f8eeec"/><path d="M5.4 5.6v13.2a2 2 0 0 0 2 2h8.8"/><path d="M8.6 8h4.6M8.6 11.4h4.6"/><path d="m21.2 2.8 1.2 1.2-5.8 5.8-1.8.6.6-1.8z" fill="#a75f42"/>',
+    bld: '<path d="M2.6 17.4a1 1 0 0 1 1-1h16.8a1 1 0 0 1 1 1v1.8a1 1 0 0 1-1 1H3.6a1 1 0 0 1-1-1z" fill="#a75f42"/><path d="M9.8 11.4V5.6a1.2 1.2 0 0 1 1.2-1.2h2a1.2 1.2 0 0 1 1.2 1.2v5.8"/><path d="M4.8 16.4v-3.2a6.4 6.4 0 0 1 5-6.2"/><path d="M14.2 7a6.4 6.4 0 0 1 5 6.2v3.2"/>'
   };
+
+
+
   function sqIc(id, size) {
     var path = SQ_IC[id];
     if (!path) return ic('albums', size);
     return '<svg viewBox="0 0 24 24" width="' + size + '" height="' + size + '" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true">' + path + '</svg>';
   }
+
+  /* подача «квадраты» по референсу: линейная иконка в тонкой рамке, подпись под квадратом */
   function sqcard(x) {
+    var label = SQ_FN[x.id] || x.t;
     return '<a class="sq__b" href="' + x.href + '">' +
-      '<span class="sq__box">' + sqIc(x.id, 42) + (x.lock ? '<i class="sq__lock">' + ic('lock', 10) + '</i>' : '') + '</span>' +
-      '<b class="sq__cap">' + esc(nb(SQ_FN[x.id] || x.t)) + '</b></a>';   /* подсказки при наведении убраны (Вика 23.10) */
+      '<span class="sq__box">' + sqIc(x.id, 42) +
+        (x.lock ? '<i class="sq__lock">' + ic('lock', 10) + '</i>' : '') + '</span>' +
+      '<b class="sq__cap">' + esc(label) + (x.id === 'track' ? ' <i class="sq__soon">скоро</i>' : '') + '</b></a>';   /* подсказки при наведении убраны (Вика 23.10); ТРЕК — «скоро» (Алина 10.11, задача 27) */
   }
-  /* Вика 21.10: в ряду «Сделай по-настоящему» квадрат специалистов (бывшая «Экосистема») стоит перед «Методом ремонта»;
-     чат команды 30.10: он ведёт в маркет исполнителей (executors.html) */
+  /* Вика 21.10: в ряду «Сделай по-настоящему» «Строительные компании» (бывшая «Экосистема»)
+     идут перед «Закрытым клубом»; подсказка при наведении — по новой подписи квадрата.
+     Чат команды 30.10: квадрат стал «Исполнители» и ведёт в маркет исполнителей (executors.html) */
   function swapClubAndBuilders(items) {
     var ids = items.map(function (x) { return x.id; }), a = ids.indexOf('metod'), b = ids.indexOf('about');
     if (a < 0 || b < 0) return items;
     var out = items.slice(), about = {};
     Object.keys(items[b]).forEach(function (k) { about[k] = items[b][k]; });
-    about.t = 'Строители, дизайнеры и мастера'; about.d = 'Мастера, строители и дизайнеры'; about.href = 'executors.html';
+    about.t = 'Исполнители'; about.d = 'Мастера, строители и дизайнеры'; about.href = 'executors.html';
     out[a] = about; out[b] = items[a];
     return out;
   }
-  function sections() {
+  function secSquares() {
+    /* прошлая раскладка: по четыре в ряд; между рядами — две подписи родных групп */
     var half = Math.ceil(SECS.length / 2);
     var rows = [
       { label: 'Попробуй сразу · бесплатно', items: SECS.slice(0, half) },
       { label: 'Сделай по-настоящему', items: swapClubAndBuilders(SECS.slice(half)) }
     ];
-    return '<section class="feed feed--sec" aria-label="Сервисы">' + rows.map(function (r) {
-      return '<section class="grp grp--btns grp--sq"><span class="grp__label">' + esc(r.label) + '</span>' +
-        '<div class="sq">' + r.items.map(sqcard).join('') + '</div></section>';
-    }).join('') + '</section>';
+    return rows.map(function (r) {
+        return '<section class="grp grp--btns grp--sq">' +
+          '<span class="grp__label">' + esc(r.label) + '</span>' +
+          '<div class="sq">' + r.items.map(sqcard).join('') + '</div></section>';
+      }).join('');
+  }
+  function secIcons() {
+    return byGroup(SECS).map(function (g) {
+      return '<section class="grp grp--btns">' + groupLabel(g) +
+        '<div class="tgrid">' + g.items.map(tcard).join('') + '</div></section>';
+    }).join('');
   }
 
-  /* ---------- ленты капсул: «Новинки», «Популярные», «Акции» ----------
-     Раскладка — пример до списка команды (assets/js/home-lanes.js). Карточки как в «Бюджете»: фото, название словами, стиль, палитра. */
-  /* короткие предлоги и союзы («в», «с», «и») не остаются в конце строки — связываем со следующим словом */
-  function nb(s) { return String(s || '').replace(/([а-яёa-z]{1,2})\s+/gi, function (m, w, at, all) { return at === 0 || /\s/.test(all.charAt(at - 1)) ? w + '\u00a0' : m; }); }
-  /* имя капсулы короткое и одно на всех экранах (как META.short в kb/capsules.js — на главной база знаний не подключена) */
-  var CAP_SHORT = { k1: 'Бургундский камень', k2: 'Изумрудная неоклассика', k3: 'Минимализм с голубым', k4: 'Тёплая классика', k5: 'Органика в песочном' };
-  function capCard(c) {
-    return '<a class="hcap" href="capsule.html?id=' + c.id + '">' +
-      '<span class="hcap__pic"><img src="' + (c.wide || c.cover) + '"' + (c.wide && c.widePos ? ' style="object-position:' + c.widePos + '"' : '') + ' alt="" loading="lazy" width="960" height="738"></span>' +
-      '<span class="hcap__body"><b class="hcap__name">' + esc(nb(CAP_SHORT[c.id] || c.name)) + '</b><span class="hcap__style">' + esc(c.style) + '</span>' +
-        (c.palette && c.palette.length ? '<span class="hcap__dots" aria-hidden="true">' + c.palette.map(function (h) { return '<i style="background:' + esc(h) + '"></i>'; }).join('') + '</span>' : '') +
-      '</span></a>';
-  }
-  function lanesHTML() {
-    var used = {};
-    var lanes = (S.homeLanes || []).map(function (l) {
-      var caps = (l.caps || []).map(function (id) { return D.capsule(id); }).filter(function (c) {
-        /* повтор капсулы в соседней ленте разрешён, если так задано в home-lanes.js (Алина 02.11: «пока поставь капсулу 1») */
-        if (!c || c.soon || (used[c.id] && !S.homeLanesRepeat)) return false;
-        used[c.id] = true; return true;
-      });
-      return { id: l.id, title: l.title, ad: !!l.ad, caps: caps };
-    }).filter(function (l) { return l.caps.length; });
-    if (!lanes.length) return '';
-    return '<div class="feed feed--lanes"><div class="lanes">' + lanes.map(function (l) {
-      return '<section class="lane2" aria-labelledby="lane-' + esc(l.id) + '"><div class="feed__head"><h2 class="lane2__t" id="lane-' + esc(l.id) + '">' + esc(l.title) + (l.ad ? ' <span class="lane2__ad">Продвижение</span>' : '') + '</h2>' +
-        '<a class="btn btn--link" href="capsules.html" aria-label="Все интерьеры">Все</a></div>' +
-        '<div class="lane2__grid">' + l.caps.map(capCard).join('') + '</div></section>';
-    }).join('') + '</div></div>';
+  /* вариант «карусель» — один ряд, листается вбок, снизу точки */
+  /* вариант «два главных» — Генерации и маркет крупно, остальные мелкой сеткой */
+  var HERO_IDS = ['ai', 'market'];
+  function secHero() {
+    var big = SECS.filter(function (x) { return HERO_IDS.indexOf(x.id) >= 0; });
+    var rest = SECS.filter(function (x) { return HERO_IDS.indexOf(x.id) < 0; });
+    function mini(x) {
+      return '<a class="mini6__b" href="' + x.href + '">' +
+        '<img src="' + x.img + '" alt="" loading="lazy">' +
+        (x.lock ? '<i class="mini6__lock">' + ic('lock', 9) + '</i>' : '') +
+        '<span class="mini6__cap"><i>' + ic(x.ic, 12) + '</i><b>' + esc(x.t) + '</b></span></a>';
+    }
+    return '<section class="grp grp--btns">' + groupLabel({ name: big[0].group, items: big }) +
+      '<div class="duo">' + big.map(function (x) {
+        return '<a class="duo__b" href="' + x.href + '">' +
+          '<img src="' + x.img + '" alt="" loading="lazy">' +
+          '<span class="duo__t"><i>' + ic(x.ic, 15) + '</i><b>' + esc(x.t) + '</b></span></a>';
+      }).join('') + '</div></section>' +
+      byGroup(rest).map(function (g) {
+        return '<section class="grp grp--btns">' + groupLabel(g) +
+          '<div class="mini6 mini6--pair">' + g.items.map(mini).join('') + '</div></section>';
+      }).join('');
   }
 
-  /* ---------- Интерьерные капсулы: карусель из версии 1, карточки — как в лентах (Алина 03.11) ---------- */
-  function capsCarousel() {
-    var list = D.capsules.filter(function (c) { return !c.soon && !c.designer; });
+  /* вариант 3 — те же кнопки прячутся в меню, которое выезжает снизу */
+  function secSheet() {
+    /* кнопка видна издалека и показывает, что внутри: превью разделов и счётчик */
+    var pv = SECS.slice(0, 5), rest = SECS.length - pv.length;
+    return '<button type="button" class="smenu" data-sheet>' +
+      '<span class="smenu__top">' +
+        '<span class="smenu__b"><b>Все разделы</b><i>Генерации, капсулы, дизайн-проект, ремонт, METOD</i></span>' +
+      '</span>' +
+      '<span class="smenu__lane">' + pv.map(function (x) {
+        return '<span class="smenu__pv"><img src="' + x.img + '" alt="" loading="lazy"></span>';
+      }).join('') + (rest > 0 ? '<span class="smenu__pv smenu__pv--more">+' + rest + '</span>' : '') + '</span>' +
+      '<span class="smenu__cta">Открыть меню' + ic('arrow', 16) + '</span></button>';
+  }
+
+  /* выезжающее меню: тянется вниз пальцем, закрывается по фону и Esc */
+  function openSheet() {
+    var back = document.createElement('div');
+    back.className = 'sh-back';
+    back.innerHTML = '<div class="sh" role="dialog" aria-modal="true" aria-label="Разделы">' +
+      '<span class="sh__grip" aria-hidden="true"></span>' +
+      '<div class="sh__head"><b>Разделы</b><button type="button" class="sh__x" aria-label="Закрыть">×</button></div>' +
+      secButtons(true) + '</div>';
+    document.body.appendChild(back);
+    var card = back.querySelector('.sh');
+    requestAnimationFrame(function () { back.classList.add('is-in'); });
+
+    function close() {
+      back.classList.remove('is-in');
+      document.removeEventListener('keydown', onKey);
+      setTimeout(function () { back.remove(); }, 280);
+    }
+    function onKey(e) { if (e.key === 'Escape') close(); }
+    document.addEventListener('keydown', onKey);
+    back.addEventListener('click', function (e) { if (e.target === back) close(); });
+    back.querySelector('.sh__x').addEventListener('click', close);
+    card.addEventListener('click', toggleShelf);
+
+    /* потянуть вниз — закрыть; тянем только за верх шторки, иначе перехватываются нажатия на кнопки */
+    var grab = back.querySelector('.sh__grip'), head = back.querySelector('.sh__head');
+    var y0 = null;
+    function onDown(e) {
+      if (e.target.closest('.sh__x')) return;
+      y0 = e.clientY; card.style.transition = 'none';
+    }
+    function onMove(e) {
+      if (y0 === null) return;
+      var dy = Math.max(0, e.clientY - y0);
+      if (dy > 4 && e.target.setPointerCapture && !e.target.hasPointerCapture(e.pointerId)) {
+        try { e.target.setPointerCapture(e.pointerId); } catch (err) {}
+      }
+      card.style.transform = 'translateY(' + dy + 'px)';
+    }
+    function onUp(e) {
+      if (y0 === null) return;
+      var dy = Math.max(0, e.clientY - y0);
+      y0 = null; card.style.transition = ''; card.style.transform = '';
+      if (dy > 90) close();
+    }
+    [grab, head].forEach(function (el) {
+      if (!el) return;
+      el.addEventListener('pointerdown', onDown);
+      el.addEventListener('pointermove', onMove);
+      el.addEventListener('pointerup', onUp);
+      el.addEventListener('pointercancel', onUp);
+    });
+    return close;
+  }
+
+  var SVIEWS = [
+    { id: 'flat', t: 'Список', make: function () { return secButtons(false); } },
+    { id: 'hero', t: 'Два главных', make: secHero },
+    { id: 'icons', t: 'Иконки', make: secIcons },
+    { id: 'squares', t: 'Квадраты', make: secSquares }
+  ];
+  /* подача одна — квадраты; служебный выбор вариантов убран из прототипа */
+  var VKEY = 'sove.proto.secView';
+  var vid = 'squares';
+  function sections() {
+    var v = SVIEWS.filter(function (x) { return x.id === vid; })[0] || SVIEWS[0];
+    return '<section class="feed feed--sec" id="sec-slot">' + v.make() + '</section>';
+  }
+  /* служебная плашка сравнения — в продукт не идёт */
+  function viewSwitch() {
+    return '<div class="vsw"><div class="vsw__in" role="group" aria-label="Варианты подачи разделов">' +
+      SVIEWS.map(function (v) {
+        return '<button type="button" data-sv="' + v.id + '" class="' + (v.id === vid ? 'is-active' : '') + '">' + esc(v.t) + '</button>';
+      }).join('') + '</div></div>';
+  }
+
+
+  /* ---------- карточка снизу по нажатию на квадрат ----------
+     На телефоне пузырёк при наведении не работает, поэтому тап открывает
+     карточку снизу: что это за раздел и одна кнопка перехода. */
+  function sqSheet() {
+    var veil = document.createElement('div'); veil.className = 'sq-veil';
+    var sheet = document.createElement('div'); sheet.className = 'sq-sheet'; sheet.setAttribute('role', 'dialog');
+    sheet.setAttribute('aria-modal', 'true'); sheet.setAttribute('aria-hidden', 'true');
+    document.body.appendChild(veil); document.body.appendChild(sheet);
+
+    function close() {
+      sheet.classList.remove('is-open'); veil.classList.remove('is-open');
+      sheet.setAttribute('aria-hidden', 'true');
+    }
+    function open(x) {
+      sheet.innerHTML = '<button type="button" class="sq-sheet__x" aria-label="Закрыть">×</button>' +
+        '<span class="sq-sheet__grip"></span>' +
+        '<span class="sq-sheet__k">' + esc(SQ_FN[x.id] || '') + '</span>' +
+        '<b class="sq-sheet__t">' + esc(x.t) + '</b>' +
+        (x.d ? '<p class="sq-sheet__d">' + esc(x.d) + '</p>' : '') +
+        (x.price ? '<p class="sq-sheet__p">' + esc(x.price) + '</p>' : '') +
+        '<a class="btn btn--primary btn--block" href="' + x.href + '">Открыть ' + esc(x.t) + '</a>';
+      sheet.classList.add('is-open'); veil.classList.add('is-open');
+      sheet.setAttribute('aria-hidden', 'false');
+      sheet.querySelector('.sq-sheet__x').addEventListener('click', close);
+    }
+    veil.addEventListener('click', close);
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(); });
+    return { open: open, close: close };
+  }
+  var sqs = null;
+
+  /* ---------- интерьерные капсулы: две карточки и переход ко всем ---------- */
+  /* карточки — единые SOVE.ui.capCard (cap-card.js), как в «Расчёте ремонта» (Вика 03.11); мелкие (s): на главной
+     заголовки Montserrat, в обычном размере название в карточке 157 px рвётся посреди слова */
+  function capsBlock() {
+    var list = D.capsules.filter(function (c) { return !c.soon && !c.designer; }).slice(0, 2);
     if (!list.length) return '';
-    return '<section class="feed feed--caps" aria-labelledby="caps-t"><div class="feed__head"><h2 class="lane2__t" id="caps-t">Интерьерные капсулы</h2>' +
+    return '<section class="feed feed--caps"><div class="feed__head"><h2 class="h2">Интерьерные капсулы</h2>' +
       '<a class="btn btn--link" href="capsules.html">Все</a></div>' +
-      '<div class="capsc">' + list.map(capCard).join('') + '</div>' +
+      '<div class="caps2">' + list.map(function (c) {
+        return S.ui.capCard(c, { href: 'capsule.html?id=' + c.id, size: 's', meta: c.style ? null : 'Материалы и комплектация' });
+      }).join('') + '</div>' +
       '<a class="btn btn--ghost btn--block caps2__more" href="capsules.html">Показать все капсулы</a></section>';
   }
 
-  /* ---------- Каталог товаров: баннер акции месяца и четыре товара со звёздочкой (согласовано 21.10) ---------- */
+  /* ---------- Каталог товаров: баннер акции месяца и четыре товара со звёздочкой ---------- */
   function promoBanner() {
     var list = (D.promoList ? D.promoList() : []).filter(function (p) { return p && p.white; }).slice(0, 4);
     if (!list.length) list = D.products.filter(function (p) { return p.white && p.discount >= 20; }).slice(0, 4);
     var lead = list[0] || {};
     var save = list.reduce(function (max, x) { return Math.max(max, x.retail - x.metod); }, 0);
-    return '<section class="feed feed--mk"><div class="feed__head"><h2 class="h2">SOVEAPP маркет</h2>' +
+    return '<section class="feed feed--mk"><div class="feed__head"><h2 class="h2">Каталог товаров</h2>' +
       '<a class="btn btn--link" href="market.html">Весь каталог</a></div>' +
-      /* баннер на фоне интерьерного кадра: логотип партнёра и акция поверх (Вика 21.10: «верни тот красивый») */
+
+      /* баннер на фоне интерьерного кадра: логотип партнёра и акция поверх — согласованный
+         вариант (Вика 21.10: «верни тот красивый»); карточный вариант и переключатель ?bn=2 убраны */
       '<a class="mkp" href="market.html?promo=1">' +
         '<img class="mkp__bg" src="assets/img/partners/promo-bg.jpg" alt="" loading="lazy">' +
         '<span class="mkp__veil"></span>' +
@@ -539,72 +904,311 @@
           '<u class="mkp__go">Смотреть условия</u>' +
         '</span>' +
       '</a>' +
+
       '<div class="mk-grid mk-grid--promo">' + list.map(function (x) { return S.ui.productCard(x); }).join('') + '</div>' +
       '<a class="btn btn--ghost btn--block mk-more" href="market.html">Показать все товары</a></section>';
   }
 
-  /* ---------- Партнёрам: вход для поставщиков и их кабинет ----------
-     Проверка 02.11: плитки «Дизайнерам» и «Строителям» вели на ту же страницу поставщиков (partner.js не читает ?who) —
-     своих разделов у дизайнеров и строителей нет, плитки убраны до решения команды (фото des.jpg / bld.jpg лежат на месте).
-     Мастера и дизайнеры сейчас приходят через квадрат «Строители, дизайнеры и мастера» (executors.html: «Вы мастер,
-     бригада или дизайнер? — Написать нам»). Подписи — с экрана partner.html: «Ваш товар — внутри готовых интерьеров»,
-     «Войти в кабинет» → partner-cabinet.html (кабинет поставщика). */
-  /* версия 1 (Алина 03.11): три квадрата с фото, над ними — «Войти в кабинет» */
-  var PARTNERS = [
-    { t: 'Поставщикам', href: 'partner.html', img: 'assets/img/partners/sup.jpg' },
-    { t: 'Дизайнерам', href: 'partner.html?who=designer', img: 'assets/img/partners/des.jpg' },
-    { t: 'Строителям и мастерам', href: 'partner.html?who=builder', img: 'assets/img/partners/bld.jpg' }
-  ];
-  function partnersBlock() {
-    return '<section class="feed feed--prt2" aria-labelledby="prt-t"><div class="feed__head"><h2 class="h3" id="prt-t">Партнёрам</h2>' +
-      '<a class="btn btn--link" href="partner-cabinet.html">Войти в кабинет</a></div>' +
-      '<div class="prt-ph">' + PARTNERS.map(function (x) {
-        return '<a class="prt-ph__b" href="' + x.href + '"><span class="prt-ph__pic"><img src="' + x.img + '" alt="" loading="lazy" width="160" height="160"></span><b>' + esc(x.t) + '</b></a>';
-      }).join('') + '</div></section>';
-  }
-
-  /* ---------- служебная плашка для команды: выбор варианта первого экрана (в продукт не идёт) ---------- */
-  function hvNote(v) { return 'Сейчас: ' + v.hero.toUpperCase() + ' — ' + HEROES[v.hero].t + ' · ' + v.card + ' — ' + CARDS[v.card]; }
-  function chooserHTML(v) {
-    function btn(kind, val, label, title, on) {
-      return '<button type="button" class="hv__b' + (on ? ' is-on' : '') + '" data-hv="' + kind + '" data-v="' + val + '" aria-pressed="' + on + '" title="' + esc(title) + '">' + esc(label) + '</button>';
-    }
-    return '<section class="hv" aria-labelledby="hv-t"><p class="hv__t" id="hv-t">Для команды: варианты первого экрана</p>' +
-      '<div class="hv__row"><span class="hv__k" id="hv-k1">Фото</span><div class="hv__opts" role="group" aria-labelledby="hv-k1">' +
-        Object.keys(HEROES).map(function (k) { return btn('hero', k, k.toUpperCase(), HEROES[k].t, v.hero === k); }).join('') + '</div></div>' +
-      '<div class="hv__row"><span class="hv__k" id="hv-k2">Карточка</span><div class="hv__opts" role="group" aria-labelledby="hv-k2">' +
-        Object.keys(CARDS).map(function (k) { return btn('card', k, k, CARDS[k], v.card === k); }).join('') + '</div></div>' +
-      '<p class="hv__note" id="hv-note" aria-live="polite">' + esc(hvNote(v)) + '</p></section>';
-  }
-  function setView(v) {
-    if (v.hero === view.hero && v.card === view.card) return;
-    view = v; saveView(v); syncUrl(v);
-    if (cur) cur.destroy();
-    var old = $('scout-card');
-    if (old) { var box = document.createElement('div'); box.innerHTML = firstHTML(v); old.parentNode.replaceChild(box.firstChild, old); }
-    cur = mountFirst(v);
-    [].forEach.call(root.querySelectorAll('[data-hv]'), function (b) {
-      var on = view[b.getAttribute('data-hv')] === b.getAttribute('data-v');
-      b.classList.toggle('is-on', on); b.setAttribute('aria-pressed', String(on));
-    });
-    setText('hv-note', hvNote(v));
-    /* сразу показываем, как выглядит выбранный первый экран */
-    try { window.scrollTo({ top: 0, behavior: calm ? 'auto' : 'smooth' }); } catch (e) { window.scrollTo(0, 0); }
-  }
-
   /* ---------- главная ---------- */
-  /* плашка выбора варианта — только по ссылке с ?variants=1 (решение 20.10: переключателей на главной для клиентов нет) */
-  /* «Каталог товаров» (promoBanner) с главной убран: Вика — «по главной лишнее всё убираем», в макетах и саммари его нет (02.11) */
-  /* версия 1 (Алина 03.11): капсулы каруселью → маркет с баннером → Партнёрам */
-  root.innerHTML = firstHTML(view) + sections() + capsCarousel() + promoBanner() + partnersBlock() + (S.ui.qs('variants') ? chooserHTML(view) : '');
-  cur = mountFirst(view);
+  function home() {
+    return (S.homeFirst ? S.homeFirst.html() : scoutHTML()) + sections() +
+      /* «Партнёрам» — в самом низу, под товарами (Вика 04.11: «партнёров опустить вниз в самый низ… под товары») */
+      '<div id="prt-top">' + ((vid === 'hero' || vid === 'icons') ? partnersBlock() : '') + '</div>' +
+      capsBlock() + promoBanner() +
+      '<div id="prt-bottom">' + (vid === 'squares' ? partnersSquares() : vid === 'flat' ? partnersBlock() : '') + '</div>';
+  }
+
+  root.innerHTML = home();
+  /* первый экран — как до отката (assets/js/home-first.js, Вика 03.11); без него — прежний экран 30.10 */
+  if (S.homeFirst) S.homeFirst.mount(); else bindScout();
+  bindPromo();
+  bindSqHint();
+  /* служебное переключение подачи + вызов выезжающего меню */
   root.addEventListener('click', function (e) {
-    var b = e.target.closest('[data-hv]'); if (!b) return;
-    var v = { hero: view.hero, card: view.card };
-    v[b.getAttribute('data-hv')] = b.getAttribute('data-v');
-    setView(v);
+    var sw = e.target.closest('[data-sv]');
+    if (sw) {
+      vid = sw.getAttribute('data-sv');
+      try { localStorage.setItem(VKEY, vid); } catch (e2) {}
+      var slot = root.querySelector('#sec-slot');
+      var v = SVIEWS.filter(function (x) { return x.id === vid; })[0];
+      if (slot && v) { slot.innerHTML = v.make(); bindSqHint(); }
+      var top = root.querySelector('#prt-top'), bot = root.querySelector('#prt-bottom');
+      if (top) top.innerHTML = (vid === 'hero' || vid === 'icons') ? partnersBlock() : '';
+      if (bot) bot.innerHTML = (vid === 'squares') ? partnersSquares() : (vid === 'flat') ? partnersBlock() : '';
+      root.querySelectorAll('[data-sv]').forEach(function (b) { b.classList.toggle('is-active', b.getAttribute('data-sv') === vid); });
+      return;
+    }
+    var av = e.target.closest('[data-av]');
+    if (av) {
+      avid = av.getAttribute('data-av');
+      try { localStorage.setItem(AKEY, avid); } catch (e2) {}
+      root.querySelectorAll('[data-av]').forEach(function (b) { b.classList.toggle('is-on', b.getAttribute('data-av') === avid); });
+      var body = root.querySelector('#promo-body');
+      if (body) { body.innerHTML = promoBody(); bindPromo(); }
+      return;
+    }
+    var pv = e.target.closest('[data-pv]');
+    if (pv) {
+      pvid = pv.getAttribute('data-pv');
+      try { localStorage.setItem(PKEY, pvid); } catch (e2) {}
+      root.querySelectorAll('[data-pv]').forEach(function (b) { b.classList.toggle('is-on', b.getAttribute('data-pv') === pvid); });
+      root.querySelectorAll('#prt-body').forEach(function (box) { box.innerHTML = partnersBody(); });
+      return;
+    }
+    if (e.target.closest('[data-sheet]')) { openSheet(); return; }
+    toggleShelf(e);
   });
-  var rz = 0;
-  window.addEventListener('resize', function () { clearTimeout(rz); rz = setTimeout(function () { if (cur) cur.layout(); }, 80); });
-  if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { if (cur) cur.layout(); });
+
+  /* Вика 25.09: подпись — что это, а фирменное имя всплывает баннером при наведении
+     или долгом нажатии пальцем. Тап по кнопке при этом работает как обычно. */
+  function bindSqHint() {
+    if (!sqs) sqs = sqSheet();
+    var all = SECS.concat(PARTNERS);
+    root.querySelectorAll('.sq__b').forEach(function (el) {
+      if (el.dataset.bound) return;
+      el.dataset.bound = '1';
+      /* Алина 22.10: тап по значку сразу открывает раздел, без всплывающей карточки снизу */
+    });
+  }
+
+  /* полка: открывается одна за раз, остальные закрываются */
+  function toggleShelf(e) {
+    var h = e.target.closest('.shelf__h'); if (!h) return;
+    var box = h.closest('.shelves'), item = h.closest('.shelf'), was = item.classList.contains('is-open');
+    box.querySelectorAll('.shelf').forEach(function (s) {
+      s.classList.remove('is-open');
+      var b = s.querySelector('.shelf__h'); if (b) b.setAttribute('aria-expanded', 'false');
+    });
+    if (!was) { item.classList.add('is-open'); h.setAttribute('aria-expanded', 'true'); }
+  }
+
+  /* подсказки в строке поиска: товары, разделы и бренды при наборе */
+  S.ui.suggest(document.getElementById('home-q'));
+
+  /* Партнёрам: тап по карточке показывает, как в интерьер встаёт товар, а в ленту — капсула */
+  (function () {
+    var box = document.getElementById('prt'); if (!box) return;
+    var cards = [].slice.call(box.querySelectorAll('.prt__card'));
+    /* плюс в кадре: рамка отзывается и объясняет, как товар туда попадает */
+    var plus = box.querySelector('[data-slot]');
+    if (plus) plus.addEventListener('click', function (e) {
+      e.stopPropagation();
+      var slot = plus.closest('.prt__slot');
+      slot.classList.remove('is-ping'); void slot.offsetWidth; slot.classList.add('is-ping');
+      var inCaps = D.products.filter(function (p) { return p.capsules && p.capsules.length; }).length;
+      S.ui.modal({
+        eyebrow: 'Поставщикам и брендам',
+        title: 'Как товар попадает в кадр',
+        html: '<div class="pb-list">' +
+          '<div class="pb-item"><b>1 · Реестр METOD</b><span>заявка в четыре шага, модерация</span></div>' +
+          '<div class="pb-item"><b>2 · Скидка от РРЦ</b><span>закрытая цена для участников клуба</span></div>' +
+          '<div class="pb-item"><b>3 · Каталог</b><span>ссылка или прайс — позиции подтянутся сами</span></div>' +
+          '<div class="pb-item"><b>4 · Капсула</b><span>дизайнер ставит вещь в интерьер, её собирают клиенты</span></div>' +
+        '</div>' +
+        '<p class="mtd__gain">Сейчас в капсулах ' + inCaps + ' позиций партнёров.</p>',
+        actions: [ { label: 'Стать партнёром', kind: 'primary', href: 'partner.html' },
+                   { label: 'Как это видит клиент', kind: 'ghost', href: 'market.html' },
+                   { label: 'Не сейчас', kind: 'link' } ]
+      });
+    });
+
+    /* плюс в ленте капсул: объясняем, как попасть в каталог интерьеров */
+    var capPlus = box.querySelector('[data-capslot]');
+    if (capPlus) capPlus.addEventListener('click', function (e) {
+      e.stopPropagation();
+      var card = capPlus.closest('.prt__card');
+      card.classList.add('is-on');
+      capPlus.classList.remove('is-ping'); void capPlus.offsetWidth; capPlus.classList.add('is-ping');
+      S.ui.modal({
+        eyebrow: 'Дизайнерам',
+        title: 'Как разместить свою капсулу',
+        html: '<div class="pb-list">' +
+          '<div class="pb-item"><b>1 · Заявка</b><span>анкета дизайнера и ссылка на портфолио</span></div>' +
+          '<div class="pb-item"><b>2 · Капсула</b><span>рендеры комнат, список материалов и товаров</span></div>' +
+          '<div class="pb-item"><b>3 · Модерация</b><span>проверяем состав и цены комплектации</span></div>' +
+          '<div class="pb-item"><b>4 · Каталог</b><span>интерьер встаёт рядом с остальными, заявки на проект идут вам</span></div>' +
+        '</div>' +
+        '<p class="mtd__gain">Сейчас в каталоге ' + D.capsules.filter(function (c) { return !c.soon; }).length + ' интерьеров.</p>',
+        actions: [ { label: 'Разместить капсулу', kind: 'primary', href: 'partner.html?who=designer' },
+                   { label: 'Посмотреть каталог интерьеров', kind: 'ghost', href: 'capsules.html' },
+                   { label: 'Не сейчас', kind: 'link' } ]
+      });
+    });
+    /* первый показ сам: когда блок доехал до экрана, вещь встаёт в кадр */
+    if (window.IntersectionObserver && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      cards.forEach(function (c) {
+        new IntersectionObserver(function (es, obs) {
+          es.forEach(function (en) {
+            if (!en.isIntersecting) return;
+            obs.unobserve(en.target);
+            setTimeout(function () { en.target.classList.add('is-on'); }, en.target.getAttribute('data-prt') === 'good' ? 450 : 900);
+          });
+        }, { threshold: 0.45 }).observe(c);
+      });
+    }
+  })();
+
+  /* переключатель подачи разбора рендера: показываем одну панель из трёх */
+  (function () {
+    var box = root.querySelector('.rsw'); if (!box) return;
+    box.addEventListener('click', function (e) {
+      var b = e.target.closest('.rsw__tab'); if (!b) return;
+      var id = b.getAttribute('data-rv');
+      box.querySelectorAll('.rsw__tab').forEach(function (t) {
+        var on = t === b;
+        t.classList.toggle('is-on', on); t.setAttribute('aria-selected', on ? 'true' : 'false');
+      });
+      box.querySelectorAll('.rsw__pane').forEach(function (p) {
+        p.classList.toggle('is-off', p.getAttribute('data-rv') !== id);
+      });
+    });
+  })();
+  /* рентген-полоса: ведём пальцем, подсвечиваем то, что попало под неё */
+  (function () {
+    var stage = document.getElementById('xr-stage'), line = document.getElementById('xr-line'), sum = document.getElementById('xr-sum');
+    var color = document.getElementById('xr-color');
+    if (!stage || !line) return;
+    var boxes = [].slice.call(stage.querySelectorAll('.xr__box'));
+    var OBJ = D.ai.renderSample.objects;
+    function put(y) {
+      y = Math.max(4, Math.min(96, y));
+      line.style.top = y + '%';
+      if (color) color.style.clipPath = 'inset(' + y.toFixed(1) + '% 0 0 0)';   /* ниже полосы кадр уже «проявлен» */
+      var found = 0, total = 0;
+      boxes.forEach(function (b) {
+        var t = Number(b.getAttribute('data-top'));
+        /* предмет остаётся отмеченным, как только полоса его прошла: находки накапливаются */
+        var on = y <= t + 4;
+        b.classList.toggle('is-on', on);
+        if (on) { found++; var p = D.product(OBJ[Number(b.getAttribute('data-i'))].items[0].id); total += p ? p.metod : 0; }
+      });
+      sum.textContent = found ? 'найдено ' + found + ' из ' + boxes.length + ' · ' + F.rub(total)
+        : 'потяните полосу вверх по кадру';
+    }
+    function fromEvent(e) {
+      var r = stage.getBoundingClientRect();
+      put((e.clientY - r.top) / r.height * 100);
+    }
+    /* полоса движется только пока её держат: за курсором без нажатия не бегает */
+    var drag = false;
+    function stop() { drag = false; stage.classList.remove('is-drag'); }
+    stage.addEventListener('pointerdown', function (e) {
+      drag = true; stage.classList.add('is-drag'); stage.setPointerCapture(e.pointerId); fromEvent(e); e.preventDefault();
+    });
+    stage.addEventListener('pointermove', function (e) { if (!drag) return; fromEvent(e); e.preventDefault(); });
+    stage.addEventListener('pointerup', stop);
+    stage.addEventListener('pointercancel', stop);
+    put(88);
+  })();
+
+  /* выбор кадра в блоке «Есть проект от дизайнера?»: меняем картинку, рамки — только у размеченного кадра */
+  (function () {
+    var stage = document.querySelector('.rnd:not(.rnd--xray):not(.rnd--one) .rnd__stage');
+    var pick = document.querySelector('.rnd__pick');
+    if (!stage || !pick) return;
+    var img = stage.querySelector('img'), card = document.getElementById('rnd-card');
+    var marked = D.ai.renderSample.capsule;
+
+    /* плашку с итогом ставим в тот угол кадра, где она меньше всего мешает ценам */
+    function placeSum() {
+      var sum = stage.querySelector('.rnd__sum'); if (!sum) return;
+      var marks = [].slice.call(stage.querySelectorAll('.rnd__box i, .rnd__box em'));
+      var best = null;
+      ['bl', 'tl', 'br', 'tr'].forEach(function (pos) {
+        sum.className = 'rnd__sum rnd__sum--' + pos;
+        var r = sum.getBoundingClientRect(), n = 0;
+        marks.forEach(function (m) {
+          var x = m.getBoundingClientRect();
+          if (!(x.right < r.left - 6 || r.right < x.left - 6 || x.bottom < r.top - 6 || r.bottom < x.top - 6)) n++;
+        });
+        if (!best || n < best.n) best = { pos: pos, n: n };
+      });
+      sum.className = 'rnd__sum rnd__sum--' + best.pos;
+    }
+    placeSum();
+    pick.addEventListener('click', function (e) {
+      var b = e.target.closest('[data-cap]'); if (!b) return;
+      pick.querySelectorAll('[data-cap]').forEach(function (x) { x.classList.toggle('is-on', x === b); });
+      var src = b.getAttribute('data-src'), id = b.getAttribute('data-cap');
+      var pre = new Image();
+      pre.onload = function () { img.style.opacity = '0'; setTimeout(function () { img.src = src; img.style.opacity = '1'; }, 160); };
+      pre.src = src;
+      var set = id === marked ? { objects: D.ai.renderSample.objects } : (D.ai.renderMarks || {})[id];
+      stage.classList.toggle('is-plain', !set);
+      var sum = stage.querySelector('.rnd__sum');
+      if (set) {
+        /* перерисовываем рамки под выбранный кадр */
+        stage.querySelectorAll('[data-obj]').forEach(function (x) { x.remove(); });
+        var total = 0;
+        set.objects.forEach(function (o, n) {
+          var p = D.product(o.items[0].id); total += p ? p.metod : 0;
+          var el = document.createElement('button');
+          el.type = 'button'; el.className = 'rnd__box' + boxCls(o); el.setAttribute('data-obj', n);
+          el.setAttribute('aria-label', o.name + (p ? ', ' + F.rub(p.metod) : ''));
+          el.style.cssText = '--x:' + o.box[0] + '%;--y:' + o.box[1] + '%;--w:' + o.box[2] + '%;--h:' + o.box[3] + '%;--i:' + n;
+          el.innerHTML = '<i>' + o.n + '</i><em>' + (p ? F.rub(p.metod) : '') + '</em>';
+          stage.insertBefore(el, sum);
+        });
+        window.__rndObjects = set.objects; window.__rndCap = id;
+        if (sum) { sum.textContent = set.objects.length + ' предмета · ' + F.rub(total) + ' с METOD'; placeSum(); }
+        if (card) card.innerHTML = '<span class="rnd__hint">Наведите на предмет — покажем, что это за вещь и почём</span>';
+      } else {
+        if (sum) sum.textContent = 'этот кадр разберём так же';
+        if (card) card.innerHTML = '<span class="rnd__hint">Нажмите «Проверить смету» — разберём этот кадр и соберём список вещей с ценами</span>';
+      }
+      var go = document.querySelector('.rnd__foot .btn--primary');
+      if (go) go.href = 'ai.html?mode=render&capsule=' + id;
+    });
+  })();
+
+  /* разбор рендера: наведение или тап по предмету показывает товар из капсулы */
+  (function () {
+    var card = document.getElementById('rnd-card'), stage = document.querySelector('.rnd:not(.rnd--xray) .rnd__stage');
+    if (!card || !stage) return;
+    var hint = card.innerHTML, cur = -1;
+    function objs() { return window.__rndObjects || D.ai.renderSample.objects; }
+    function show(i) {
+      var o = objs()[i]; if (!o) return;
+      cur = i;
+      var p = D.product(o.items[0].id);
+      /* точное совпадение подписываем капсулой, близкое — честно называем похожим */
+      var here = D.capsule(window.__rndCap || D.ai.renderSample.capsule);
+      var mine = p && p.capsules && here && p.capsules.indexOf(here.id) >= 0;
+      var from = o.items[0].match === 'exact' && mine ? ' · из капсулы «' + esc(here.name) + '»' : ' · похожий в каталоге';
+      card.innerHTML = p ?
+        '<a class="rnd__prod" href="product.html?id=' + p.id + '"><img src="' + p.img + '" alt="">' +
+        '<span class="rnd__pbody"><b>' + esc(p.name) + '</b>' +
+        '<i>' + F.rub(p.metod) + ' с METOD <s>' + F.rub(p.retail) + '</s></i>' +
+        '<u>' + esc(o.name) + from + '</u></span></a>' +
+        '<button type="button" class="btn btn--ghost btn--sm rnd__add" data-my-add="' + p.id + '">' +
+        (S.my.hasProduct(p.id) ? 'В моём ремонте' : 'В мой ремонт') + '</button>'
+        : hint;
+      stage.querySelectorAll('[data-obj]').forEach(function (b) { b.classList.toggle('is-on', Number(b.getAttribute('data-obj')) === i); });
+    }
+    stage.addEventListener('pointerover', function (e) {
+      var b = e.target.closest('[data-obj]');
+      if (b && e.pointerType === 'mouse') show(Number(b.getAttribute('data-obj')));
+    });
+    stage.addEventListener('click', function (e) {
+      var b = e.target.closest('[data-obj]'); if (!b) return;
+      var i = Number(b.getAttribute('data-obj'));
+      if (i === cur) { cur = -1; card.innerHTML = hint; stage.querySelectorAll('[data-obj]').forEach(function (x) { x.classList.remove('is-on'); }); }
+      else show(i);
+    });
+  })();
+
+  if (S.adeptBanner) S.adeptBanner(document.getElementById('home-adept'), { capsule: 'k1', compact: true, picker: true, title: 'Капсула ляжет на вашу планировку', cta: 'Заказать проект' });
+  /* стрелки по бокам каруселей: листают на ширину экрана, гаснут на краях */
+  root.querySelectorAll('.lane').forEach(function (lane) {
+    var wrap = document.createElement('div'); wrap.className = 'lane-wrap';
+    lane.parentNode.insertBefore(wrap, lane); wrap.appendChild(lane);
+    var prev = document.createElement('button'), next = document.createElement('button');
+    prev.type = next.type = 'button'; prev.className = 'lane-arr lane-arr--prev'; next.className = 'lane-arr lane-arr--next';
+    prev.setAttribute('aria-label', 'Назад'); next.setAttribute('aria-label', 'Вперёд'); prev.innerHTML = next.innerHTML = ic('back', 18);
+    wrap.appendChild(prev); wrap.appendChild(next);
+    function sync() { var max = lane.scrollWidth - lane.clientWidth - 2; prev.hidden = lane.scrollLeft <= 2; next.hidden = lane.scrollLeft >= max; }
+    prev.addEventListener('click', function () { lane.scrollBy({ left: -(lane.clientWidth - 40), behavior: 'smooth' }); });
+    next.addEventListener('click', function () { lane.scrollBy({ left: lane.clientWidth - 40, behavior: 'smooth' }); });
+    lane.addEventListener('scroll', sync, { passive: true }); window.addEventListener('resize', sync); setTimeout(sync, 50);
+  });
 })();

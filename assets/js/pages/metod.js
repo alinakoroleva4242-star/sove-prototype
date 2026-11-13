@@ -1,5 +1,10 @@
 /* METOD: статус подписки, цифры из данных, тарифы, примеры цен, вопросы */
 (function () {
+  /* METOD = лента «Метод ремонта» (Алина 03–04.11): подписка оформляется в ленте, отдельной страницы нет; ?buy= и ?returnTo= переносим */
+  var _q = new URLSearchParams(location.search), _buy = _q.get('buy') || _q.get('plan'), _rt = _q.get('returnTo');
+  location.replace('feed.html' + (_buy || _rt ? '?' + [_buy ? 'buy=' + encodeURIComponent(_buy) : '', _rt ? 'returnTo=' + encodeURIComponent(_rt) : ''].filter(Boolean).join('&') : ''));
+  return;
+
   var S = window.SOVE, D = S.data, F = S.fmt;
 
   function safeReturn(v) { return v && /^[a-z0-9_-]+\.html([?#][^\s<>"'\\]*)?$/i.test(v) ? v : null; }
@@ -8,10 +13,7 @@
   function dateYear(ts) { var d = new Date(ts); return F.dateLong(ts) + (d.getFullYear() !== new Date().getFullYear() ? ' ' + d.getFullYear() : ''); }
 
   var returnTo = safeReturn(S.ui.qs('returnTo'));
-  /* METOD = лента «Метод ремонта» (Алина 03.11): подписка оформляется в ленте, отдельной страницы нет */
-  var bq = S.ui.qs('buy') || S.ui.qs('plan');
-  location.replace('feed.html' + (bq ? '?buy=' + encodeURIComponent(bq) : ''));
-  return;
+  var rtParam = '&returnTo=' + encodeURIComponent(returnTo || 'metod.html');
 
   var plans = D.metodPlans.map(function (m) { return { id: m.id, months: m.months, price: m.price, perMonth: m.price / m.months }; });
   var base = plans.filter(function (p) { return p.months === 1; })[0] || plans[0];
@@ -29,17 +31,20 @@
     ['от ' + F.rub(best.perMonth), 'в месяц при оплате за ' + months(best.months)],
     [terms.join(' · '), 'месяцев — срок на выбор']
   ].map(function (f) { return '<div class="rule-top stack stack--2"><span class="mid-num">' + f[0] + '</span><span class="tiny muted">' + f[1] + '</span></div>'; }).join('');
-  /* подарок METOD (тарифы генераций, 03.11): «Твоя квартира» 16 ✦ + 8 ⇄ — только на 6 месяцев, один раз за оплату */
-  document.getElementById('mt-ai-text').textContent = 'При оплате на 6 месяцев — тариф «Твоя квартира» в подарок: 16 генераций и 8 замен, один раз за оплату. На 1 и 3 месяца подарка генераций нет.';
-  document.getElementById('mt-pack-link').href = 'account.html?v=tokens';
+  /* подарок подписки (ТЗ 04.11, правило 17): METOD на 6 месяцев и «Навсегда» — тариф «Твоя квартира», 25 генераций, один раз при оплате */
+  document.getElementById('mt-ai-text').textContent = 'METOD на 6 месяцев и «Навсегда» дарит тариф «Твоя квартира» — 25 генераций, один раз при оплате. На 1 и 3 месяца подарка нет. Генерации не сгорают.';
+  document.getElementById('mt-pack-link').href = 'tokens.html' + (returnTo ? '?returnTo=' + encodeURIComponent(returnTo) : '');
 
   /* примеры цен: товары с самой большой скидкой */
   document.getElementById('mt-products').innerHTML = D.products.slice().sort(function (a, b) { return b.discount - a.discount || a.id - b.id; }).slice(0, 4).map(function (p) { return S.ui.productCard(p); }).join('');
 
   /* вопросы — только то, что известно */
+  var pack = (D.gen && D.gen.topup && D.gen.topup[0]) || { price: 49, tokens: 1 };
   var faq = [
-    ['Входят ли генерации в подписку?', 'При оплате на 6 месяцев — тариф «Твоя квартира» в подарок: 16 генераций и 8 замен, один раз за оплату. На 1 и 3 месяца подарка нет. Генерации и замены не сгорают.'],
-    ['Что будет, когда подписка закончится?', 'Контакты поставщиков в карточках закроются. Генерации и замены, разово открытые контакты, проекты и избранное останутся в кабинете.'],
+    ['Сколько генераций входит в подписку?', 'METOD на 6 месяцев и «Навсегда» — 25 генераций в подарок (тариф «Твоя квартира»), один раз при оплате. На 1 и 3 месяца — без подарка. Генерации не сгорают.'],
+    ['На что тратить подарочные генерации?', 'На любые действия: план, материалы, бюджет, комнаты, ракурсы, замены — одно действие = одна генерация, на любые квартиры.'],
+    ['Бюджет по капсуле — платный?', 'По подписке METOD бюджет по капсулам SOVEAPP считается без списаний. Без подписки — один раз за подарочную генерацию, дальше нужна подписка. Капсулы дизайнеров и свой интерьер — 1 генерация для всех.'],
+    ['Что будет, когда подписка закончится?', 'Контакты поставщиков в карточках закроются. Купленные генерации и пакеты, разово открытые контакты, проекты и избранное останутся в кабинете.'],
     ['Можно продлить заранее?', 'Да. Новый срок прибавится к текущему — оставшиеся дни не пропадут. Оплата разовая, за выбранный срок; будет ли автопродление — уточняется.'],
     ['Можно открыть один контакт без подписки?', D.singleAccess ? 'Да, разовый доступ к контакту стоит ' + F.rub(D.singleAccess.price || D.singleAccess) + '.' : 'Разовый доступ к контакту предусмотрен, его цена уточняется. С METOD открыты контакты сразу всех поставщиков.']
   ];
@@ -51,7 +56,9 @@
     if (active) {
       html += '<div class="notice notice--ok"><span><b>Подписка активна до ' + dateYear(S.metod.until()) + '</b> · ' + (S.metod.daysLeft() === 1 ? 'остался ' : 'осталось ') + plural(S.metod.daysLeft(), 'день', 'дня', 'дней') + '</span><a class="btn btn--dark btn--sm" href="#plans">Продлить</a></div>';
     }
-    /* блок «После оплаты вернём вас… · Тарифы генераций» убран: METOD выглядит одинаково, откуда бы ни пришли (Алина 03.11) */
+    if (returnTo && !/^metod\.html/i.test(returnTo)) {
+      html += '<div class="notice"><span class="small">После оплаты вернём вас на экран, с которого вы пришли, — фото и параметры сохранены. На 6 месяцев — 25 генераций в подарок; нужны только генерации — пакет по зонам или генерации.</span><a class="btn btn--ghost btn--sm" href="tokens.html?returnTo=' + encodeURIComponent(returnTo) + '">Пакеты и генерации</a></div>';
+    }
     top.innerHTML = html; top.hidden = !html;
 
     document.getElementById('mt-plan-cards').innerHTML = plans.map(function (p) {
@@ -65,22 +72,11 @@
         '<span>' + (active ? 'Продлим до ' : 'Будет активна до ') + '<b class="num">' + dateYear(until) + '</b></span>' +
         '<span class="muted">' + (save > 0 ? 'На ' + F.rub(save) + ' дешевле, чем платить по месяцу' : 'Чтобы попробовать и открыть нужные контакты') + '</span>' +
         '</div>' +
-        '<a class="btn ' + (isBest ? 'btn--primary' : 'btn--ghost') + ' btn--block" href="#" data-mt-buy="' + p.id + '" aria-label="' + (active ? 'Продлить на ' : 'Оформить на ') + months(p.months) + '">' + (active ? 'Продлить' : 'Оформить') + '</a>' +
+        '<a class="btn ' + (isBest ? 'btn--primary' : 'btn--ghost') + ' btn--block" href="tokens.html?plan=' + p.id + rtParam + '" aria-label="' + (active ? 'Продлить на ' : 'Оформить на ') + months(p.months) + '">' + (active ? 'Продлить' : 'Оформить') + '</a>' +
         '</article>';
     }).join('');
   }
   renderState();
-
-  /* оплата METOD прямо отсюда, без страницы тарифов (Алина 03.11: «это дубль»); гостя — на вход и обратно сюда же с ?buy= */
-  function buy(id) {
-    var m = D.metodPlans.filter(function (x) { return x.id === id; })[0]; if (!m) return;
-    if (!S.auth.isIn()) { S.ui.needAuth('Войдите, чтобы оплатить', 'metod.html?buy=' + id + (returnTo ? '&returnTo=' + encodeURIComponent(returnTo) : '')); return; }
-    var pm = S.pay.create({ kind: 'metod', id: m.id, title: 'METOD · ' + months(m.months), price: m.price, months: m.months }, returnTo || 'metod.html');
-    location.href = 'pay.html?id=' + encodeURIComponent(pm.id);
-  }
-  document.addEventListener('click', function (e) { var a = e.target.closest('[data-mt-buy]'); if (a) { e.preventDefault(); buy(a.getAttribute('data-mt-buy')); } });
-  var buyId = S.ui.qs('buy');
-  if (buyId) { try { history.replaceState(null, '', location.pathname + location.search.replace(/[?&]buy=[^&]*/, '').replace(/^&/, '?')); } catch (e) {} buy(buyId); }
 
   var lastKey = String(S.auth.isIn()) + S.metod.until();
   S.onChange(function () { var k = String(S.auth.isIn()) + S.metod.until(); if (k !== lastKey) { lastKey = k; renderState(); } });
@@ -96,7 +92,7 @@
   var DOORS = [
     ['Скидки по всему маркетплейсу', 'цены и прямые контакты всех брендов-партнёров открываются сразу'],
     ['Клуб 3000+', 'закрытый доступ к сообществу и материалам клуба'],
-    ['«Твоя квартира» в подарок', '16 генераций и 8 замен при оплате на 6 месяцев, один раз за оплату']
+    ['25 генераций в подарок', 'на 6 месяцев и «Навсегда» — тариф «Твоя квартира» один раз при оплате']
   ];
   var clubEl = document.getElementById('mt-club');
   if (clubEl) clubEl.innerHTML = '<div class="pb-list">' + INSIDE.map(function (x) {

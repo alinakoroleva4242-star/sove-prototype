@@ -1,0 +1,64 @@
+/* Чаты как в мессенджере (Валерия 05.11): список диалогов и переписка. Manrope + Cormorant, терракота, скругления 12/16 */
+.chx { display: flex; flex-direction: column; gap: 14px; width: 100%; max-width: 720px; margin: 0 auto; padding: 8px 0 24px; box-sizing: border-box; min-width: 0; }
+.chx a { text-decoration: none; }
+.chx-top { display: flex; flex-direction: column; gap: 4px; }
+.chx-h1 { font-family: var(--font-display); font-weight: 500; font-size: 34px; line-height: 1; margin: 0; }
+.chx-top p { margin: 0; font-size: 13px; color: var(--graphite); }
+
+/* список диалогов */
+.chx-list { display: flex; flex-direction: column; background: var(--white); border-radius: var(--r); box-shadow: var(--shadow); overflow: hidden; }
+.chx-row { display: flex; align-items: center; gap: 12px; min-height: 68px; padding: 10px 14px; color: var(--ink) !important; }
+.chx-row + .chx-row { border-top: 1px solid var(--line); }
+.chx-row__b { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+.chx-row__b b { font-size: 15px; font-weight: 600; }
+.chx-row__b span { font-size: 13px; color: var(--graphite); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.chx-row__r { flex: none; }
+.chx-row__r small { font-size: 11.5px; color: var(--graphite); white-space: nowrap; }
+.chx-lock { display: inline-block; padding: 3px 8px; border-radius: var(--pill); background: var(--surface-2); }
+.chx-ava { flex: none; width: 44px; height: 44px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font: 700 15px var(--font); color: #fff; background: var(--accent-2); letter-spacing: .02em; }
+.chx-ava--support { background: var(--dark); }
+.chx-ava--designer { background: #8A7AA8; }
+.chx-ava--team { background: #6E8B74; }
+.chx-hint { margin: 0; font-size: 12.5px; color: var(--graphite); line-height: 1.45; }
+.chx-hint a { color: var(--accent) !important; font-weight: 600; }
+
+/* переписка */
+.chx-back { align-self: flex-start; min-height: 36px; display: inline-flex; align-items: center; font-size: 14px; font-weight: 600; color: var(--accent) !important; }
+.chx-head { display: flex; align-items: center; gap: 12px; }
+.chx-head__b { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.chx-head__b b { font-size: 18px; font-weight: 700; overflow-wrap: anywhere; }
+.chx-head__b small { font-size: 12.5px; color: var(--graphite); }
+.chx-order { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: var(--r-sm); background: var(--white); box-shadow: var(--shadow); color: var(--ink) !important; }
+.chx-order img, .chx-order i { flex: none; width: 40px; height: 40px; border-radius: 8px; object-fit: cover; display: inline-flex; align-items: center; justify-content: center; background: var(--surface-2); color: var(--graphite); font-style: normal; }
+.chx-order span { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.chx-order small { font-size: 11.5px; color: var(--graphite); }
+.chx-order b { font-size: 13.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.chx-order em { flex: none; max-width: 40%; font-style: normal; font-size: 11.5px; font-weight: 600; padding: 4px 8px; border-radius: var(--pill); background: var(--accent-soft); color: var(--accent); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.chx-log { display: flex; flex-direction: column; gap: 8px; min-height: 220px; padding: 14px 12px; border-radius: var(--r); background: #EFEBE5; }
+.chx-day { align-self: center; padding: 3px 10px; border-radius: var(--pill); background: rgba(255,255,255,.75); font-size: 11.5px; color: var(--graphite); }
+.chx-msg { align-self: flex-start; max-width: 80%; padding: 9px 12px 6px; border-radius: 16px 16px 16px 4px; background: var(--white); font-size: 14.5px; line-height: 1.4; box-shadow: 0 1px 1px rgba(0,0,0,.05); overflow-wrap: anywhere; }
+.chx-msg small { display: block; margin-top: 2px; text-align: right; font-size: 10.5px; color: var(--graphite); }
+.chx-msg.is-me { align-self: flex-end; border-radius: 16px 16px 4px 16px; background: var(--accent-2); color: #fff; }
+.chx-msg.is-me small { color: rgba(255,255,255,.78); }
+.chx-file { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; }
+.chx-file svg { flex: none; }
+.chx-empty { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 28px 16px; border-radius: var(--r); background: #EFEBE5; text-align: center; }
+.chx-empty b { font-family: var(--font-display); font-size: 24px; font-weight: 500; }
+.chx-empty p { margin: 0 0 6px; font-size: 13px; color: var(--graphite); }
+.chx-quick { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.chx-chip { min-height: 38px; padding: 0 14px; border: 1px solid var(--line-2); border-radius: var(--pill); background: var(--white); font: 500 13.5px var(--font); color: var(--ink); cursor: pointer; }
+.chx-chip:hover { border-color: var(--accent-2); }
+/* поле ввода — над нижним меню, всегда под пальцем */
+.chx-composer { position: sticky; bottom: calc(var(--tabbar-h, 64px) + env(safe-area-inset-bottom) + 8px); z-index: 5; display: flex; align-items: center; gap: 6px; padding: 5px; border-radius: var(--pill); background: var(--white); box-shadow: 0 6px 20px -8px rgba(30,28,26,.25); }
+.chx-clip { flex: none; width: 42px; height: 42px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; color: var(--graphite); cursor: pointer; }
+.chx-input { flex: 1; min-width: 0; height: 42px; border: 0; background: transparent; font: 400 16px var(--font); color: var(--ink); outline: none; padding: 0 8px; }
+.chx-send { flex: none; width: 42px; height: 42px; border: 0; border-radius: 50%; background: var(--accent-2); color: #fff; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
+.chx-locked { display: flex; flex-direction: column; gap: 12px; padding: 18px 16px; border-radius: var(--r); background: var(--white); box-shadow: var(--shadow); }
+.chx-locked p { margin: 0; font-size: 14px; line-height: 1.45; color: var(--graphite); }
+.chx-cta { display: flex; align-items: center; justify-content: center; min-height: 48px; border-radius: var(--r); background: var(--accent-2); color: #fff !important; font-weight: 700; }
+@media (min-width: 960px) { .chx-composer { bottom: 16px; } }
+
+/* задача 27 (10.11): строка «скоро» в списке и вторая кнопка на экране-заглушке */
+.chx-row--soon { cursor: default; opacity: .75; }
+.chx-row--soon:hover { background: transparent; }
+.chx-cta--ghost { background: transparent; color: var(--graphite); border: 1px solid var(--line, #e3ddd6); }

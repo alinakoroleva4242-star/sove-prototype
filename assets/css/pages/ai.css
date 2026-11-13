@@ -303,6 +303,10 @@ a.ai-box:hover, a.ai-box:focus-visible, .ai-box.is-hot { background: rgba(160, 8
 .res-top__again { flex: 0 0 auto; }
 .res-top__charge { margin: 10px 0 0; }
 .ai-cards--2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 14px; }
+/* «Найти другую»: карточка и кнопка «Поставить в интерьер» — одна ячейка сетки */
+.ai-pick { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.ai-pick .pc { flex: 1; }
+.ai-put { white-space: normal; line-height: 1.2; }
 @media (max-width: 420px) { .res-top__again { display: none; } }
 
 /* ---------- ожидание результата: снимок, полоса, карточки-заготовки ---------- */

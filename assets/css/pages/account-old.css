@@ -1,8 +1,8 @@
 /* Профиль покупателя: компактный список, как в маркетплейсах (Валерия 21.10). Только account.html, после account.css и extra.css.
    Карточка человека → три цифры → группы строк с иконками; подробные разделы (проекты, генерации, избранное,
-   доступы и заявки, история токенов) раскрываются под своей строкой — их содержимое рисует account.js как раньше.
-   Те же токены стиля, что у кабинета «Мой ремонт» (my-warm.css). */
-/* токены — из хендоффа дизайнера (site.css, 21.10); --mw-* здесь только псевдонимы */
+   доступы и заявки, история генераций) раскрываются под своей строкой — их содержимое рисует account.js как раньше.
+   Те же генерации стиля, что у кабинета «Мой ремонт» (my-warm.css). */
+/* генерации — из хендоффа дизайнера (site.css, 21.10); --mw-* здесь только псевдонимы */
 body[data-page="account"] { --mw-bg: var(--bg); --mw-shadow: var(--shadow-card); --mw-line: var(--border); --mw-line-2: var(--border); --mw-soft: var(--surface-warm); --mw-soft-2: var(--surface-warm); --mw-serif: var(--font-display); background: var(--mw-bg); }
 body[data-page="account"] main { background: var(--mw-bg); }
 body[data-page="account"] #site-header .appbar { display: none !important; } /* как у экранов кабинета: своя шапка, внизу общее меню */

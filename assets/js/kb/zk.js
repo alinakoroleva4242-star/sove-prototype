@@ -69,11 +69,11 @@
     if (!b || !l.m2 || !S || !S.scout || !S.scout.estimate) return null;
     var e = S.scout.estimate({ stateId: b.state || 'concrete', area: l.m2, capsuleId: b.capsule, level: b.level || 'base' });
     var K = {}; e.kit.forEach(function (x) { K[x[0]] = x[1]; });
-    var furniture = (K['Мебель покупная'] || 0) + (K['Мебель на заказ'] || 0);
+    var furniture = (K['Мебель покупная'] || 0) + (K['Мебель заказная'] || 0);
     var materials = (K['Отделка'] || 0) + (K['Освещение'] || 0) + (K['Выключатели и розетки'] || 0) + (K['Сантехника'] || 0) + (K['Техника'] || 0) + (K['Двери и перегородки'] || 0);
-    var decor = K['Текстиль и декор'] || 0, works = e.works;
+    var decor = K['Текстиль и декор'] || 0, works = e.works + (e.roughMode === 'top' ? e.rough : 0);   /* черновые сверху комплектации — в работах; при share они уже внутри «Отделки» */
     return { furniture: Math.round(furniture), materials: Math.round(materials), decor: Math.round(decor), works: Math.round(works),
-      total: Math.round(furniture + materials + decor + works), capsule: b.capsule };
+      total: Math.round(e.total), capsule: b.capsule };
   }
 
   window.SOVE_ZK = { list: ZK, persist: persist, reset: reset, exportJs: exportJs, get: get, layout: layout, search: search, ready: ready, markupOf: markupOf, layoutOf: layoutOf,
